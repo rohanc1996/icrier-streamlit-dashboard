@@ -176,11 +176,17 @@ def scatter_3panel(
         _add_spearman_line(fig, xs, ys, row=1, col=i, showlegend=first)
 
     fig.update_layout(
-        height=430,
-        margin=dict(l=10, r=10, t=60, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.03,
+        height=470,
+        margin=dict(l=10, r=10, t=110, b=10),
+        legend=dict(orientation="h", yanchor="top", y=1.0,
                     xanchor="left", x=0, font=dict(size=11)),
     )
+    # Panel headings sit in the top margin, just above each plot — never
+    # overlapping the data. Their default position (paper y=1.0) crowds the
+    # plot tops, so place each one explicitly above the plot area.
+    plot_top = 1.0 - fig.layout.margin.t / fig.layout.height
+    for ann in fig.layout.annotations:
+        ann.update(y=plot_top + 0.015, yanchor="bottom", yshift=0)
     for axis in ("xaxis", "yaxis", "xaxis2", "yaxis2", "xaxis3", "yaxis3"):
         fig.layout[axis].range = [0, 1]
         fig.layout[axis].tickformat = ".1f"

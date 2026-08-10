@@ -35,6 +35,22 @@ def scaled_scores(
     return df
 
 
+def _tie_broken_ranks(scores: pd.DataFrame, score_col: str, higher_is_better: bool) -> pd.Series:
+    """Competition ranks that break tied scores by the raw value.
+
+    Countries pinned to the same scaled score (e.g. everyone at the upper cap)
+    are ordered by their raw value, so the ranking mirrors the raw-value
+    ranking. Countries with genuinely identical raw values keep the same rank.
+    """
+    base = scores[score_col].rank(ascending=False, method="min").astype(int)
+    within = (
+        scores.groupby(score_col)["value"]
+        .rank(ascending=not higher_is_better, method="min")
+        .astype(int)
+    )
+    return base + within - 1
+
+
 def rank_table(
     data,
     indicator: str,
@@ -45,8 +61,10 @@ def rank_table(
     scores = scaled_scores(data, indicator, lower, upper).dropna(subset=["value"])
     n = len(scores)
     scores = scores.copy()
-    # Rank by the capped score (monotonic, so it matches a raw-value ranking).
-    scores["rank"] = scores[scaling.METHOD_CAPPED].rank(ascending=False, method="min").astype(int)
+    # Rank by the capped score, breaking any ties by the raw value.
+    scores["rank"] = _tie_broken_ranks(
+        scores, scaling.METHOD_CAPPED, data.higher_is_better.get(indicator, True)
+    )
     scores["percentile"] = ((n - scores["rank"]) / (n - 1) * 100.0) if n > 1 else 100.0
     cols = ["rank", "Country", "value", "percentile",
             scaling.METHOD_FULL, scaling.METHOD_CAPPED, scaling.METHOD_LOG]
@@ -62,8 +80,8 @@ def rank_stability_table(
     """Rank of every country under each scaling method, plus max swing."""
     scores = scaled_scores(data, indicator, lower, upper).dropna(subset=["value"]).copy()
     for method in scaling.ALL_METHODS:
-        scores[f"rank_{method}"] = (
-            scores[method].rank(ascending=False, method="min").astype(int)
+        scores[f"rank_{method}"] = _tie_broken_ranks(
+            scores, method, data.higher_is_better.get(indicator, True)
         )
     rank_cols = [f"rank_{m}" for m in scaling.ALL_METHODS]
     scores["max_swing"] = scores[rank_cols].max(axis=1) - scores[rank_cols].min(axis=1)

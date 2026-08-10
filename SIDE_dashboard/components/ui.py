@@ -31,8 +31,13 @@ def fmt(v) -> str:
     return f"{v:.2f}"
 
 
-def indicator_selectbox(data, label: str, key: str, default=None, categories=None):
-    """Selectbox over indicators showing friendly names (returns the column name)."""
+def indicator_selectbox(data, label: str, key: str, default=None, categories=None, group_categories: bool = False):
+    """Selectbox over indicators showing friendly names (returns the column name).
+
+    With ``group_categories=True`` the options are sorted by category and the
+    labels are prefixed with the category, so all indicators of a category form
+    a contiguous, clearly labelled block in one dropdown.
+    """
     options = list(data.indicators)
     if categories:
         allowed = set(categories)
@@ -41,8 +46,14 @@ def indicator_selectbox(data, label: str, key: str, default=None, categories=Non
         st.warning("No indicators match that category filter. Pick at least one category.")
         return None
 
-    def fmt_label(col: str) -> str:
-        return f"{data.friendly_names.get(col, col)}  ·  {data.categories.get(col, 'Other')}"
+    if group_categories:
+        options = sorted(options, key=lambda c: (data.categories.get(c, "Other"), c))
+
+        def fmt_label(col: str) -> str:
+            return f"{data.categories.get(col, 'Other')} — {data.friendly_names.get(col, col)}"
+    else:
+        def fmt_label(col: str) -> str:
+            return f"{data.friendly_names.get(col, col)}  ·  {data.categories.get(col, 'Other')}"
 
     if default is None or default not in options:
         default = options[0]

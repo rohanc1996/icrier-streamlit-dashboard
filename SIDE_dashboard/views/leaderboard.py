@@ -17,17 +17,14 @@ def render(data) -> None:
     )
     ui.explainer(
         "📊",
-        "Choose an indicator to see the full ranking, filter by category, search "
-        "for a country, and download the table as CSV.",
+        "Choose an indicator to see the full ranking, search for a country, "
+        "and download the table as CSV. Indicators are grouped by category in "
+        "the dropdown.",
     )
 
-    all_cats = sorted({data.categories.get(c, "Other") for c in data.indicators})
-    cats = st.multiselect("Filter by category", all_cats, default=all_cats, key="lb_cats")
-    if not cats:
-        st.warning("Pick at least one category.")
-        return
-
-    indicator = ui.indicator_selectbox(data, "Indicator", key="lb_indicator", default=DEFAULT_INDICATOR, categories=cats)
+    indicator = ui.indicator_selectbox(
+        data, "Indicator", key="lb_indicator", default=DEFAULT_INDICATOR, group_categories=True
+    )
     if indicator is None:
         return
 
@@ -37,16 +34,7 @@ def render(data) -> None:
     if search.strip():
         table = table[table["Country"].str.contains(search.strip(), case=False, na=False)]
 
-    c1, c2 = st.columns([3, 1])
-    with c1:
-        ui.show_table(table, column_config=ui.rank_column_config(data), height=520)
-    with c2:
-        st.subheader("🥇 Top 5")
-        for _, r in table.head(5).iterrows():
-            st.markdown(f"**#{int(r['rank'])}** {r['Country']} — {ui.fmt(r['value'])}")
-        st.subheader("⛳ Bottom 5")
-        for _, r in table.tail(5).iterrows():
-            st.markdown(f"**#{int(r['rank'])}** {r['Country']} — {ui.fmt(r['value'])}")
+    ui.show_table(table, column_config=ui.rank_column_config(data), height=520)
 
     csv = table.to_csv(index=False).encode("utf-8")
     st.download_button(

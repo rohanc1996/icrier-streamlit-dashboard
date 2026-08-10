@@ -61,9 +61,15 @@ def render(data) -> None:
     ui.explainer(
         "👆",
         "Click any country on the map (or choose it in the box on the right) to "
-        "open its profile. The map shows one indicator at a time — change it "
-        "with the dropdown.",
+        "open its profile. **India is shown by default.** The map colours one "
+        "indicator at a time — change it with the dropdown.",
     )
+
+    # India is the default country on first load.
+    if "selected_country" not in st.session_state:
+        st.session_state["selected_country"] = (
+            "India" if "India" in data.country_list else data.country_list[0]
+        )
 
     col_map, col_pick = st.columns([3, 1])
 
@@ -79,17 +85,29 @@ def render(data) -> None:
 
     with col_pick:
         st.subheader("Select a country")
-        manual = st.selectbox("Search countries", data.country_list, key="ce_manual", label_visibility="collapsed")
+        default_country = "India" if "India" in data.country_list else data.country_list[0]
+        manual = st.selectbox(
+            "Search countries",
+            data.country_list,
+            index=data.country_list.index(default_country),
+            key="ce_manual",
+            label_visibility="collapsed",
+        )
         if st.button("📌 Open profile", key="ce_open", width="stretch"):
             st.session_state["selected_country"] = manual
         selected = st.session_state.get("selected_country")
         if selected:
             st.markdown(f"**Showing profile:** {selected}")
-            if st.button("✕ Clear selection", key="ce_clear", width="stretch"):
-                st.session_state.pop("selected_country", None)
+            if st.button(
+                "↺ Reset to India",
+                key="ce_clear",
+                width="stretch",
+                help="Go back to the default country.",
+            ):
+                st.session_state["selected_country"] = default_country
                 st.rerun()
         else:
-            st.caption("No country selected yet — click the map or use the box.")
+            st.caption("Pick a country (map click or the box above) to see its profile.")
 
     selected = st.session_state.get("selected_country")
     if selected and selected in data.country_list:
@@ -111,27 +129,30 @@ def _profile_panel(data, country: str) -> None:
             r = row.iloc[0]
             metrics.append((ind, r["value"], r["rank"], r["of"]))
     if metrics:
-        cols = st.columns(len(metrics))
-        for c, (ind, val, rank, n) in zip(cols, metrics):
-            with c:
-                st.metric(
-                    label=data.friendly_names.get(ind, ind),
-                    value=ui.fmt(val),
-                    delta=f"rank #{int(rank)} / {int(n)}",
-                )
+        # Headline metrics in a 4-column grid so labels wrap instead of squish.
+        for row_start in range(0, len(metrics), 4):
+            cols = st.columns(4)
+            for c, (ind, val, rank, n) in zip(cols, metrics[row_start:row_start + 4]):
+                with c:
+                    st.metric(
+                        label=data.friendly_names.get(ind, ind),
+                        value=ui.fmt(val),
+                        delta=f"rank #{int(rank)} / {int(n)}",
+                    )
 
-    left, right = st.columns([2, 1])
+    st.subheader("Ranking on every indicator")
+    view = pr.copy()
+    view["Indicator"] = view["indicator"].map(lambda i: data.friendly_names.get(i, i))
+    view["Value"] = view["value"].map(ui.fmt)
+    view["Percentile"] = view["percentile"].map(lambda p: f"{p:.0f}")
+    ui.show_table(view[["rank", "Indicator", "Value", "Percentile"]], height=430)
+
+    left, right = st.columns(2)
     with left:
-        st.subheader("Ranking on every indicator")
-        view = pr.copy()
-        view["Indicator"] = view["indicator"].map(lambda i: data.friendly_names.get(i, i))
-        view["Value"] = view["value"].map(ui.fmt)
-        view["Percentile"] = view["percentile"].map(lambda p: f"{p:.0f}")
-        ui.show_table(view[["rank", "Indicator", "Value", "Percentile"]], height=430)
-    with right:
         st.subheader("💪 Strengths")
         for _, r in pr.head(5).iterrows():
             st.markdown(f"- **{data.friendly_names.get(r['indicator'], r['indicator'])}**: #{int(r['rank'])}/{int(r['of'])}")
+    with right:
         st.subheader("🎯 Areas to improve")
         for _, r in pr.tail(5).iloc[::-1].iterrows():
             st.markdown(f"- **{data.friendly_names.get(r['indicator'], r['indicator'])}**: #{int(r['rank'])}/{int(r['of'])}")
