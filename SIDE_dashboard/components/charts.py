@@ -113,7 +113,7 @@ def _add_spearman_line(fig, xs, ys, row, col, showlegend):
     fig.add_trace(go.Scatter(
         x=xline, y=yline, mode="lines",
         name=f"Spearman {r:.2f}", legendgroup="trends", showlegend=showlegend,
-        line=dict(color="#111111", width=2, dash="dash"),
+        line=dict(color="#17BECF", width=2, dash="dash"),
         hovertemplate="Spearman (rank-based) trend line<extra></extra>",
     ), row=row, col=col)
 
