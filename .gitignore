@@ -1,3 +1,4 @@
 /GIZ Comparative Study EU AI Act vs India
 /.venv
-*.pyc
+*.pyc__pycache__/
+*.py[cod]
