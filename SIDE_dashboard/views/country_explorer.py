@@ -52,17 +52,40 @@ def _clicked_country(selection):
     return None
 
 
+def _on_country_change() -> None:
+    """Keep the map-highlighted country in sync with the rankings selectbox."""
+    st.session_state["selected_country"] = st.session_state["ce_country"]
+
+
+def _on_map_select() -> None:
+    """Handle a country click on the world map.
+
+    Streamlit runs callable ``on_select`` handlers *before* the script body, so
+    this can set the section radio and the rankings selectbox without tripping
+    the "widget already instantiated this run" restriction. The click selection
+    of the keyed chart is stored under its key in session state.
+    """
+    clicked = _clicked_country(st.session_state.get("world_map"))
+    if clicked and clicked in st.session_state.get("_ce_country_list", []):
+        st.session_state["selected_country"] = clicked
+        st.session_state["ce_country"] = clicked
+        st.session_state["ce_section"] = "📋 Country rankings"
+
+
 def render(data) -> None:
     ui.page_header(
         "🌍 Country Explorer",
-        "Click a country on the map to see how it performs on every indicator, "
-        "then compare up to five countries side by side.",
+        "Three views in one place: colour the world map by any indicator, "
+        "inspect a single country's rankings, or compare up to five countries "
+        "side by side in a spider chart.",
     )
     ui.explainer(
-        "👆",
-        "Click any country on the map (or choose it in the box on the right) to "
-        "open its profile. **India is shown by default.** The map colours one "
-        "indicator at a time — change it with the dropdown.",
+        "🧭",
+        "**🗺️ World map** — colour one indicator at a time; click a country to "
+        "jump straight to its rankings. **📋 Country rankings** — pick a country "
+        "(India by default) for headline metrics and its position on every "
+        "indicator. **🕸️ Compare countries** — put 2–5 countries on a spider "
+        "chart of capped scores.",
     )
 
     # India is the default country on first load.
@@ -70,34 +93,50 @@ def render(data) -> None:
         st.session_state["selected_country"] = (
             "India" if "India" in data.country_list else data.country_list[0]
         )
+    default_country = "India" if "India" in data.country_list else data.country_list[0]
 
-    col_map, col_pick = st.columns([3, 1])
+    # The map-click callback (_on_map_select) runs before the script body and
+    # needs the country list to validate the click, so keep it in session state.
+    st.session_state["_ce_country_list"] = data.country_list
 
-    with col_map:
-        indicator = ui.indicator_selectbox(data, "Colour the map by", key="ce_indicator", default=DEFAULT_INDICATOR)
+    # Only one section is visible at a time. A horizontal radio replaces
+    # st.tabs because the pinned Streamlit (1.50) has no key/on_change support
+    # on tabs, while the radio's key lets _on_map_select switch straight to the
+    # rankings section programmatically.
+    section = st.radio(
+        "Section",
+        ["🗺️ World map", "📋 Country rankings", "🕸️ Compare countries"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="ce_section",
+    )
+
+    if section == "🗺️ World map":
+        indicator = ui.indicator_selectbox(
+            data, "Colour the map by", key="ce_indicator", default=DEFAULT_INDICATOR
+        )
         if indicator is None:
             return
-        map_fig = charts.choropleth(data, indicator, st.session_state.get("selected_country"))
-        selection = st.plotly_chart(map_fig, key="world_map", on_select="rerun", selection_mode="points")
-        clicked = _clicked_country(selection)
-        if clicked:
-            st.session_state["selected_country"] = clicked
-
-    with col_pick:
-        st.subheader("Select a country")
-        default_country = "India" if "India" in data.country_list else data.country_list[0]
-        manual = st.selectbox(
-            "Search countries",
-            data.country_list,
-            index=data.country_list.index(default_country),
-            key="ce_manual",
-            label_visibility="collapsed",
+        map_fig = charts.choropleth(
+            data, indicator, st.session_state.get("selected_country")
         )
-        if st.button("📌 Open profile", key="ce_open", width="stretch"):
-            st.session_state["selected_country"] = manual
-        selected = st.session_state.get("selected_country")
-        if selected:
-            st.markdown(f"**Showing profile:** {selected}")
+        # A callable on_select runs before the script body, so the click can
+        # update the section radio and the rankings selectbox (see above).
+        st.plotly_chart(
+            map_fig, key="world_map", on_select=_on_map_select, selection_mode="points"
+        )
+
+    elif section == "📋 Country rankings":
+        c1, c2 = st.columns([4, 1], vertical_alignment="center")
+        with c1:
+            st.selectbox(
+                "Search countries",
+                data.country_list,
+                index=data.country_list.index(default_country),
+                key="ce_country",
+                on_change=_on_country_change,
+            )
+        with c2:
             if st.button(
                 "↺ Reset to India",
                 key="ce_clear",
@@ -105,16 +144,15 @@ def render(data) -> None:
                 help="Go back to the default country.",
             ):
                 st.session_state["selected_country"] = default_country
+                # Deleting the widget key makes the selectbox fall back to its
+                # `index` (India) on the next run. A plain assignment is blocked
+                # because the selectbox was already instantiated this run.
+                del st.session_state["ce_country"]
                 st.rerun()
-        else:
-            st.caption("Pick a country (map click or the box above) to see its profile.")
+        _profile_panel(data, st.session_state.get("ce_country", default_country))
 
-    selected = st.session_state.get("selected_country")
-    if selected and selected in data.country_list:
-        _profile_panel(data, selected)
-
-    st.divider()
-    _comparison_panel(data)
+    else:
+        _comparison_panel(data)
 def _profile_panel(data, country: str) -> None:
     st.markdown(f"## 📋 Country profile — {country}")
     pr = rankings.profile_ranks(data, country)
@@ -166,10 +204,9 @@ def _profile_panel(data, country: str) -> None:
 
 
 def _comparison_panel(data) -> None:
-    st.markdown("## 🔄 Compare countries")
     ui.explainer(
-        "🛰️",
-        "Pick 2–5 countries and a few indicators. The radar (or parallel "
+        "🕸️",
+        "Pick 2–5 countries and a few indicators. The spider chart (or parallel "
         "coordinates) shows the capped score — 0 to 1, higher is always better — "
         "so you can spot patterns at a glance.",
     )
@@ -201,8 +238,13 @@ def _comparison_panel(data) -> None:
         st.caption("Select at least 3 indicators for a meaningful chart.")
         return
 
-    chart_type = st.radio("Chart type", ["Radar chart", "Parallel coordinates"], horizontal=True, key="ce_compare_type")
-    if chart_type == "Radar chart":
+    chart_type = st.radio(
+        "Chart type",
+        ["Spider (radar) chart", "Parallel coordinates"],
+        horizontal=True,
+        key="ce_compare_type",
+    )
+    if chart_type == "Spider (radar) chart":
         st.plotly_chart(charts.radar_chart(data, countries, indicators), width="stretch")
     else:
         st.plotly_chart(charts.parallel_coords(data, countries, indicators), width="stretch")

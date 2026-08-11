@@ -21,7 +21,7 @@ Your browser opens at `http://localhost:8501`.
 
 | Page | What it does |
 | --- | --- |
-| 🌍 **Country Explorer** | Click a country on the map to open its profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), then compare up to five countries with a radar or parallel-coordinates chart. |
+| 🌍 **Country Explorer** | Three views: colour the world map by any indicator (click a country to open its rankings), inspect a single country's profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), or compare up to five countries on a spider chart. |
 | ⚖️ **Scaling Comparator** | Compare the three min-max scaling methods on any indicator. Adjust the cap window with sliders and see which countries' ranks swing most. |
 | 🔬 **Correlation Explorer** | Pick any two indicators. Get three-panel scatter plots (full / capped / log) with Pearson and Spearman trend lines, plus a plain-language verdict on robustness. |
 | 🕵️ **Outlier Explorer** | Leave-one-out analysis: how much does a correlation move when each country is removed? Then exclude countries yourself and watch the scatter and correlation update live. |
