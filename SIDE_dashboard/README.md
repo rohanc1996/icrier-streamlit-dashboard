@@ -22,6 +22,7 @@ Your browser opens at `http://localhost:8501`.
 | Page | What it does |
 | --- | --- |
 | 🌍 **Country Explorer** | Three views: colour the world map by any indicator (click a country to open its rankings), inspect a single country's profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), or compare up to five countries on a spider chart. |
+| 🏆 **CHIPS Index Explorer** | The CHIPS composite (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with full missing-data transparency: leaderboard, world map, per-country drill-down (treemap, weight inflation, what-if scenarios), a cross-country missing-data impact section, and the complete methodology. |
 | ⚖️ **Scaling Comparator** | Compare the three min-max scaling methods on any indicator. Adjust the cap window with sliders and see which countries' ranks swing most. |
 | 🔬 **Correlation Explorer** | Pick any two indicators. Get three-panel scatter plots (full / capped / log) with Pearson and Spearman trend lines, plus a plain-language verdict on robustness. |
 | 🕵️ **Outlier Explorer** | Leave-one-out analysis: how much does a correlation move when each country is removed? Then exclude countries yourself and watch the scatter and correlation update live. |
@@ -41,6 +42,25 @@ Your browser opens at `http://localhost:8501`.
   indicator is capped-scaled and inverted where a low raw value is better, so
   1.0 always means "best on this indicator".
 
+## The CHIPS composite index
+
+The CHIPS Index Explorer aggregates **58 indicators** into **5 equal pillars**
+(CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY), each with weighted
+sub-pillars. The spec lives in `core/chips_hierarchy.py`; the aggregation
+engine (including the missing-data rules) in `core/chips.py`. Missing values
+are handled explicitly rather than silently ignored:
+
+- weights are equal inside a group unless the spec gives one;
+- a missing component's weight is redistributed across its present siblings;
+- more than half of a group missing (or only 1 of 2 present) drops the group,
+  and the drop propagates up one level;
+- the INNOVATE → AI sub-pillar has three internal groups (investment pair,
+  AI commercial, research pair) and needs at least two to survive;
+- CHIPS itself requires at least 3 of the 5 pillars.
+
+Every decision is recorded per country, so the page can show *why* a score is
+what it is — hover any treemap block or heatmap cell.
+
 ## Project layout
 
 ```
@@ -52,10 +72,14 @@ SIDE_dashboard/
 │   ├── scaling.py            # the three 0–1 scaling methods
 │   ├── rankings.py           # rank tables, stability, profile ranks
 │   ├── correlations.py       # pair preparation, leave-one-out, exclusions
+│   ├── chips_hierarchy.py    # CHIPS spec: pillars, sub-pillars, weights, column map
+│   ├── chips.py              # CHIPS aggregation engine + missing-data rules
 │   └── themes.py             # the five notebook themes + highlight countries
 ├── components/
 │   ├── charts.py             # every plotly figure builder
 │   ├── country_names.py      # ISO3 -> short/long country names
 │   └── ui.py                 # streamlit helpers (selectboxes, tables, config)
-└── views/                    # one module per dashboard page
+├── views/                    # one module per dashboard page
+└── tests/
+    └── test_chips.py         # CHIPS rule + integration tests (python -m tests.test_chips)
 ```

@@ -18,6 +18,7 @@ st.set_page_config(
 from components import ui  # noqa: E402
 from core.loader import load_app_data  # noqa: E402
 from views import (  # noqa: E402
+    chips_explorer,
     correlation_explorer,
     country_explorer,
     leaderboard,
@@ -27,6 +28,7 @@ from views import (  # noqa: E402
 
 PAGES = {
     "🌍 Country Explorer": country_explorer,
+    "🏆 CHIPS Index Explorer": chips_explorer,
     "⚖️ Scaling Comparator": scaling_comparator,
     "🔬 Correlation Explorer": correlation_explorer,
     "🕵️ Outlier Explorer": outlier_explorer,

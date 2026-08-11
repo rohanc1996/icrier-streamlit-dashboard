@@ -323,3 +323,209 @@ def movers_bar(stability_df: pd.DataFrame, top_n: int = 10) -> go.Figure:
     return fig
 
 
+# ---------------------------------------------------------------------------
+# CHIPS composite index charts
+# ---------------------------------------------------------------------------
+
+CHIPS_TREEMAP_SCALE = [
+    [0.0, "#cfd8dc"],   # missing / dropped cells
+    [0.001, "#cfd8dc"],
+    [0.002, "#f7fbff"],
+    [0.25, "#c6dbef"],
+    [0.5, "#6baed6"],
+    [0.75, "#2171b5"],
+    [1.0, "#08306b"],
+]
+
+
+def chips_choropleth(chips_df: pd.DataFrame, selected_country: str | None = None) -> go.Figure:
+    """World map coloured by the CHIPS score. Clicking is handled by the view."""
+    df = chips_df.dropna(subset=["chips"]).copy()
+    df["iso3"] = df["Country"].map(country_names.COUNTRY_TO_ISO3)
+    df = df.dropna(subset=["iso3"]).reset_index(drop=True)
+
+    selectedpoints = []
+    if selected_country and selected_country in df["Country"].tolist():
+        selectedpoints = df.index[df["Country"] == selected_country].tolist()
+
+    fig = go.Figure(go.Choropleth(
+        locations=df["iso3"],
+        z=df["chips"].astype(float),
+        locationmode="ISO-3",
+        customdata=df[["Country"]],
+        colorscale="Blues",
+        colorbar=dict(title="CHIPS score", len=0.7, tickformat=".2f"),
+        hovertemplate="%{customdata[0]}<br><b>CHIPS %{z:.2f}</b><extra></extra>",
+        marker=dict(line=dict(color="white", width=0.4)),
+        selectedpoints=selectedpoints,
+        selected=dict(marker=dict(opacity=1)),
+        unselected=dict(marker=dict(opacity=0.55)),
+    ))
+    fig.update_geos(projection_type="equirectangular", showframe=False,
+                    showcoastlines=True, coastlinecolor="#cccccc")
+    fig.update_layout(height=540, margin=dict(l=0, r=0, t=10, b=0),
+                      geo=dict(bgcolor="rgba(0,0,0,0)"))
+    return fig
+
+
+def chips_treemap(rows: pd.DataFrame) -> go.Figure:
+    """Treemap of one country's full CHIPS result tree.
+
+    ``rows`` comes from ``chips.tree_to_frame``.  Cell colour = score (blue
+    ramp); missing/dropped cells are grey.  Area = share of the CHIPS weight.
+    """
+    rows = rows.copy()
+    rows["label"] = rows["label"].replace("CHIPS composite", "CHIPS")
+    present = rows["status"] == "present"
+    rows["color"] = np.where(present, rows["score"].fillna(0.0) * 0.998 + 0.002, 0.0)
+    custom = np.stack([
+        np.round(rows["score"].fillna(-1.0), 3),
+        np.round(rows["weight"] * 100, 2),
+        rows["status"],
+        rows["reason"].fillna(""),
+    ], axis=-1)
+    fig = go.Figure(go.Treemap(
+        ids=rows["id"],
+        parents=rows["parent"],
+        labels=rows["label"],
+        values=rows["weight"],
+        branchvalues="total",
+        marker=dict(colors=rows["color"], colorscale=CHIPS_TREEMAP_SCALE,
+                    line=dict(color="white", width=0.8)),
+        customdata=custom,
+        texttemplate="%{label}<br>%{value:.1%}",
+        textfont=dict(size=11, color="#123c63"),
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "weight: %{value:.1%} of CHIPS<br>"
+            "score: %{customdata[0]}<br>"
+            "status: %{customdata[2]}<br>"
+            "%{customdata[3]}<extra></extra>"
+        ),
+    ))
+    fig.update_layout(height=600, margin=dict(l=5, r=5, t=30, b=5))
+    return fig
+
+
+def reweight_bars(rw_df: pd.DataFrame) -> go.Figure:
+    """Nominal vs effective sub-pillar weights (missing siblings redistribute)."""
+    d = rw_df[rw_df["status"] == "present"].copy()
+    if d.empty:
+        return None
+    d = d.sort_values("label")
+    d["inflation"] = d["effective"] - d["nominal"]
+    colors = np.where(d["inflation"] >= 0, "#2171b5", "#d62728")
+    fig = go.Figure(go.Bar(
+        x=d["inflation"],
+        y=d["label"],
+        orientation="h",
+        marker_color=colors,
+        customdata=np.stack([
+            np.round(d["nominal"], 3), np.round(d["effective"], 3),
+            np.round(d["score"].fillna(-1.0), 3),
+        ], axis=-1),
+        hovertemplate=("%{y}<br>"
+                       "nominal %{customdata[0]} → effective %{customdata[1]}"
+                       "<br>score %{customdata[2]}<extra></extra>"),
+    ))
+    fig.add_vline(x=0, line_color="#333333", line_width=1)
+    fig.update_layout(
+        height=min(700, 40 + 24 * len(d)),
+        margin=dict(l=10, r=10, t=30, b=10),
+        xaxis_title="Effective − nominal weight within the pillar (missing siblings' weight is redistributed)",
+    )
+    return fig
+
+
+def coverage_scatter(df: pd.DataFrame) -> go.Figure:
+    """CHIPS score vs weighted data coverage. Clicking is handled by the view."""
+    d = df.dropna(subset=["chips"]).copy()
+    fig = go.Figure(go.Scatter(
+        x=d["coverage"] * 100,
+        y=d["chips"],
+        mode="markers",
+        customdata=d[["Country", "indicators_present", "indicators_total"]],
+        marker=dict(size=11, color=d["coverage"] * 100, colorscale="RdYlGn",
+                    cmin=55, cmax=100, showscale=False,
+                    line=dict(color="#333333", width=0.6)),
+        hovertemplate=("%{customdata[0]}<br>"
+                       "CHIPS <b>%{y:.2f}</b><br>"
+                       "coverage %{x:.0f}%<br>"
+                       "indicators %{customdata[1]}/%{customdata[2]}<extra></extra>"),
+    ))
+    median = d["chips"].median()
+    fig.add_hline(y=median, line_dash="dot", line_color="#555555")
+    fig.add_vline(x=70, line_dash="dot", line_color="#555555")
+    fig.add_annotation(x=72, y=median, yshift=8, text="median CHIPS",
+                       showarrow=False, font=dict(size=11, color="#555555"))
+    fig.add_annotation(x=86, y=0.03, text="70% coverage",
+                       showarrow=False, font=dict(size=11, color="#555555"))
+    fig.update_layout(
+        height=480, margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(title="Data coverage (% of CHIPS weight backed by a value)", range=[50, 102]),
+        yaxis=dict(title="CHIPS score (0-1)", range=[0, 1]),
+    )
+    return fig
+
+
+def missingness_heatmap(codes: pd.DataFrame, reasons: pd.DataFrame) -> go.Figure:
+    """Grid of sub-pillar status per country: green present, grey no data,
+    red dropped (a rule removed the group despite partial data)."""
+    fig = go.Figure(go.Heatmap(
+        z=codes.values,
+        x=codes.columns,
+        y=codes.index,
+        zmin=0,
+        zmax=2,
+        colorscale=[[0, "#2ca02c"], [0.5, "#9e9e9e"], [1, "#d62728"]],
+        text=reasons.values,
+        hovertemplate="<b>%{y}</b><br>%{x}<br>%{text}<extra></extra>",
+        colorbar=dict(tickvals=[0, 1, 2],
+                      ticktext=["present", "no data", "dropped (rule)"],
+                      len=0.6),
+    ))
+    fig.update_layout(
+        height=max(560, 20 + 24 * len(codes)),
+        margin=dict(l=10, r=10, t=30, b=10),
+        xaxis=dict(tickangle=30),
+    )
+    fig.update_yaxes(autorange="reversed")
+    return fig
+
+
+def rank_band_chart(band_df: pd.DataFrame) -> go.Figure:
+    """Range bars: where each country's rank would land if its missing data
+    were filled optimistically (0.75) vs pessimistically (0.25)."""
+    d = band_df.copy()
+    d["width"] = d["rank_max"] - d["rank_min"]
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=d["width"],
+        y=d["Country"],
+        orientation="h",
+        base=d["rank_min"],
+        marker_color="rgba(33, 113, 181, 0.35)",
+        customdata=np.stack([d["rank_min"], d["rank_max"], np.round(d["chips"], 3)], axis=-1),
+        hovertemplate=("%{y}<br>rank could be %{customdata[0]}–%{customdata[1]}"
+                       "<br>actual CHIPS %{customdata[2]}<extra></extra>"),
+        name="Possible rank range",
+    ))
+    fig.add_trace(go.Scatter(
+        x=d["rank"],
+        y=d["Country"],
+        mode="markers",
+        marker=dict(size=8, color="#d62728", line=dict(color="white", width=1)),
+        hovertemplate="%{y}<br>actual rank <b>%{x}</b><extra></extra>",
+        name="Actual rank",
+    ))
+    fig.update_layout(
+        height=min(1000, 40 + 20 * len(d)),
+        margin=dict(l=10, r=10, t=10, b=10),
+        barmode="overlay",
+        xaxis=dict(title="Rank (1 = best)", autorange="reversed"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+    )
+    return fig
+
+
+
