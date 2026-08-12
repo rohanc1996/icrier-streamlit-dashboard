@@ -4,7 +4,7 @@ Five sections:
   1. 🏅 CHIPS leaderboard — every country, colour-coded by data coverage
   2. 🗺️ CHIPS map — world choropleth; click a country to open its drill-down
   3. 🔍 Country drill-down — treemap, weight inflation, what-if scenarios
-  4. ⚠️ Missing-data impact — coverage scatter, status heatmap, rank bands
+  4. ⚠️ Missing-data impact — coverage scatter, status heatmap
   5. 📖 Methodology — plain-language rules and the full indicator map
 """
 from __future__ import annotations
@@ -133,12 +133,12 @@ def render(data) -> None:
 
 def _leaderboard(scores) -> None:
     scored = scores.dropna(subset=["chips"])
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     c1.metric("Countries scored", int(scored["chips"].notna().sum()),
               help="Countries with at least 3 of 5 pillars present after the drop rules.")
     c2.metric("Median CHIPS score", f"{scored['chips'].median():.3f}")
-    c3.metric("Top scorer", scored.loc[scored["chips"].idxmax(), "Country"] if not scored.empty else "—")
-    c4.metric("Median data coverage", f"{scores['coverage'].median() * 100:.0f}%")
+    c3.metric("Median data coverage", f"{scores['coverage'].median() * 100:.0f}%",
+              help="Share of the CHIPS weight backed by actual values; see Missing-data for country-level detail.")
 
     display = scores.copy()
     display["data_badge"] = display["coverage"].apply(
@@ -149,7 +149,6 @@ def _leaderboard(scores) -> None:
         "Country": st.column_config.TextColumn("Country"),
         "chips": st.column_config.NumberColumn("CHIPS", format="%.3f"),
         "data_badge": st.column_config.TextColumn("Data"),
-        "coverage": st.column_config.ProgressColumn("Coverage", min_value=0, max_value=1, format="%.0f%%"),
         "indicators_present": st.column_config.NumberColumn("Indicators", format="%d"),
         "pillars_present": st.column_config.NumberColumn("Pillars", format="%d"),
         "CONNECT": st.column_config.NumberColumn("Connect", format="%.2f"),
@@ -159,8 +158,13 @@ def _leaderboard(scores) -> None:
         "SUSTAINABILITY": st.column_config.NumberColumn("Sustainability", format="%.2f"),
     }
     ui.show_table(display[list(cols)], column_config=cols, height=540)
-    st.caption("Coverage = the share of the CHIPS weight backed by an actual value. "
-               "Sort by clicking any column header.")
+    st.caption(
+        "Values are the raw dataset figures; **CHIPS and pillar scores use the dashboard's "
+        "capped 5–95 min–max scaling** (inverted where lower is better). The Data badge "
+        "summarises coverage (🟢 full ≥90% of the CHIPS weight backed by values, 🟡 partial "
+        "≥70%, 🔴 sparse) — see the Missing-data section for country-level detail. Sort by "
+        "clicking a column header."
+    )
     csv = scores.to_csv(index=False).encode()
     st.download_button("⬇️ Download CHIPS table (CSV)", data=csv,
                        file_name="chips_table.csv", mime="text/csv")
@@ -176,7 +180,7 @@ def _map_panel(data, scores) -> None:
     fig = charts.chips_choropleth(scores, selected)
     st.plotly_chart(fig, key="chips_map", on_select=_on_map_select, selection_mode="points")
     n_scored = int(scores["chips"].notna().sum())
-    st.caption(f"{n_scored} of {len(scores)} countries have a CHIPS score.")
+    st.caption(f"{n_scored} of {len(scores)} countries in our report have a CHIPS score.")
 
 
 def _drilldown(data, scores, pillars) -> None:
@@ -214,8 +218,9 @@ def _drilldown(data, scores, pillars) -> None:
     st.markdown("#### How the score is built")
     rows = chips.tree_to_frame(res.chips, chips.leaf_global_weights(pillars))
     st.plotly_chart(charts.chips_treemap(rows), width="stretch")
-    st.caption("Area = share of the CHIPS weight; blue = score; grey = no data or dropped "
-               "by a rule. Hover any block for the reason.")
+    st.caption("Area = share of the CHIPS weight; colour = the pillar hue (CONNECT blue, "
+               "HARNESS teal, INNOVATE orange, PROTECT red, SUSTAINABILITY green) shaded by "
+               "score — darker = higher. Grey = no data or dropped by a rule.")
 
     rw = chips.reweight_frame(res)
     infl_fig = charts.reweight_bars(rw)
@@ -296,8 +301,8 @@ def _movers_panel(data, pillars, country, res) -> None:
 def _missingness(data, scores, pillars) -> None:
     ui.explainer(
         "⚠️",
-        "How much of every country's score is backed by real data — and how far a country's "
-        "rank could move if its missing data were filled favourably or unfavourably.",
+        "How much of every country's score is backed by real data, where the gaps are, and "
+        "which rules had to redistribute or drop components to produce the score.",
     )
 
     st.markdown("#### Score vs data coverage")
@@ -318,16 +323,6 @@ def _missingness(data, scores, pillars) -> None:
     st.caption("Grey = the sub-pillar has no data for that country; red = a rule dropped it "
                "(e.g. only 1 of 2 components present). Countries are ordered by coverage, "
                "lowest first.")
-
-    with st.expander("📏 Rank bands — how far could missing data move each country?"):
-        ui.explainer("💡", "Every missing sub-pillar is filled with 0.75 (optimistic) or 0.25 "
-                          "(pessimistic) and ranks are recomputed among the currently-scored "
-                          "countries. The red dot is the actual rank.")
-        band = chips.rank_band_data(data, pillars=pillars)
-        st.plotly_chart(charts.rank_band_chart(band), width="stretch")
-        n_moving = int(((band["rank_max"] - band["rank_min"]) > 0).sum())
-        st.caption(f"{n_moving} of {len(band)} scored countries would change rank under either "
-                   "extreme — those are the countries whose score is most sensitive to missing data.")
 
     with st.expander("🧊 Most data-fragile countries"):
         fragile = scores.dropna(subset=["chips"]).sort_values("coverage").head(20)
@@ -356,9 +351,11 @@ def _methodology(pillars, unresolved) -> None:
 5. **Same logic at every level** — indicators → sub-pillar → pillar → CHIPS. A dropped
    component is never silently zeroed; it is recorded with its reason.
 6. **CHIPS needs at least 3 of 5 pillars** — fewer means no composite score.
-7. **INNOVATE → AI is non-flat** — the investment pair, AI commercial and the research pair
-   are three internal groups. A pair that loses one member drops (rule 4); the sub-pillar
-   needs at least 2 of the 3 groups to survive.
+7. **INNOVATE → AI is non-flat** — it splits into two internal groups: the **research pair**
+   (AI Innovation - Research + AI R&D score, ½ each) and the **remaining three AI indicators**
+   (AI commercial, private investment, newly funded AI companies, ⅓ each). A pair that loses
+   one member drops (rule 4) — and because the sub-pillar has only 2 groups it drops if either
+   group is lost. Inside the 3-indicator group, 1 missing is redistributed and 2 missing drop it.
 8. **Scoring** — every indicator is capped 5–95 min–max scaled to 0–1 (inverted for
    lower-is-better indicators such as prices and risk), matching the dashboard's capped
    method.""")

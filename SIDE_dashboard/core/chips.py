@@ -17,12 +17,13 @@ Missing-data rules (from the CHIPS spec sheet)
    unavailable one level up (indicator -> sub-pillar -> pillar -> CHIPS).
 6. CHIPS itself needs at least 3 of its 5 pillars (present/total > 0.5).
 
-The INNOVATE -> AI sub-pillar nests one extra level: its three internal groups
-(investment pair, AI commercial, research pair) are aggregated first with the
-same rules (so a pair that loses one member drops as a unit), and the
-sub-pillar needs at least 2 of the 3 groups to survive — otherwise it drops.
-For a 3-component group the generic ">50% missing" rule reproduces exactly the
-spec-sheet's "1 of 3 lost -> reweight, 2 of 3 lost -> drop".
+The INNOVATE -> AI sub-pillar nests one extra level: its two internal groups —
+the research pair (AI Innovation - Research + AI R&D score) and the remaining
+three AI indicators — are aggregated first with the same rules.  The research
+pair follows the 2-of-2 rule (losing one member drops the pair as a unit), and
+because the sub-pillar itself has only 2 groups it drops if either group is
+lost (rule 4).  Inside the 3-indicator group the generic ">50% missing" rule
+reproduces exactly the spec-sheet's "1 of 3 lost -> reweight, 2 of 3 lost -> drop".
 
 Every node of the result tree records its status (present / missing / dropped),
 the rule that dropped it, its nominal weight, the weight actually applied after
@@ -161,7 +162,7 @@ def _build_pillar_result(
 
     ``override`` maps "PILLAR · SUB-PILLAR" to ``("present", score)`` or
     ``("absent", None)``.  ``fill_missing`` replaces *every* non-present
-    sub-pillar with the given score (used for the rank-band simulation).
+    sub-pillar with the given score (used by the fill-missing simulation).
     """
     results = []
     for sp in pillar.sub_pillars:
@@ -367,11 +368,13 @@ def tree_to_frame(chips_node: NodeResult, leaf_weights: dict[str, float]) -> pd.
     """Flatten the result tree into rows for the treemap.
 
     ``weight`` is the node's share of the whole CHIPS weight (branchvalues
-    total, so parents equal the sum of their children).
+    total, so parents equal the sum of their children).  ``pillar`` carries the
+    top-level pillar name down the tree so the treemap can colour every level
+    of a pillar with the same hue.
     """
     rows = []
 
-    def walk(node: NodeResult, parent: str, path: list[str]) -> None:
+    def walk(node: NodeResult, parent: str, path: list[str], pillar: str) -> None:
         node_id = "/".join(path)
         rows.append({
             "id": node_id,
@@ -384,11 +387,12 @@ def tree_to_frame(chips_node: NodeResult, leaf_weights: dict[str, float]) -> pd.
             "weight": _subtree_weight(node, leaf_weights),
             "nominal": node.nominal_weight,
             "effective": node.effective_weight,
+            "pillar": pillar,
         })
         for i, child in enumerate(node.children):
-            walk(child, node_id, path + [str(i)])
+            walk(child, node_id, path + [str(i)], pillar or child.name)
 
-    walk(chips_node, "", ["root"])
+    walk(chips_node, "", ["root"], "")
     return pd.DataFrame(rows)
 
 
@@ -408,30 +412,4 @@ def reweight_frame(res: CountryResult) -> pd.DataFrame:
                 "reason": sp.reason or "",
             })
     return pd.DataFrame(rows)
-
-
-def rank_band_data(data, pillars: list[H.Pillar] | None = None) -> pd.DataFrame:
-    """Actual rank plus optimistic/pessimistic rank for every scored country.
-
-    The scenarios fill every missing sub-pillar with 0.75 (optimistic) or 0.25
-    (pessimistic) and re-aggregate.  Ranks are recomputed *within the set of
-    countries that already have an actual CHIPS score*, so the band shows how
-    far a country could move purely because of its own missing data.
-    """
-    if pillars is None:
-        pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
-    base = chips_table(data, pillars=pillars)
-    optimistic = chips_table(data, pillars=pillars, fill_missing=0.75)
-    pessimistic = chips_table(data, pillars=pillars, fill_missing=0.25)
-    mask = base["chips"].notna()
-    opt_rank = optimistic["chips"].where(mask).rank(ascending=False, method="min")
-    pes_rank = pessimistic["chips"].where(mask).rank(ascending=False, method="min")
-    out = base[mask].copy()
-    out["rank_min"] = np.minimum(opt_rank[mask], pes_rank[mask]).astype(int)
-    out["rank_max"] = np.maximum(opt_rank[mask], pes_rank[mask]).astype(int)
-    return out[["Country", "rank", "rank_min", "rank_max", "chips"]].sort_values("rank")
-
-
-
-
 

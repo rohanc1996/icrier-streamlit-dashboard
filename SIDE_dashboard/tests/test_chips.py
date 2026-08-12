@@ -89,14 +89,14 @@ def _fake(columns: list[str], countries: list[str] | None = None) -> _FakeData:
 def _ai_pillar() -> H.Pillar:
     return H.Pillar("INNOVATE", 1.0, [
         H.SubPillar("AI", 1.0, groups=[
-            H.Group("Investment", 1 / 3, [
+            H.Group("Research", 1 / 2, [
                 H.Leaf("P1A1", "P1A1", 0.5),
                 H.Leaf("P1A2", "P1A2", 0.5),
             ]),
-            H.Group("AI commercial", 1 / 3, [H.Leaf("P1B", "P1B", 1.0)]),
-            H.Group("Research", 1 / 3, [
-                H.Leaf("P1C1", "P1C1", 0.5),
-                H.Leaf("P1C2", "P1C2", 0.5),
+            H.Group("Investment & commercial", 1 / 2, [
+                H.Leaf("P1B", "P1B", 1 / 3),
+                H.Leaf("P1C1", "P1C1", 1 / 3),
+                H.Leaf("P1C2", "P1C2", 1 / 3),
             ]),
         ]),
     ])
@@ -115,37 +115,37 @@ def test_ai_subpillar() -> None:
     sp = res.pillars[0].children[0]
     check("all data present", sp.status == "present")
     check("all data score near top", sp.score is not None and sp.score > 0.9)
-    check("3 internal groups present", sum(1 for g in sp.children if g.status == "present") == 3)
+    check("2 internal groups present", sum(1 for g in sp.children if g.status == "present") == 2)
 
-    # One member of the investment pair missing -> the pair drops (2-of-2 rule),
-    # the sub-pillar survives with the other two groups reweighted to 0.5.
+    # One member of the research pair missing -> the pair drops (2-of-2 rule)
+    # and, with only 2 groups in the sub-pillar, the sub-pillar drops too.
     data2 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data2, "D", "P1A2")
     res = chips.aggregate_country(data2, "D", pillars=pillars)
     sp = res.pillars[0].children[0]
-    check("pair lost one member -> sub-pillar survives", sp.status == "present")
-    eff = {g.name: g.effective_weight for g in sp.children}
-    check("remaining groups reweighted 0.5/0.5",
-          np.allclose([eff["AI commercial"], eff["Research"]], [0.5, 0.5]))
-    check("dropped pair has 0 effective weight", eff["Investment"] == 0.0)
-
-    # Both pairs lose a member -> only AI commercial survives -> sub-pillar drops.
-    data3 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
-    _set_nan(data3, "D", "P1A2")
-    _set_nan(data3, "D", "P1C1")
-    res = chips.aggregate_country(data3, "D", pillars=pillars)
-    sp = res.pillars[0].children[0]
-    check("2 of 3 internal groups lost -> sub-pillar drops", sp.status == "dropped")
+    check("research pair loses one member -> sub-pillar drops", sp.status == "dropped")
     check("dropped sub-pillar records a reason", sp.reason is not None)
 
-    # Only AI commercial missing -> other two groups survive.
+    # One member of the 3-indicator group missing -> reweight inside the group
+    # to 0.5/0.5; the sub-pillar survives with both groups at their nominal 1/2.
+    data3 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
+    _set_nan(data3, "D", "P1B")
+    res = chips.aggregate_country(data3, "D", pillars=pillars)
+    sp = res.pillars[0].children[0]
+    check("1 of 3 group missing -> sub-pillar survives", sp.status == "present")
+    check("group reweighted to 0.5/0.5 inside",
+          np.allclose([g.effective_weight for g in sp.children[1].children], [0.0, 0.5, 0.5]))
+    check("both groups keep their nominal 1/2",
+          np.allclose([g.effective_weight for g in sp.children], [0.5, 0.5]))
+
+    # Two members of the 3-indicator group missing -> the >50% rule drops the
+    # group, and the sub-pillar drops with it (1 of 2 groups left).
     data4 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data4, "D", "P1B")
+    _set_nan(data4, "D", "P1C1")
     res = chips.aggregate_country(data4, "D", pillars=pillars)
     sp = res.pillars[0].children[0]
-    check("single missing commercial -> reweights to 0.5/0.5",
-          sp.status == "present"
-          and np.allclose([g.effective_weight for g in sp.children], [0.5, 0.0, 0.5]))
+    check("2 of 3 group missing -> sub-pillar drops", sp.status == "dropped")
 
 
 def test_drop_propagation() -> None:
@@ -295,12 +295,10 @@ def test_real_data() -> None:
     check("India aggregates", res.chips.status == "present" and res.chips.score is not None)
 
     frames = chips.tree_to_frame(res.chips, chips.leaf_global_weights(pillars))
-    check("treemap frame has 83 nodes", len(frames) == 83)
+    check("treemap frame has 82 nodes", len(frames) == 82)
     check("treemap root weight is 1.0",
           abs(frames.loc[frames.kind == "chips", "weight"].iloc[0] - 1.0) < 1e-9)
 
-    band = chips.rank_band_data(data, pillars=pillars)
-    check("rank band for every scored country", len(band) == len(scored))
 
 
 # ---------------------------------------------------------------------------

@@ -6,9 +6,10 @@ This module is the single source of truth for the CHIPS indicator framework:
 
 - Weights are given as decimals within a group (they are normalised to sum to
   1).  A ``None`` weight means "equal weight" (the default everywhere).
-- The INNOVATE → AI sub-pillar is **not flat**: it is made of three internal
-  groups (investment pair, AI commercial, research pair) that follow their own
-  missingness rules (see ``core/chips.py``).
+- The INNOVATE → AI sub-pillar is **not flat**: it is made of two internal
+  groups — the research pair (AI Innovation - Research + AI R&D score) and the
+  remaining three AI indicators — that follow their own missingness rules
+  (see ``core/chips.py``).
 - Indicator *names* here are the friendly names from the CHIPS spec sheet.
   ``COLUMN_ALIASES`` maps them to the exact normalised dataset column headers;
   ``resolve_hierarchy`` turns the declarative spec into ready-to-use dataclasses
@@ -198,34 +199,28 @@ HIERARCHY = [
             },
             {
                 # AI 1 + AI 2 of the spec sheet combined into one sub-pillar
-                # with three internal groups (see rules 7-8 in the spec):
-                #   1. investment pair — private investment + newly funded AI companies
-                #   2. AI commercial   — single indicator
-                #   3. research pair   — AI innovation/research + AI R&D score
+                # with two internal groups (see rule 7 in the methodology):
+                #   1. research pair — AI innovation/research + AI R&D score (1/2 each)
+                #   2. the remaining three AI indicators — commercial, private
+                #      investment, newly funded AI companies (1/3 each)
                 "name": "AI",
                 "is_ai": True,
                 "internal_groups": [
                     {
-                        "name": "Investment",
-                        "weight": 1 / 3,
-                        "indicators": [
-                            ("Total AI Private Investment as a share of GDP", 0.5),
-                            ("Newly Funded AI Companies per LLC company", 0.5),
-                        ],
-                    },
-                    {
-                        "name": "AI commercial",
-                        "weight": 1 / 3,
-                        "indicators": [
-                            ("AI commercial", 1.0),
-                        ],
-                    },
-                    {
                         "name": "Research",
-                        "weight": 1 / 3,
+                        "weight": 1 / 2,
                         "indicators": [
                             ("AI Innovation - Research", 0.5),
                             ("AI Research and Development- score", 0.5),
+                        ],
+                    },
+                    {
+                        "name": "Investment & commercial",
+                        "weight": 1 / 2,
+                        "indicators": [
+                            ("Total AI Private Investment as a share of GDP", 1 / 3),
+                            ("Newly Funded AI Companies per LLC company", 1 / 3),
+                            ("AI commercial", 1 / 3),
                         ],
                     },
                 ],

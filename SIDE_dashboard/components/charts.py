@@ -5,6 +5,8 @@ Colours match the notebook (blue = full, orange = capped, green = log).
 """
 from __future__ import annotations
 
+import colorsys
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -327,15 +329,33 @@ def movers_bar(stability_df: pd.DataFrame, top_n: int = 10) -> go.Figure:
 # CHIPS composite index charts
 # ---------------------------------------------------------------------------
 
-CHIPS_TREEMAP_SCALE = [
-    [0.0, "#cfd8dc"],   # missing / dropped cells
-    [0.001, "#cfd8dc"],
-    [0.002, "#f7fbff"],
-    [0.25, "#c6dbef"],
-    [0.5, "#6baed6"],
-    [0.75, "#2171b5"],
-    [1.0, "#08306b"],
-]
+PILLAR_HUES = {
+    "CONNECT": 0.585,           # blue
+    "HARNESS": 0.50,            # teal
+    "INNOVATE": 0.09,           # orange
+    "PROTECT": 0.99,            # red
+    "SUSTAINABILITY": 0.375,    # green
+}
+MISSING_COLOR = "#cfd8dc"
+
+
+def _cell_lightness(score: float | None) -> float:
+    s = max(0.0, min(1.0, score)) if score is not None else 0.0
+    return 0.82 - 0.47 * s
+
+
+def _score_cell_color(pillar: str, score: float | None, status: str) -> str:
+    if status != "present":
+        return MISSING_COLOR
+    hue = PILLAR_HUES.get(pillar, 0.585)
+    r, g, b = colorsys.hls_to_rgb(hue, _cell_lightness(score), 0.68)
+    return f"rgb({round(r * 255)}, {round(g * 255)}, {round(b * 255)})"
+
+
+def _score_cell_text(score: float | None, status: str) -> str:
+    if status != "present":
+        return "#546e7a"
+    return "#ffffff" if _cell_lightness(score) < 0.5 else "#123c63"
 
 
 def chips_choropleth(chips_df: pd.DataFrame, selected_country: str | None = None) -> go.Figure:
@@ -369,15 +389,20 @@ def chips_choropleth(chips_df: pd.DataFrame, selected_country: str | None = None
 
 
 def chips_treemap(rows: pd.DataFrame) -> go.Figure:
-    """Treemap of one country's full CHIPS result tree.
+    """Treemap of the full CHIPS result tree for one country.
 
-    ``rows`` comes from ``chips.tree_to_frame``.  Cell colour = score (blue
-    ramp); missing/dropped cells are grey.  Area = share of the CHIPS weight.
+    ``rows`` comes from ``chips.tree_to_frame``.  Area = share of the CHIPS
+    weight.  Colour = the pillar hue (one per pillar so the top-level blocks
+    are easy to tell apart) shaded by score — darker = higher.  Missing and
+    dropped cells are grey.  The frame carries a ``pillar`` column so every
+    level of a pillar shares its hue.
     """
     rows = rows.copy()
     rows["label"] = rows["label"].replace("CHIPS composite", "CHIPS")
-    present = rows["status"] == "present"
-    rows["color"] = np.where(present, rows["score"].fillna(0.0) * 0.998 + 0.002, 0.0)
+    rows["color"] = [_score_cell_color(p, s, t) for p, s, t in
+                      zip(rows["pillar"], rows["score"], rows["status"])]
+    rows["text_color"] = [_score_cell_text(s, t) for s, t in
+                           zip(rows["score"], rows["status"])]
     custom = np.stack([
         np.round(rows["score"].fillna(-1.0), 3),
         np.round(rows["weight"] * 100, 2),
@@ -390,11 +415,10 @@ def chips_treemap(rows: pd.DataFrame) -> go.Figure:
         labels=rows["label"],
         values=rows["weight"],
         branchvalues="total",
-        marker=dict(colors=rows["color"], colorscale=CHIPS_TREEMAP_SCALE,
-                    line=dict(color="white", width=0.8)),
+        marker=dict(colors=rows["color"], line=dict(color="white", width=0.8)),
         customdata=custom,
         texttemplate="%{label}<br>%{value:.1%}",
-        textfont=dict(size=11, color="#123c63"),
+        textfont=dict(size=11, color=rows["text_color"]),
         hovertemplate=(
             "<b>%{label}</b><br>"
             "weight: %{value:.1%} of CHIPS<br>"
@@ -491,41 +515,3 @@ def missingness_heatmap(codes: pd.DataFrame, reasons: pd.DataFrame) -> go.Figure
     )
     fig.update_yaxes(autorange="reversed")
     return fig
-
-
-def rank_band_chart(band_df: pd.DataFrame) -> go.Figure:
-    """Range bars: where each country's rank would land if its missing data
-    were filled optimistically (0.75) vs pessimistically (0.25)."""
-    d = band_df.copy()
-    d["width"] = d["rank_max"] - d["rank_min"]
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=d["width"],
-        y=d["Country"],
-        orientation="h",
-        base=d["rank_min"],
-        marker_color="rgba(33, 113, 181, 0.35)",
-        customdata=np.stack([d["rank_min"], d["rank_max"], np.round(d["chips"], 3)], axis=-1),
-        hovertemplate=("%{y}<br>rank could be %{customdata[0]}–%{customdata[1]}"
-                       "<br>actual CHIPS %{customdata[2]}<extra></extra>"),
-        name="Possible rank range",
-    ))
-    fig.add_trace(go.Scatter(
-        x=d["rank"],
-        y=d["Country"],
-        mode="markers",
-        marker=dict(size=8, color="#d62728", line=dict(color="white", width=1)),
-        hovertemplate="%{y}<br>actual rank <b>%{x}</b><extra></extra>",
-        name="Actual rank",
-    ))
-    fig.update_layout(
-        height=min(1000, 40 + 20 * len(d)),
-        margin=dict(l=10, r=10, t=10, b=10),
-        barmode="overlay",
-        xaxis=dict(title="Rank (1 = best)", autorange="reversed"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
-    )
-    return fig
-
-
-

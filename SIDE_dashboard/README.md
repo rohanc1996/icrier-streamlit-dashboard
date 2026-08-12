@@ -54,8 +54,9 @@ are handled explicitly rather than silently ignored:
 - a missing component's weight is redistributed across its present siblings;
 - more than half of a group missing (or only 1 of 2 present) drops the group,
   and the drop propagates up one level;
-- the INNOVATE → AI sub-pillar has three internal groups (investment pair,
-  AI commercial, research pair) and needs at least two to survive;
+- the INNOVATE → AI sub-pillar has two internal groups — the research pair
+  (AI Innovation - Research + AI R&D score) and the remaining three AI
+  indicators — and needs both to survive;
 - CHIPS itself requires at least 3 of the 5 pillars.
 
 Every decision is recorded per country, so the page can show *why* a score is
