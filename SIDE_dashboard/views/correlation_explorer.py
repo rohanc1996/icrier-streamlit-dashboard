@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from components import charts, ui
-from core import correlations
+from core import correlations, scaling
 from core.themes import HIGHLIGHT_COUNTRIES, THEMES
 
 DEFAULT_X = "Median Mobile Download Speeds (Mbps)"
@@ -16,16 +16,14 @@ def _verdict(table: pd.DataFrame) -> str:
     """Plain-language summary of how robust the correlation is."""
     row = {r["method"]: r for _, r in table.iterrows()}
     capped = row["capped"]
-    diffs = [
-        abs(capped["pearson"] - row["full"]["pearson"]),
-        abs(capped["spearman"] - row["full"]["spearman"]),
-        abs(capped["pearson"] - row["log"]["pearson"]),
-        abs(capped["spearman"] - row["log"]["spearman"]),
-    ]
+    diffs = []
+    for m in scaling.ALL_METHODS:
+        diffs.append(abs(capped["pearson"] - row[m]["pearson"]))
+        diffs.append(abs(capped["spearman"] - row[m]["spearman"]))
     worst = max(diffs)
     sp = capped["spearman"]
     if worst < 0.05:
-        msg = "All three scalings agree closely, so this relationship is **robust** — outliers are not driving it."
+        msg = "All four scalings agree closely, so this relationship is **robust** — outliers are not driving it."
     elif worst < 0.15:
         msg = "The relationship is **moderately sensitive** to the scaling choice. A few extreme countries matter, but the overall picture holds."
     else:
@@ -36,7 +34,7 @@ def _verdict(table: pd.DataFrame) -> str:
     return msg
 
 
-def render(data) -> None:
+def render(data, method=scaling.METHOD_CAPPED) -> None:
     ui.page_header(
         "🔬 Correlation explorer",
         "Test your own hypotheses: pick any two indicators and see how strongly "
@@ -44,7 +42,7 @@ def render(data) -> None:
     )
     ui.explainer(
         "🧪",
-        "You choose the two indicators. For each of the three scaling methods "
+        "You choose the two indicators. For each of the four scaling methods "
         "you get Pearson (linear) and Spearman (rank-based) correlations plus a "
         "trend line.",
     )
@@ -80,7 +78,7 @@ def render(data) -> None:
         key="corr_highlight",
     )
 
-    st.plotly_chart(charts.scatter_3panel(data, x_col, y_col, highlight), width="stretch")
+    st.plotly_chart(charts.scatter_panels(data, x_col, y_col, highlight), width="stretch")
 
     table = correlations.compare_pair(data, x_col, y_col)
     view = table[["method_label", "n", "pearson", "spearman"]].rename(columns={"method_label": "method"})

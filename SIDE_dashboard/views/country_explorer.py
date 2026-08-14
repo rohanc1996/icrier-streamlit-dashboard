@@ -4,7 +4,7 @@ from __future__ import annotations
 import streamlit as st
 
 from components import charts, country_names, ui
-from core import rankings
+from core import rankings, scaling
 from core.themes import HIGHLIGHT_COUNTRIES
 
 DEFAULT_INDICATOR = "Median Mobile Download Speeds (Mbps)"
@@ -72,7 +72,7 @@ def _on_map_select() -> None:
         st.session_state["ce_section"] = "📋 Country rankings"
 
 
-def render(data) -> None:
+def render(data, method=scaling.METHOD_CAPPED) -> None:
     ui.page_header(
         "🌍 Country Explorer",
         "Three views in one place: colour the world map by any indicator, "
@@ -85,7 +85,7 @@ def render(data) -> None:
         "jump straight to its rankings. **📋 Country rankings** — pick a country "
         "(India by default) for headline metrics and its position on every "
         "indicator. **🕸️ Compare countries** — put 2–5 countries on a spider "
-        "chart of capped scores.",
+        "chart of scaled scores.",
     )
 
     # India is the default country on first load.
@@ -149,11 +149,13 @@ def render(data) -> None:
                 # because the selectbox was already instantiated this run.
                 del st.session_state["ce_country"]
                 st.rerun()
-        _profile_panel(data, st.session_state.get("ce_country", default_country))
+        _profile_panel(data, st.session_state.get("ce_country", default_country), method)
 
     else:
-        _comparison_panel(data)
-def _profile_panel(data, country: str) -> None:
+        _comparison_panel(data, method)
+
+
+def _profile_panel(data, country: str, method) -> None:
     st.markdown(f"## 📋 Country profile — {country}")
     pr = rankings.profile_ranks(data, country)
     if pr.empty:
@@ -195,19 +197,19 @@ def _profile_panel(data, country: str) -> None:
         for _, r in pr.tail(5).iloc[::-1].iterrows():
             st.markdown(f"- **{data.friendly_names.get(r['indicator'], r['indicator'])}**: #{int(r['rank'])}/{int(r['of'])}")
 
-    with st.expander(f"📊 {country} vs the world median (capped score)"):
-        fig = charts.profile_bars(data, country, HEADLINE_INDICATORS)
+    with st.expander(f"📊 {country} vs the world median (scaled score)"):
+        fig = charts.profile_bars(data, country, HEADLINE_INDICATORS, method=method)
         if fig is not None:
             st.plotly_chart(fig, width="stretch")
         else:
             st.caption("Not enough data to draw this chart.")
 
 
-def _comparison_panel(data) -> None:
+def _comparison_panel(data, method) -> None:
     ui.explainer(
         "🕸️",
         "Pick 2–5 countries and a few indicators. The spider chart (or parallel "
-        "coordinates) shows the capped score — 0 to 1, higher is always better — "
+        "coordinates) shows the scaled score — 0 to 1, higher is always better — "
         "so you can spot patterns at a glance.",
     )
 
@@ -227,8 +229,9 @@ def _comparison_panel(data) -> None:
             default=[i for i in COMPARISON_INDICATORS if i in data.indicators],
             key="ce_compare_indicators",
             format_func=lambda i: data.friendly_names.get(i, i),
-            help="Scores use the capped 5–95 scaling, inverted where a low "
-                 "value is better, so 1.0 always means 'best'.",
+            help="Scores use the sidebar-selected scaling method (capped 5–95 by "
+                 "default), inverted where a low value is better, so 1.0 always "
+                 "means 'best'.",
         )
 
     if len(countries) < 2:
@@ -245,7 +248,7 @@ def _comparison_panel(data) -> None:
         key="ce_compare_type",
     )
     if chart_type == "Spider (radar) chart":
-        st.plotly_chart(charts.radar_chart(data, countries, indicators), width="stretch")
+        st.plotly_chart(charts.radar_chart(data, countries, indicators, method=method), width="stretch")
     else:
-        st.plotly_chart(charts.parallel_coords(data, countries, indicators), width="stretch")
+        st.plotly_chart(charts.parallel_coords(data, countries, indicators, method=method), width="stretch")
 

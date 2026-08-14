@@ -16,6 +16,7 @@ st.set_page_config(
 )
 
 from components import ui  # noqa: E402
+from core import scaling  # noqa: E402
 from core.loader import load_app_data  # noqa: E402
 from views import (  # noqa: E402
     chips_explorer,
@@ -47,13 +48,30 @@ def main() -> None:
         choice = st.radio("Navigate", list(PAGES.keys()), key="nav", label_visibility="collapsed")
         st.divider()
         st.caption(
-            "**Three scaling methods:** full-range min-max · 5–95 percentile "
-            "capped min-max · log-transformed min-max. The capped version is the "
-            "most robust choice for reporting."
+            "**Scoring method** — how raw values become 0–1 scores. Used by the "
+            "single-score pages (Country Explorer, CHIPS Explorer, Leaderboard, "
+            "Outlier leave-one-out); the comparator and correlation pages always "
+            "show all four methods."
+        )
+        st.radio(
+            "Scoring method",
+            list(scaling.ALL_METHODS),
+            format_func=lambda m: scaling.METHOD_SHORT_LABELS[m],
+            index=scaling.ALL_METHODS.index(scaling.METHOD_CAPPED),
+            key="scaling_method",
+            horizontal=True,
+            help="Scores are inverted where a low raw value is better, so 1.0 "
+                 "always means 'best'.",
+        )
+        st.caption(
+            "Full-range min-max · 5–95 percentile capped min-max (default) · "
+            "log-transformed min-max · z-score (standardized). The capped version "
+            "is the most robust choice for reporting."
         )
 
     data = load_app_data()
-    PAGES[choice].render(data)
+    method = st.session_state.get("scaling_method", scaling.METHOD_CAPPED)
+    PAGES[choice].render(data, method=method)
 
 
 if __name__ == "__main__":

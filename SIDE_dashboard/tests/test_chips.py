@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 import pandas as pd
 
-from core import chips, chips_hierarchy as H
+from core import chips, chips_hierarchy as H, scaling
 
 FAILURES: list[str] = []
 PASSED = 0
@@ -270,6 +270,42 @@ def test_hierarchy_resolution() -> None:
     check("duplicate indicator names rejected", raised)
 
 
+def test_zscore_scaling() -> None:
+    print("\nZ-score scaling method")
+    s = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], index=["a", "b", "c", "d", "e"])
+    z = scaling.z_score(s)
+    mean, std = s.mean(), s.std(ddof=0)
+    expected = 1.0 / (1.0 + np.exp(-(s - mean) / std))
+    check("z-score matches manual logistic z", np.allclose(z, expected))
+    check("z-scores in (0, 1)", bool(((z > 0) & (z < 1)).all()))
+    check("median country maps to 0.5", abs(float(z.loc["c"]) - 0.5) < 1e-9)
+    check("z-score ranks equal literal z ranks",
+          bool(z.rank().equals(((s - mean) / std).rank())))
+
+    flat = pd.Series([7.0, 7.0, 7.0, 7.0])
+    check("constant column maps to neutral 0.5", np.allclose(scaling.z_score(flat), 0.5))
+
+    s_missing = pd.Series([1.0, np.nan, 3.0, 4.0, 5.0], index=["a", "b", "c", "d", "e"])
+    zm = scaling.z_score(s_missing)
+    check("missing values dropped then re-aligned",
+          "b" not in zm.index and "a" in zm.index and int(zm.notna().sum()) == 4)
+
+    check("transform_series dispatches z-score",
+          np.allclose(scaling.transform_series(s, scaling.METHOD_Z), z))
+
+    for method in scaling.ALL_METHODS:
+        out = scaling.transform_series(s, method).dropna()
+        check(f"{method} scores finite and in [0, 1]",
+              bool(np.isfinite(out).all()) and bool(((out >= 0) & (out <= 1)).all()))
+
+    raised = False
+    try:
+        scaling.transform_series(s, "bogus")
+    except ValueError:
+        raised = True
+    check("unknown method raises ValueError", raised)
+
+
 # ---------------------------------------------------------------------------
 # Real-data integration
 # ---------------------------------------------------------------------------
@@ -292,6 +328,15 @@ def test_real_data() -> None:
     check("chips scores in [0, 1]", bool(((scored["chips"] >= 0) & (scored["chips"] <= 1)).all()))
     check("ranks are 1..N", scored["rank"].min() == 1 and scored["rank"].max() == len(scored))
     check("coverage in [0, 1]", bool(((table["coverage"] >= 0) & (table["coverage"] <= 1)).all()))
+    # Regression: the default (SCORE_METHOD=capped 5-95) must equal an explicit
+    # capped call, so the dashboard's default selection keeps the published scores.
+    explicit = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_CAPPED)
+    check("default chips_table equals explicit capped method",
+          bool(np.allclose(table["chips"], explicit["chips"], equal_nan=True)))
+    table_z = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_Z)
+    scored_z = table_z.dropna(subset=["chips"])
+    check("CHIPS under z-score stays in [0, 1]",
+          bool(((scored_z["chips"] >= 0) & (scored_z["chips"] <= 1)).all()))
     check("all scored countries keep 3-5 pillars",
           bool(scored["pillars_present"].between(3, 5).all()))
     for pillar_name in ["CONNECT", "HARNESS", "INNOVATE", "PROTECT", "SUSTAINABILITY"]:
@@ -318,6 +363,7 @@ def run_all() -> int:
     test_drop_propagation()
     test_overrides_and_coverage()
     test_hierarchy_resolution()
+    test_zscore_scaling()
     test_real_data()
     print()
     if FAILURES:

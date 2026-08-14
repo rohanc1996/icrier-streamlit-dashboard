@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from core import scaling
+
 
 def page_header(title: str, subtitle: str) -> None:
     st.title(title)
@@ -76,18 +78,19 @@ def show_table(df: pd.DataFrame, column_config=None, height: int | None = None) 
 
 # Reusable column configuration for the "ranked table" style views.
 def rank_column_config(data) -> dict:
-    return {
+    cfg = {
         "rank": st.column_config.NumberColumn("Rank", format="%d"),
         "value": st.column_config.NumberColumn("Value", format="%.3g"),
         "percentile": st.column_config.NumberColumn("Percentile", format="%.0f"),
-        "full": st.column_config.NumberColumn("Full score", format="%.2f"),
-        "capped": st.column_config.NumberColumn("Capped score", format="%.2f"),
-        "log": st.column_config.NumberColumn("Log score", format="%.2f"),
-        "rank_full": st.column_config.NumberColumn("Rank · full", format="%d"),
-        "rank_capped": st.column_config.NumberColumn("Rank · capped", format="%d"),
-        "rank_log": st.column_config.NumberColumn("Rank · log", format="%d"),
         "max_swing": st.column_config.NumberColumn("Max swing", format="%d"),
         "n": st.column_config.NumberColumn("Countries", format="%d"),
         "pearson": st.column_config.NumberColumn("Pearson", format="%.2f"),
         "spearman": st.column_config.NumberColumn("Spearman", format="%.2f"),
     }
+    # Score and rank columns are generated from the scaling methods so that a
+    # new method automatically gets labelled columns here.
+    for method in scaling.ALL_METHODS:
+        label = scaling.METHOD_SHORT_LABELS[method]
+        cfg[method] = st.column_config.NumberColumn(f"{label} score", format="%.2f")
+        cfg[f"rank_{method}"] = st.column_config.NumberColumn(f"Rank · {label}", format="%d")
+    return cfg

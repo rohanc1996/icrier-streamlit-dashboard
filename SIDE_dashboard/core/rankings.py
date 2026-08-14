@@ -56,18 +56,22 @@ def rank_table(
     indicator: str,
     lower: float = 0.05,
     upper: float = 0.95,
+    rank_method: str = scaling.METHOD_CAPPED,
 ) -> pd.DataFrame:
-    """Leaderboard table: rank, country, value, percentile, and the three scores."""
+    """Leaderboard table: rank, country, value, percentile, and all four scores.
+
+    The headline ``rank`` column uses ``rank_method`` (capped by default),
+    breaking any ties by the raw value; the per-method score columns follow.
+    """
     scores = scaled_scores(data, indicator, lower, upper).dropna(subset=["value"])
     n = len(scores)
     scores = scores.copy()
-    # Rank by the capped score, breaking any ties by the raw value.
+    # Rank by the chosen method, breaking any ties by the raw value.
     scores["rank"] = _tie_broken_ranks(
-        scores, scaling.METHOD_CAPPED, data.higher_is_better.get(indicator, True)
+        scores, rank_method, data.higher_is_better.get(indicator, True)
     )
     scores["percentile"] = ((n - scores["rank"]) / (n - 1) * 100.0) if n > 1 else 100.0
-    cols = ["rank", "Country", "value", "percentile",
-            scaling.METHOD_FULL, scaling.METHOD_CAPPED, scaling.METHOD_LOG]
+    cols = ["rank", "Country", "value", "percentile"] + list(scaling.ALL_METHODS)
     return scores[cols].sort_values("rank").reset_index(drop=True)
 
 

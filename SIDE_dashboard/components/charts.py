@@ -1,7 +1,8 @@
 """Plotly chart builders used by the dashboard views.
 
 Every function returns a ``plotly.graph_objects.Figure`` so the views stay thin.
-Colours match the notebook (blue = full, orange = capped, green = log).
+Colours match the notebook (blue = full, orange = capped, green = log,
+purple = z-score).
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ SCALE_COLORS = {
     scaling.METHOD_FULL: "#4C78A8",
     scaling.METHOD_CAPPED: "#F58518",
     scaling.METHOD_LOG: "#54A24B",
+    scaling.METHOD_Z: "#6A3D9A",
 }
 UP_COLOR = "#54A24B"      # green  - removing the country strengthens the link
 DOWN_COLOR = "#E45756"    # red    - removing the country weakens the link
@@ -56,15 +58,16 @@ def choropleth(data, indicator: str, selected_country: str | None = None) -> go.
     return fig
 
 
-def hist_3panel(data, indicator: str, lower: float = 0.05, upper: float = 0.95) -> go.Figure:
-    """Three side-by-side histograms of the same indicator under each scaling."""
-    fig = make_subplots(
-        rows=1, cols=3,
-        subplot_titles=("Full-range min-max",
-                        f"{lower * 100:g}-{upper * 100:g} percentile capped",
-                        "Log-transformed min-max"),
-    )
-    for i, method in enumerate(scaling.ALL_METHODS, start=1):
+def hist_panels(data, indicator: str, lower: float = 0.05, upper: float = 0.95) -> go.Figure:
+    """Side-by-side histograms of the same indicator under each scaling."""
+    methods = list(scaling.ALL_METHODS)
+    titles = [
+        f"{lower * 100:g}-{upper * 100:g} percentile capped" if m == scaling.METHOD_CAPPED
+        else scaling.METHOD_LABELS[m]
+        for m in methods
+    ]
+    fig = make_subplots(rows=1, cols=len(methods), subplot_titles=titles)
+    for i, method in enumerate(methods, start=1):
         vals = scaling.transform_series(data.numeric_df[indicator], method, lower, upper).dropna()
         fig.add_trace(go.Histogram(
             x=vals, nbinsx=20, opacity=0.85,
@@ -74,14 +77,13 @@ def hist_3panel(data, indicator: str, lower: float = 0.05, upper: float = 0.95) 
             hovertemplate="Countries: %{y}<br>Score: %{x:.2f}<extra></extra>",
         ), row=1, col=i)
     fig.update_layout(height=340, margin=dict(l=10, r=10, t=50, b=10), barmode="overlay")
-    for axis in ("xaxis", "xaxis2", "xaxis3"):
-        fig.layout[axis].range = [0, 1]
-        fig.layout[axis].tickformat = ".1f"
-    for axis in ("yaxis", "yaxis2", "yaxis3"):
-        fig.layout[axis].title.text = "Countries"
+    for i in range(1, len(methods) + 1):
+        fig.layout[f"xaxis{i}"].range = [0, 1]
+        fig.layout[f"xaxis{i}"].tickformat = ".1f"
+        fig.layout[f"yaxis{i}"].title.text = "Countries"
     return fig
 # ---------------------------------------------------------------------------
-# Scatter (3 panels, mirrors the notebook's run_theme plotting code)
+# Scatter (one panel per scaling method, mirrors the notebook's run_theme code)
 # ---------------------------------------------------------------------------
 
 def _add_pearson_line(fig, xs, ys, row, col, showlegend):
@@ -120,7 +122,7 @@ def _add_spearman_line(fig, xs, ys, row, col, showlegend):
     ), row=row, col=col)
 
 
-def scatter_3panel(
+def scatter_panels(
     data,
     x_col: str,
     y_col: str,
@@ -129,19 +131,20 @@ def scatter_3panel(
     upper: float = 0.95,
     exclude: list[str] | None = None,
 ) -> go.Figure:
-    """Full/capped/log scatter panels with trendlines and highlighted countries."""
+    """One scatter panel per scaling method, with trendlines and highlighted countries."""
     highlight_countries = highlight_countries or []
     x_common, y_common, countries = correlations.prepare_pair(data, x_col, y_col)
     if exclude:
         mask = ~countries.isin(exclude)
         x_common, y_common, countries = x_common[mask], y_common[mask], countries[mask]
 
-    fig = make_subplots(
-        rows=1, cols=3,
-        subplot_titles=("Full-range min-max",
-                        f"{lower * 100:g}-{upper * 100:g} percentile capped",
-                        "Log-transformed min-max"),
-    )
+    methods = list(scaling.ALL_METHODS)
+    titles = [
+        f"{lower * 100:g}-{upper * 100:g} percentile capped" if m == scaling.METHOD_CAPPED
+        else scaling.METHOD_LABELS[m]
+        for m in methods
+    ]
+    fig = make_subplots(rows=1, cols=len(methods), subplot_titles=titles)
     for i, method in enumerate(scaling.ALL_METHODS, start=1):
         xs = scaling.transform_series(x_common, method, lower, upper).dropna()
         ys = scaling.transform_series(y_common, method, lower, upper).dropna()
@@ -189,28 +192,29 @@ def scatter_3panel(
     plot_top = 1.0 - fig.layout.margin.t / fig.layout.height
     for ann in fig.layout.annotations:
         ann.update(y=plot_top + 0.015, yanchor="bottom", yshift=0)
-    for axis in ("xaxis", "yaxis", "xaxis2", "yaxis2", "xaxis3", "yaxis3"):
-        fig.layout[axis].range = [0, 1]
-        fig.layout[axis].tickformat = ".1f"
+    for i in range(1, len(methods) + 1):
+        for axis in (f"xaxis{i}", f"yaxis{i}"):
+            fig.layout[axis].range = [0, 1]
+            fig.layout[axis].tickformat = ".1f"
     return fig
 # ---------------------------------------------------------------------------
 # Comparison & analysis charts
 # ---------------------------------------------------------------------------
 
-def _goodness_frame(data, indicators, lower=0.05, upper=0.95) -> pd.DataFrame:
-    """Capped scores (1.0 = best) for a set of indicators, one row per country."""
+def _goodness_frame(data, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> pd.DataFrame:
+    """Scores (1.0 = best) for a set of indicators, one row per country."""
     df = data.numeric_df[["Country"]].copy()
     for indicator in indicators:
-        sc = scaling.transform_series(data.numeric_df[indicator], scaling.METHOD_CAPPED, lower, upper)
+        sc = scaling.transform_series(data.numeric_df[indicator], method, lower, upper)
         if not data.higher_is_better.get(indicator, True):
             sc = 1.0 - sc
         df[indicator] = sc
     return df
 
 
-def radar_chart(data, countries, indicators, lower=0.05, upper=0.95) -> go.Figure:
-    """Overlaid radar of capped scores for 2-5 countries."""
-    scores = _goodness_frame(data, indicators, lower, upper)
+def radar_chart(data, countries, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> go.Figure:
+    """Overlaid radar of scaled scores (1.0 = best) for 2-5 countries."""
+    scores = _goodness_frame(data, indicators, lower, upper, method=method)
     theta = [data.friendly_names.get(i, i) for i in indicators]
     fig = go.Figure()
     for country in countries:
@@ -231,9 +235,9 @@ def radar_chart(data, countries, indicators, lower=0.05, upper=0.95) -> go.Figur
     return fig
 
 
-def parallel_coords(data, countries, indicators, lower=0.05, upper=0.95) -> go.Figure:
-    """Parallel-coordinates view of the same capped scores."""
-    scores = _goodness_frame(data, indicators, lower, upper)
+def parallel_coords(data, countries, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> go.Figure:
+    """Parallel-coordinates view of the same scaled scores."""
+    scores = _goodness_frame(data, indicators, lower, upper, method=method)
     if countries:
         scores = scores[scores["Country"].isin(countries)]
     dims = []
@@ -252,9 +256,9 @@ def parallel_coords(data, countries, indicators, lower=0.05, upper=0.95) -> go.F
     return fig
 
 
-def profile_bars(data, country, indicators, lower=0.05, upper=0.95) -> go.Figure:
+def profile_bars(data, country, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> go.Figure:
     """Country score vs the world median for a set of indicators."""
-    scores = _goodness_frame(data, indicators, lower, upper)
+    scores = _goodness_frame(data, indicators, lower, upper, method=method)
     rows = []
     for indicator in indicators:
         row = scores[scores["Country"] == country]
@@ -320,7 +324,7 @@ def movers_bar(stability_df: pd.DataFrame, top_n: int = 10) -> go.Figure:
     fig.update_layout(
         height=40 + len(d) * 26,
         margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Max rank swing between the three scaling methods",
+        xaxis_title="Max rank swing between the four scaling methods",
     )
     return fig
 

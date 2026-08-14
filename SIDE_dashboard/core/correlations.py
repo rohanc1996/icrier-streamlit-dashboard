@@ -80,7 +80,7 @@ def corr_with_exclusions(
     lower: float = 0.05,
     upper: float = 0.95,
 ):
-    """Correlation after removing the given countries (uses capped scaling)."""
+    """Correlation after removing the given countries, under the given scaling."""
     x_common, y_common, countries = prepare_pair(data, x_col, y_col)
     keep = ~countries.isin(excluded or [])
     xs = scaling.transform_series(x_common[keep], scaling_method, lower, upper).dropna()
@@ -104,7 +104,7 @@ def leave_one_out(
 
     Returns ``(result_df, base_correlation)`` where ``result_df`` has columns
     ``country``, ``corr_without`` and ``delta`` (corr_without - base), sorted by
-    the absolute change. Uses capped scaling (the robust default).
+    the absolute change. Uses the given scaling method (capped by default).
     """
     x_common, y_common, countries = prepare_pair(data, x_col, y_col)
     xs = scaling.transform_series(x_common, scaling_method, lower, upper)

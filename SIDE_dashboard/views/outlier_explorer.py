@@ -5,13 +5,13 @@ import pandas as pd
 import streamlit as st
 
 from components import charts, ui
-from core import correlations
+from core import correlations, scaling
 
 DEFAULT_X = "Median Mobile Download Speeds (Mbps)"
 DEFAULT_Y = "Total AI Private Investment in Millions"
 
 
-def render(data) -> None:
+def render(data, method=scaling.METHOD_CAPPED) -> None:
     ui.page_header(
         "🕵️ Outlier explorer",
         "Which countries are pulling the relationship one way or the other? "
@@ -40,7 +40,7 @@ def render(data) -> None:
     method = "spearman" if method_choice == "Spearman (robust)" else "pearson"
     method_label = "Spearman" if method == "spearman" else "Pearson"
 
-    loo, base = correlations.leave_one_out(data, x_col, y_col, corr_method=method)
+    loo, base = correlations.leave_one_out(data, x_col, y_col, corr_method=method, scaling_method=method)
     if loo.empty:
         st.warning("Not enough overlapping data to run the leave-one-out analysis.")
         return
@@ -69,11 +69,11 @@ def render(data) -> None:
     )
     colA, colB = st.columns([1, 3])
     with colA:
-        corr_excl, n = correlations.corr_with_exclusions(data, x_col, y_col, corr_method=method, excluded=excluded)
+        corr_excl, n = correlations.corr_with_exclusions(data, x_col, y_col, corr_method=method, excluded=excluded, scaling_method=method)
         st.metric(f"{method_label} without excluded", f"{corr_excl:.3f}" if not pd.isna(corr_excl) else "—")
         st.metric("Countries used", f"{n}")
         if excluded and st.button("Reset exclusions", key="oo_reset"):
             st.session_state["oo_exclude"] = []
             st.rerun()
     with colB:
-        st.plotly_chart(charts.scatter_3panel(data, x_col, y_col, exclude=excluded), width="stretch")
+        st.plotly_chart(charts.scatter_panels(data, x_col, y_col, exclude=excluded), width="stretch")

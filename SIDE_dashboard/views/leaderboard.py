@@ -4,16 +4,16 @@ from __future__ import annotations
 import streamlit as st
 
 from components import ui
-from core import rankings
+from core import rankings, scaling
 
 DEFAULT_INDICATOR = "Median Mobile Download Speeds (Mbps)"
 
 
-def render(data) -> None:
+def render(data, method=scaling.METHOD_CAPPED) -> None:
     ui.page_header(
         "🏆 Leaderboard",
         "Every country ranked on one indicator at a time — with the score under "
-        "all three scaling methods.",
+        "all four scaling methods.",
     )
     ui.explainer(
         "📊",
@@ -28,13 +28,18 @@ def render(data) -> None:
     if indicator is None:
         return
 
-    table = rankings.rank_table(data, indicator)
+    table = rankings.rank_table(data, indicator, rank_method=method)
 
     search = st.text_input("🔎 Search by country name", key="lb_search", placeholder="e.g. India, Brazil, Nigeria…")
     if search.strip():
         table = table[table["Country"].str.contains(search.strip(), case=False, na=False)]
 
     ui.show_table(table, column_config=ui.rank_column_config(data), height=520)
+    st.caption(
+        f"The **Rank** column uses the sidebar scoring method "
+        f"(**{scaling.METHOD_LABELS[method]}**); the other three score columns are "
+        "shown alongside so you can see how sensitive the ordering is."
+    )
 
     csv = table.to_csv(index=False).encode("utf-8")
     st.download_button(

@@ -13,7 +13,7 @@ import pandas as pd
 import streamlit as st
 
 from components import charts, country_names, ui
-from core import chips, chips_hierarchy as H
+from core import chips, chips_hierarchy as H, scaling
 
 SECTIONS = [
     "🏅 CHIPS leaderboard",
@@ -76,7 +76,7 @@ def _short_subpillar(key: str) -> str:
     return f"{PILLAR_SHORT.get(pillar, pillar[:4])}·{sp}"
 
 
-def render(data) -> None:
+def render(data, method=scaling.METHOD_CAPPED) -> None:
     ui.page_header(
         "🏆 CHIPS Index Explorer",
         "CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY — a transparent "
@@ -99,15 +99,16 @@ def render(data) -> None:
             "🧮",
             f"**{n_indicators} indicators → {n_sub} sub-pillars → 5 pillars → CHIPS (0–1).** "
             "CONNECT, HARNESS and INNOVATE each carry **25%** of the index; PROTECT and "
-            "SUSTAINABILITY **12.5%** each. Every indicator is min–max scaled to 0–1 over the "
-            "full observed range (inverted where lower is better). Missing data is never "
+            "SUSTAINABILITY **12.5%** each. Every indicator is scaled to 0–1 with the "
+            "sidebar-selected method (capped min-max by default; inverted where lower "
+            "is better). Missing data is never "
             "silently ignored: weights are "
             "redistributed and groups that lose too many components are dropped with the reason "
             "recorded — hover any block or cell to see it.",
         )
 
     # One baseline computation shared by the leaderboard, map and scatter.
-    scores = chips.chips_table(data, pillars=pillars)
+    scores = chips.chips_table(data, pillars=pillars, method=method)
 
     section = st.radio(
         "Section", SECTIONS, horizontal=True, label_visibility="collapsed", key="ch_section"
@@ -117,9 +118,9 @@ def render(data) -> None:
     elif section == SECTIONS[1]:
         _map_panel(data, scores)
     elif section == SECTIONS[2]:
-        _drilldown(data, scores, pillars)
+        _drilldown(data, scores, pillars, method)
     elif section == SECTIONS[3]:
-        _missingness(data, scores, pillars)
+        _missingness(data, scores, pillars, method)
     else:
         _methodology(pillars, unresolved)
 
@@ -152,8 +153,8 @@ def _leaderboard(scores) -> None:
     }
     ui.show_table(display[list(cols)], column_config=cols, height=540)
     st.caption(
-        "Values are the raw dataset figures; **CHIPS and pillar scores use full-range "
-        "min–max scaling** over the observed range (inverted where lower is better). The Data badge "
+        "Values are the raw dataset figures; **CHIPS and pillar scores use the "
+        "sidebar-selected scaling method** (inverted where lower is better). The Data badge "
         "summarises coverage (🟢 full ≥90% of the CHIPS weight backed by values, 🟡 partial "
         "≥70%, 🔴 sparse) — see the Missing-data section for country-level detail. Sort by "
         "clicking a column header."
@@ -176,7 +177,7 @@ def _map_panel(data, scores) -> None:
     st.caption(f"{n_scored} of {len(scores)} countries in our report have a CHIPS score.")
 
 
-def _drilldown(data, scores, pillars) -> None:
+def _drilldown(data, scores, pillars, method) -> None:
     ui.explainer(
         "🔍",
         "Open a country to see every pillar and indicator, exactly which groups were dropped "
@@ -185,7 +186,7 @@ def _drilldown(data, scores, pillars) -> None:
     default = _default_country(data)
     country = st.selectbox("Country", data.country_list,
                            index=data.country_list.index(default), key="ch_country")
-    res = chips.aggregate_country(data, country, pillars=pillars)
+    res = chips.aggregate_country(data, country, pillars=pillars, method=method)
 
     scored = scores.dropna(subset=["chips"])
     rank_row = scored[scored["Country"] == country]
@@ -215,11 +216,11 @@ def _drilldown(data, scores, pillars) -> None:
                "HARNESS teal, INNOVATE orange, PROTECT red, SUSTAINABILITY green) shaded by "
                "score — darker = higher. Grey = no data or dropped by a rule.")
 
-    _whatif_panel(data, pillars, country, res)
-    _movers_panel(data, pillars, country, res)
+    _whatif_panel(data, pillars, country, res, method)
+    _movers_panel(data, pillars, country, res, method)
 
 
-def _whatif_panel(data, pillars, country, res) -> None:
+def _whatif_panel(data, pillars, country, res, method) -> None:
     st.markdown("#### What-if: how much does one sub-pillar matter?")
     keys = H.sub_pillar_keys(pillars)
     target = st.selectbox("Sub-pillar to simulate", ["— choose one —"] + keys, key="ch_sim_target")
@@ -251,8 +252,8 @@ def _whatif_panel(data, pillars, country, res) -> None:
                        "the slider gives it a hypothetical value instead.")
         override = {target: ("present", value)}
 
-    scen = chips.aggregate_country(data, country, pillars=pillars, override=override)
-    scen_scores = chips.chips_table(data, pillars=pillars, override=override)
+    scen = chips.aggregate_country(data, country, pillars=pillars, override=override, method=method)
+    scen_scores = chips.chips_table(data, pillars=pillars, override=override, method=method)
     scen_row = scen_scores[scen_scores["Country"] == country]
     scen_rank = None
     if not scen_row.empty and pd.notna(scen_row["rank"].iloc[0]):
@@ -274,7 +275,7 @@ def _whatif_panel(data, pillars, country, res) -> None:
                    "recomputed across all countries under the same scenario.")
 
 
-def _movers_panel(data, pillars, country, res) -> None:
+def _movers_panel(data, pillars, country, res, method) -> None:
     with st.expander("📊 Which sub-pillars move this country's score most?"):
         ui.explainer("💡", "Each row shows the CHIPS score if that one sub-pillar were removed "
                           "(treated as having no data). The most negative Δ marks the sub-pillars "
@@ -283,7 +284,7 @@ def _movers_panel(data, pillars, country, res) -> None:
         movers = []
         for key in H.sub_pillar_keys(pillars):
             r = chips.aggregate_country(data, country, pillars=pillars,
-                                        override={key: ("absent", None)})
+                                        override={key: ("absent", None)}, method=method)
             new = r.chips.score
             movers.append({
                 "Sub-pillar": key.replace(" · ", " / "),
@@ -295,7 +296,7 @@ def _movers_panel(data, pillars, country, res) -> None:
         ui.show_table(movers_df.round(3), height=520)
 
 
-def _missingness(data, scores, pillars) -> None:
+def _missingness(data, scores, pillars, method) -> None:
     ui.explainer(
         "⚠️",
         "How much of every country's score is backed by real data, where the gaps are, and "
@@ -309,7 +310,7 @@ def _missingness(data, scores, pillars) -> None:
                "the least data behind their score.")
 
     st.markdown("#### Missing-data heatmap")
-    codes, reasons = chips.subpillar_status_matrix(data, pillars=pillars)
+    codes, reasons = chips.subpillar_status_matrix(data, pillars=pillars, method=method)
     order = scores.sort_values("coverage")["Country"].tolist()
     codes = codes.loc[order]
     reasons = reasons.loc[order]

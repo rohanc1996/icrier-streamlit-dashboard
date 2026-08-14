@@ -44,7 +44,7 @@ COLUMN_ALIASES = {
     # CONNECT · AI
     "% of population that are using AI": "Number of AI users",
     "Compute capacity (Govt readiness)": "Compute capacity",
-    "AI Infrastructure (Tortoise)": "AI Infrastructure",
+    "AI Infrastructure (Tortoise)": "AI Infrastructure.1",
     # HARNESS · Apps and platform
     "Number (16-64 years) using social media for work related activities": "Number of internet users (16-64 years) using social media for work related activities",
     "Number of users of digital food delivery platforms": "Number of users of digital food delivery platforms (millions)",
@@ -83,7 +83,7 @@ COLUMN_ALIASES = {
     "E-waste generated (kg per capita)": "E-waste generated (million kg)",
     "Share of energy startups that are digital": "Number of energy and digital startups",
     "Patents filed (2000-2023) in Smart Grids as a % of enabling tech patents": "Patents filed (2000-2024) in Smart Grids",
-    "Renewable energy share of electricity production (%)": "Net electricity production from Renewables (Hydro, Geo, Solar, Wind, Other) (GWh)",
+    "Renewable energy share of electricity production (%)": "Total renewable energy production (GWh)",
     "Average Annual Loss by Climate (USD million)": "AAL by Climate (Million USD) for the Telecom Sector- Existing Climate",
 }
 
