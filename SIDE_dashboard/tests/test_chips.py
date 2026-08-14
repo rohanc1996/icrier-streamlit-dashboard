@@ -22,11 +22,13 @@ import pandas as pd
 from core import chips, chips_hierarchy as H
 
 FAILURES: list[str] = []
+PASSED = 0
 
 
 def check(name: str, cond: bool, detail: str = "") -> None:
+    global PASSED
     if cond:
-        print(f"  ok  {name}")
+        PASSED += 1
     else:
         FAILURES.append(name)
         print(f"FAIL  {name} {detail}")
@@ -232,6 +234,11 @@ def test_hierarchy_resolution() -> None:
     check("all indicators resolve against their own aliases", not unresolved)
     check("5 pillars", len(pillars) == 5)
     check("pillar weights sum to 1", abs(sum(p.weight for p in pillars) - 1.0) < 1e-9)
+    pillar_w = {p.name: p.weight for p in pillars}
+    check("CHI pillars carry 25% each",
+          np.allclose([pillar_w[n] for n in ["CONNECT", "HARNESS", "INNOVATE"]], 0.25))
+    check("PS pillars carry 12.5% each",
+          np.allclose([pillar_w[n] for n in ["PROTECT", "SUSTAINABILITY"]], 0.125))
     for p in pillars:
         check(f"{p.name} sub-pillar weights sum to 1",
               abs(sum(sp.weight for sp in p.sub_pillars) - 1.0) < 1e-9)
@@ -314,9 +321,9 @@ def run_all() -> int:
     test_real_data()
     print()
     if FAILURES:
-        print(f"{len(FAILURES)} FAILURE(S): {FAILURES}")
+        print(f"{len(FAILURES)} FAILURE(S) of {PASSED + len(FAILURES)} checks: {FAILURES}")
         return 1
-    print("ALL TESTS PASSED")
+    print(f"ALL {PASSED} CHECKS PASSED")
     return 0
 
 

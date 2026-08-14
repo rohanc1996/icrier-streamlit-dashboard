@@ -3,13 +3,12 @@
 Five sections:
   1. 🏅 CHIPS leaderboard — every country, colour-coded by data coverage
   2. 🗺️ CHIPS map — world choropleth; click a country to open its drill-down
-  3. 🔍 Country drill-down — treemap, weight inflation, what-if scenarios
+  3. 🔍 Country drill-down — treemap, what-if scenarios
   4. ⚠️ Missing-data impact — coverage scatter, status heatmap
   5. 📖 Methodology — plain-language rules and the full indicator map
 """
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -34,14 +33,6 @@ PILLAR_SHORT = {
     "PROTECT": "PRO",
     "SUSTAINABILITY": "SUS",
 }
-
-ASSUMPTIONS = [
-    "Present — world median (0.50)",
-    "Present — optimistic (0.75)",
-    "Present — pessimistic (0.25)",
-    "Present — country's own average",
-    "Absent (drop it)",
-]
 
 
 def _default_country(data) -> str:
@@ -106,9 +97,11 @@ def render(data) -> None:
     else:
         ui.explainer(
             "🧮",
-            f"**{n_indicators} indicators → {n_sub} sub-pillars → 5 equal pillars → CHIPS (0–1).** "
-            "Each indicator is capped 5–95 min–max scaled (inverted where lower is better), exactly "
-            "like the rest of the dashboard. Missing data is never silently ignored: weights are "
+            f"**{n_indicators} indicators → {n_sub} sub-pillars → 5 pillars → CHIPS (0–1).** "
+            "CONNECT, HARNESS and INNOVATE each carry **25%** of the index; PROTECT and "
+            "SUSTAINABILITY **12.5%** each. Every indicator is min–max scaled to 0–1 over the "
+            "full observed range (inverted where lower is better). Missing data is never "
+            "silently ignored: weights are "
             "redistributed and groups that lose too many components are dropped with the reason "
             "recorded — hover any block or cell to see it.",
         )
@@ -159,8 +152,8 @@ def _leaderboard(scores) -> None:
     }
     ui.show_table(display[list(cols)], column_config=cols, height=540)
     st.caption(
-        "Values are the raw dataset figures; **CHIPS and pillar scores use the dashboard's "
-        "capped 5–95 min–max scaling** (inverted where lower is better). The Data badge "
+        "Values are the raw dataset figures; **CHIPS and pillar scores use full-range "
+        "min–max scaling** over the observed range (inverted where lower is better). The Data badge "
         "summarises coverage (🟢 full ≥90% of the CHIPS weight backed by values, 🟡 partial "
         "≥70%, 🔴 sparse) — see the Missing-data section for country-level detail. Sort by "
         "clicking a column header."
@@ -222,16 +215,6 @@ def _drilldown(data, scores, pillars) -> None:
                "HARNESS teal, INNOVATE orange, PROTECT red, SUSTAINABILITY green) shaded by "
                "score — darker = higher. Grey = no data or dropped by a rule.")
 
-    rw = chips.reweight_frame(res)
-    infl_fig = charts.reweight_bars(rw)
-    if infl_fig is not None:
-        st.markdown("#### Effective vs nominal weights")
-        st.plotly_chart(infl_fig, width="stretch")
-        st.caption("When a sibling sub-pillar is missing, its weight is redistributed to the "
-                   "surviving ones — these bars show by how much. Dropped sub-pillars are omitted.")
-    else:
-        st.info("No sub-pillar survived the missing-data rules for this country.")
-
     _whatif_panel(data, pillars, country, res)
     _movers_panel(data, pillars, country, res)
 
@@ -243,19 +226,29 @@ def _whatif_panel(data, pillars, country, res) -> None:
     if target == "— choose one —":
         return
 
-    assumption = st.radio("Assumption", ASSUMPTIONS, horizontal=True, key="ch_sim_assumption")
-    if assumption == "Absent (drop it)":
+    drop_it = st.checkbox("Drop it altogether (treat the sub-pillar as having no data)",
+                          key="ch_sim_drop")
+    if drop_it:
         override = {target: ("absent", None)}
     else:
-        if assumption == "Present — country's own average":
-            present_pillars = [pr.score for pr in res.pillars if pr.score is not None]
-            value = float(np.mean(present_pillars)) if present_pillars else 0.5
-        elif assumption == "Present — optimistic (0.75)":
-            value = 0.75
-        elif assumption == "Present — pessimistic (0.25)":
-            value = 0.25
+        actual_sp = next(
+            (sp.score for pr in res.pillars for sp in pr.children
+             if f"{pr.name} · {sp.name}" == target),
+            None,
+        )
+        default = float(actual_sp) if actual_sp is not None else 0.5
+        value = st.slider(
+            "Assumed score for this sub-pillar", 0.0, 1.0, default, step=0.05,
+            key="ch_sim_score",
+            help="Set the sub-pillar's 0–1 score. It starts at the country's actual score, "
+                 f"so leaving it in place reproduces the current result.",
+        )
+        if actual_sp is not None:
+            st.caption(f"🎯 {country}'s current score for **{target}** is **{actual_sp:.2f}** — the "
+                       "slider starts there, so leaving it alone reproduces today's score.")
         else:
-            value = 0.50
+            st.caption(f"ℹ️ **{target}** currently has no score for {country} (missing or dropped) — "
+                       "the slider gives it a hypothetical value instead.")
         override = {target: ("present", value)}
 
     scen = chips.aggregate_country(data, country, pillars=pillars, override=override)
@@ -273,8 +266,12 @@ def _whatif_panel(data, pillars, country, res) -> None:
     b.metric("CHIPS under scenario", f"{new:.3f}" if new is not None else "no score",
              delta=(None if delta is None else f"{delta:+.3f}"))
     c.metric("Rank under scenario", f"#{scen_rank}" if scen_rank else "—")
-    st.caption(f"Assumption applied to **{target}**. Rank is recomputed across all countries "
-               "under the same scenario.")
+    if drop_it:
+        st.caption(f"Scenario applied to **{target}** — treated as having no data. Rank is "
+                   "recomputed across all countries under the same scenario.")
+    else:
+        st.caption(f"Scenario applied to **{target}** — set to **{value:.2f}**. Rank is "
+                   "recomputed across all countries under the same scenario.")
 
 
 def _movers_panel(data, pillars, country, res) -> None:
@@ -333,15 +330,17 @@ def _missingness(data, scores, pillars) -> None:
 def _methodology(pillars, unresolved) -> None:
     ui.explainer(
         "📖",
-        "The CHIPS composite uses five equally weighted pillars. Weights inside a group are "
-        "equal unless the spec sheet gives a specific weight. Everything else is the "
+        "The CHIPS composite is weighted at the pillar level: **CONNECT, HARNESS and INNOVATE each "
+        "carry 25%** of the index and **PROTECT and SUSTAINABILITY 12.5% each**. Inside a group, "
+        "weights are equal unless the spec sheet gives a specific weight. Everything else is the "
         "missing-data logic below — and every decision it makes is recorded per country.",
     )
 
     st.markdown("#### Missing-data rules")
     st.markdown(
-        """1. **Equal weights unless specified** — components in a group are weighted equally
-   (the spec sheet's weights are used where given).
+        """1. **Weights come from the spec** — CONNECT, HARNESS and INNOVATE each carry 25% of
+   the index and PROTECT and SUSTAINABILITY 12.5% each. Inside each group, weights are equal
+   unless the spec gives one, down to the individual indicators.
 2. **Missing values are redistributed** — if a component is missing, its weight is shared
    across the remaining present components of the same group.
 3. **More than half missing → the group drops** — and is then treated as unavailable one
@@ -356,9 +355,8 @@ def _methodology(pillars, unresolved) -> None:
    (AI commercial, private investment, newly funded AI companies, ⅓ each). A pair that loses
    one member drops (rule 4) — and because the sub-pillar has only 2 groups it drops if either
    group is lost. Inside the 3-indicator group, 1 missing is redistributed and 2 missing drop it.
-8. **Scoring** — every indicator is capped 5–95 min–max scaled to 0–1 (inverted for
-   lower-is-better indicators such as prices and risk), matching the dashboard's capped
-   method.""")
+8. **Scoring** — every indicator is min–max scaled to 0–1 over the full observed range
+   (inverted for lower-is-better indicators such as prices and risk).""")
 
     st.markdown("#### The indicator map")
     table = H.hierarchy_table(pillars)
@@ -366,8 +364,10 @@ def _methodology(pillars, unresolved) -> None:
     if unresolved:
         st.warning(f"Unresolved indicator names: {', '.join(unresolved)} — these are treated "
                    "as missing for every country until the mapping is added.")
-    st.caption("Weights are normalised within each group (four equal indicators each carry "
-               "25%). Hover any cell in the charts to see which rule applied.")
+    st.caption("Weights are normalised within each group (e.g. the four CONNECT · Affordability "
+               "indicators each carry 25% of that sub-pillar). At the top, the CHI pillars carry "
+               "25% of the index and the PS pillars 12.5% each. Hover any cell in the charts to "
+               "see which rule applied.")
 
 
 

@@ -6,6 +6,9 @@ This module is the single source of truth for the CHIPS indicator framework:
 
 - Weights are given as decimals within a group (they are normalised to sum to
   1).  A ``None`` weight means "equal weight" (the default everywhere).
+- The five pillars are **not equal**: CONNECT, HARNESS and INNOVATE each carry
+  25% of the index and PROTECT and SUSTAINABILITY 12.5% each (per the CHIPS
+  spec sheet).
 - The INNOVATE → AI sub-pillar is **not flat**: it is made of two internal
   groups — the research pair (AI Innovation - Research + AI R&D score) and the
   remaining three AI indicators — that follow their own missingness rules
@@ -92,6 +95,7 @@ COLUMN_ALIASES = {
 HIERARCHY = [
     {
         "name": "CONNECT",
+        "weight": 0.25,  # CHI pillar — carries 25% of the index
         "sub_pillars": [
             {
                 "name": "Affordability",
@@ -130,6 +134,7 @@ HIERARCHY = [
     },
     {
         "name": "HARNESS",
+        "weight": 0.25,  # CHI pillar — carries 25% of the index
         "sub_pillars": [
             {
                 "name": "Apps and platform",
@@ -176,6 +181,7 @@ HIERARCHY = [
     },
     {
         "name": "INNOVATE",
+        "weight": 0.25,  # CHI pillar — carries 25% of the index
         "sub_pillars": [
             {
                 "name": "Investments and Startups",
@@ -229,6 +235,7 @@ HIERARCHY = [
     },
     {
         "name": "PROTECT",
+        "weight": 0.125,  # PS pillar — carries 12.5% of the index
         "sub_pillars": [
             {
                 "name": "Preparedness",
@@ -258,6 +265,7 @@ HIERARCHY = [
     {
         # Sustainability has no sub-pillars; the pillar is a single flat group.
         "name": "SUSTAINABILITY",
+        "weight": 0.125,  # PS pillar — carries 12.5% of the index
         "sub_pillars": [
             {
                 "name": "Sustainability",

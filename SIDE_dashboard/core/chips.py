@@ -2,20 +2,24 @@
 
 Scoring
 -------
-Every indicator is rescaled to 0-1 (capped 5-95 min-max, inverted where lower
-is better) exactly as the rest of the dashboard does — the same maths behind
-``rankings.scaled_scores`` and ``scaling.transform_series``.
+Every indicator is rescaled to 0-1 (full-range min-max, inverted where lower
+is better) via ``scaling.transform_series``.  The scaling method is a
+temporary override for the current comparison run — flip the ``SCORE_METHOD``
+constant back to ``scaling.METHOD_CAPPED`` (with 0.05/0.95) to restore the
+dashboard-standard capped 5-95 scaling.
 
 Missing-data rules (from the CHIPS spec sheet)
 ----------------------------------------------
-1. Components in a group are weighted equally unless a weight is given.
+1. Components are weighted equally unless a weight is given — the five pillars
+   are not equal: CONNECT, HARNESS and INNOVATE each carry 25% of the index and
+   PROTECT and SUSTAINABILITY 12.5% each.
 2. If a component is missing, redistribute its weight across the remaining
    present components in the same group.
 3. If more than half of a group's components are missing, drop the group.
 4. If a group has exactly 2 components and 1 is missing, drop the group.
 5. The same logic applies at every level, so a dropped component counts as
    unavailable one level up (indicator -> sub-pillar -> pillar -> CHIPS).
-6. CHIPS itself needs at least 3 of its 5 pillars (present/total > 0.5).
+6. CHIPS itself needs at least 3 of its 5 pillars present.
 
 The INNOVATE -> AI sub-pillar nests one extra level: its two internal groups —
 the research pair (AI Innovation - Research + AI R&D score) and the remaining
@@ -28,8 +32,8 @@ reproduces exactly the spec-sheet's "1 of 3 lost -> reweight, 2 of 3 lost -> dro
 Every node of the result tree records its status (present / missing / dropped),
 the rule that dropped it, its nominal weight, the weight actually applied after
 reweighting, and (for indicators) its underlying 0-1 score.  That tree is what
-the explorer page turns into treemaps, weight-inflation bars and what-if
-scenarios, so the effect of missing data is fully transparent.
+the explorer page turns into treemaps and what-if scenarios, so the effect of
+missing data is fully transparent.
 """
 
 from __future__ import annotations
@@ -41,6 +45,18 @@ import pandas as pd
 
 from . import chips_hierarchy as H
 from . import scaling
+
+
+# ---------------------------------------------------------------------------
+# TEMPORARY: CHIPS indicator scaling.
+#   Currently plain full-range min-max (no 5-95 cap) so the new pillar weights
+#   can be compared against the last published report.  To restore the
+#   dashboard-standard behaviour, set SCORE_METHOD back to METHOD_CAPPED and
+#   lower/upper to 0.05/0.95 — nothing else needs to change.
+# ---------------------------------------------------------------------------
+SCORE_METHOD = scaling.METHOD_FULL
+SCORE_LOWER = 0.0
+SCORE_UPPER = 1.0
 
 
 @dataclass
@@ -190,7 +206,7 @@ def _build_pillar_result(
 # Country-level aggregation
 # ---------------------------------------------------------------------------
 
-def score_matrix(data, pillars: list[H.Pillar], lower: float = 0.05, upper: float = 0.95) -> pd.DataFrame:
+def score_matrix(data, pillars: list[H.Pillar], lower: float = SCORE_LOWER, upper: float = SCORE_UPPER) -> pd.DataFrame:
     """0-1 "goodness" score for every leaf, all countries.
 
     Columns are keyed by the indicator *name* and aligned to
@@ -204,7 +220,7 @@ def score_matrix(data, pillars: list[H.Pillar], lower: float = 0.05, upper: floa
             out[leaf.name] = np.nan
         else:
             raw = data.numeric_df[leaf.column]
-            score = scaling.transform_series(raw, scaling.METHOD_CAPPED, lower, upper)
+            score = scaling.transform_series(raw, SCORE_METHOD, lower, upper)
             if not data.higher_is_better.get(leaf.column, True):
                 score = 1.0 - score
             # Assign the Series, not .values: transform_series drops NaN rows, so
@@ -396,20 +412,5 @@ def tree_to_frame(chips_node: NodeResult, leaf_weights: dict[str, float]) -> pd.
     return pd.DataFrame(rows)
 
 
-def reweight_frame(res: CountryResult) -> pd.DataFrame:
-    """Nominal vs effective sub-pillar weights for the weight-inflation bars."""
-    rows = []
-    for pr in res.pillars:
-        for sp in pr.children:
-            rows.append({
-                "pillar": pr.name,
-                "sub_pillar": sp.name,
-                "label": f"{pr.name} · {sp.name}",
-                "nominal": sp.nominal_weight,
-                "effective": sp.effective_weight,
-                "status": sp.status,
-                "score": sp.score,
-                "reason": sp.reason or "",
-            })
-    return pd.DataFrame(rows)
+
 

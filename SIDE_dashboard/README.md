@@ -22,7 +22,7 @@ Your browser opens at `http://localhost:8501`.
 | Page | What it does |
 | --- | --- |
 | 🌍 **Country Explorer** | Three views: colour the world map by any indicator (click a country to open its rankings), inspect a single country's profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), or compare up to five countries on a spider chart. |
-| 🏆 **CHIPS Index Explorer** | The CHIPS composite (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with full missing-data transparency: leaderboard, world map, per-country drill-down (treemap, weight inflation, what-if scenarios), a cross-country missing-data impact section, and the complete methodology. |
+| 🏆 **CHIPS Index Explorer** | The CHIPS composite (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with full missing-data transparency: leaderboard, world map, per-country drill-down (treemap + what-if scenarios), a cross-country missing-data impact section, and the complete methodology. |
 | ⚖️ **Scaling Comparator** | Compare the three min-max scaling methods on any indicator. Adjust the cap window with sliders and see which countries' ranks swing most. |
 | 🔬 **Correlation Explorer** | Pick any two indicators. Get three-panel scatter plots (full / capped / log) with Pearson and Spearman trend lines, plus a plain-language verdict on robustness. |
 | 🕵️ **Outlier Explorer** | Leave-one-out analysis: how much does a correlation move when each country is removed? Then exclude countries yourself and watch the scatter and correlation update live. |
@@ -44,9 +44,12 @@ Your browser opens at `http://localhost:8501`.
 
 ## The CHIPS composite index
 
-The CHIPS Index Explorer aggregates **58 indicators** into **5 equal pillars**
-(CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY), each with weighted
-sub-pillars. The spec lives in `core/chips_hierarchy.py`; the aggregation
+The CHIPS Index Explorer aggregates **58 indicators** into **5 pillars**
+(CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY). The three CHI pillars
+(CONNECT, HARNESS, INNOVATE) each carry **25%** of the index and the two PS
+pillars (PROTECT, SUSTAINABILITY) **12.5%** each; inside a pillar, sub-pillars
+and indicators are weighted per the spec. The spec lives in
+`core/chips_hierarchy.py`; the aggregation
 engine (including the missing-data rules) in `core/chips.py`. Missing values
 are handled explicitly rather than silently ignored:
 

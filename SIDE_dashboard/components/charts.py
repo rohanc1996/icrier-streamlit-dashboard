@@ -431,36 +431,6 @@ def chips_treemap(rows: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def reweight_bars(rw_df: pd.DataFrame) -> go.Figure:
-    """Nominal vs effective sub-pillar weights (missing siblings redistribute)."""
-    d = rw_df[rw_df["status"] == "present"].copy()
-    if d.empty:
-        return None
-    d = d.sort_values("label")
-    d["inflation"] = d["effective"] - d["nominal"]
-    colors = np.where(d["inflation"] >= 0, "#2171b5", "#d62728")
-    fig = go.Figure(go.Bar(
-        x=d["inflation"],
-        y=d["label"],
-        orientation="h",
-        marker_color=colors,
-        customdata=np.stack([
-            np.round(d["nominal"], 3), np.round(d["effective"], 3),
-            np.round(d["score"].fillna(-1.0), 3),
-        ], axis=-1),
-        hovertemplate=("%{y}<br>"
-                       "nominal %{customdata[0]} → effective %{customdata[1]}"
-                       "<br>score %{customdata[2]}<extra></extra>"),
-    ))
-    fig.add_vline(x=0, line_color="#333333", line_width=1)
-    fig.update_layout(
-        height=min(700, 40 + 24 * len(d)),
-        margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Effective − nominal weight within the pillar (missing siblings' weight is redistributed)",
-    )
-    return fig
-
-
 def coverage_scatter(df: pd.DataFrame) -> go.Figure:
     """CHIPS score vs weighted data coverage. Clicking is handled by the view."""
     d = df.dropna(subset=["chips"]).copy()
