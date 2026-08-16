@@ -88,7 +88,8 @@ def chips_race(scores: pd.DataFrame) -> tuple[go.Figure, go.Figure]:
     best-first (rank #1 at the top); countries without a CHIPS score sit at
     the bottom in grey. Each country is drawn as a thin line in the colour of
     its leaderboard data badge and ends with the country's flag emoji (a text
-    marker, so no image downloads or extra dependencies).
+    marker, so no image downloads or extra dependencies). Hovering any row
+    shows a single box with the country's rank, CHIPS score and data coverage.
 
     Returns ``(figure, axis_strip)``: the full-height figure (scrollable in a
     fixed box by the view) and a slim strip that draws the x-axis ticks below
@@ -105,24 +106,34 @@ def chips_race(scores: pd.DataFrame) -> tuple[go.Figure, go.Figure]:
     labels = ordered["Country"].tolist()
 
     # One thin line per country, from 0 to its score, in its coverage colour.
-    # A line trace per country keeps the colour and hover payload per country.
+    # A line trace per country keeps the colour per country. Hover is disabled
+    # on the lines themselves: their two endpoints share a y, so hovermode="y"
+    # would draw one box per endpoint (plus neighbours). Each row instead gets
+    # a single invisible hover marker at the line end, so hovering anywhere
+    # along the row shows exactly one box.
     fig = go.Figure()
     for _, row in ordered.iterrows():
         v = float(row["chips"]) if pd.notna(row["chips"]) else 0.0
+        color = _coverage_color(row)
+        rank_txt = f"#{int(row['rank'])}" if pd.notna(row["rank"]) else "—"
+        chips_txt = f"{v:.3f}" if pd.notna(row["chips"]) else "no score"
+        cov_txt = f"{row['coverage'] * 100:.0f}%"
         fig.add_trace(go.Scatter(
             x=[0.0, v],
             y=[row["Country"], row["Country"]],
             mode="lines",
-            line=dict(color=_coverage_color(row), width=3),
-            customdata=[[
-                str(row["Country"]),
-                f"#{int(row['rank'])}" if pd.notna(row["rank"]) else "—",
-                f"{v:.3f}" if pd.notna(row["chips"]) else "no score",
-                f"{row['coverage'] * 100:.0f}%",
-            ]],
+            line=dict(color=color, width=3),
+            hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scatter(
+            x=[v], y=[row["Country"]],
+            mode="markers",
+            marker=dict(color="rgba(0,0,0,0)", size=10),
+            customdata=[[str(row["Country"]), rank_txt, chips_txt, cov_txt]],
             hovertemplate=(
-                "%{customdata[0]}<br>rank <b>%{customdata[1]}</b><br>"
-                "CHIPS <b>%{customdata[2]}</b><br>coverage %{customdata[3]}<extra></extra>"
+                "<b>%{customdata[0]}</b><br>"
+                "rank %{customdata[1]} · CHIPS <b>%{customdata[2]}</b> · "
+                "coverage %{customdata[3]}<extra></extra>"
             ),
             showlegend=False,
         ))
@@ -139,10 +150,13 @@ def chips_race(scores: pd.DataFrame) -> tuple[go.Figure, go.Figure]:
     # Full height is kept for the scroll box. Tick labels live in the pinned
     # axis strip below the box; gridlines stay so values can be read against
     # the strip's ticks. b=0 puts the gridlines flush with the box bottom.
+    # hovermode="y" + a tight hoverdistance = row-band hover: one box per row
+    # (rows are ~22px apart, so 10px never matches two rows at once).
     fig.update_layout(
         height=max(500, 18 + 22 * len(ordered)),
         margin=dict(l=10, r=10, t=10, b=0),
         hovermode="y",
+        hoverdistance=10,
         xaxis=dict(range=[0, 1.10], tickvals=RACE_TICKS, showticklabels=False, ticks=""),
         yaxis=dict(tickfont=dict(size=13)),
         showlegend=False,
