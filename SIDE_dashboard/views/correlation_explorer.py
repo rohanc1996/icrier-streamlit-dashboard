@@ -1,4 +1,4 @@
-"""View 3: Correlation explorer (pick any two indicators)."""
+"""View 4: Correlation explorer (pick any two indicators)."""
 from __future__ import annotations
 
 import pandas as pd

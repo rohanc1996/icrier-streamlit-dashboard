@@ -22,35 +22,36 @@ from views import (  # noqa: E402
     chips_explorer,
     correlation_explorer,
     country_explorer,
-    leaderboard,
     outlier_explorer,
     scaling_comparator,
 )
 
 PAGES = {
-    "🌍 Country Explorer": country_explorer,
     "🏆 CHIPS Index Explorer": chips_explorer,
+    "🌍 Country Explorer": country_explorer,
     "⚖️ Scaling Comparator": scaling_comparator,
     "🔬 Correlation Explorer": correlation_explorer,
     "🕵️ Outlier Explorer": outlier_explorer,
-    "🏆 Leaderboard": leaderboard,
 }
 
 
 def main() -> None:
-    with st.sidebar:
-        st.title("🌐 SIDE Digital Economy Dashboard")
-        st.caption(
-            "Interactive companion to the SIDE 2026 dataset — "
-            "71 countries, 60+ indicators."
+    # Compact topbar shown on every tab: title + dataset tagline on one row.
+    title_col, tagline_col = st.columns([3, 1], vertical_alignment="center")
+    with title_col:
+        st.markdown("## 🌐 SIDE Digital Economy Dashboard")
+    with tagline_col:
+        st.markdown(
+            "Interactive companion to the SIDE 2026 dataset. 71 countries, 60+ indicators."
         )
-        st.divider()
+    st.divider()
+
+    with st.sidebar:
         choice = st.radio("Navigate", list(PAGES.keys()), key="nav", label_visibility="collapsed")
         st.divider()
         st.caption(
             "**Scoring method** — how raw values become 0–1 scores. Used by the "
-            "single-score pages (Country Explorer, CHIPS Explorer, Leaderboard, "
-            "Outlier leave-one-out); the comparator and correlation pages always "
+            "single-score pages; the comparator and correlation pages always "
             "show all four methods."
         )
         st.radio(
@@ -65,8 +66,7 @@ def main() -> None:
         )
         st.caption(
             "Full-range min-max · 5–95 percentile capped min-max (default) · "
-            "log-transformed min-max · z-score (standardized). The capped version "
-            "is the most robust choice for reporting."
+            "log-transformed min-max · z-score (standardized)."
         )
 
     data = load_app_data()

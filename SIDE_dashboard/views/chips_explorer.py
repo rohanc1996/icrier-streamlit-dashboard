@@ -1,4 +1,4 @@
-"""View 6: CHIPS composite index explorer.
+"""View 1: CHIPS composite index explorer.
 
 Five sections:
   1. 🏅 CHIPS leaderboard — every country, colour-coded by data coverage

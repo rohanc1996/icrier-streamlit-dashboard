@@ -1,4 +1,4 @@
-"""View 2: Scaling-method comparator (histograms + rank stability)."""
+"""View 3: Scaling-method comparator (histograms + rank stability)."""
 from __future__ import annotations
 
 import streamlit as st

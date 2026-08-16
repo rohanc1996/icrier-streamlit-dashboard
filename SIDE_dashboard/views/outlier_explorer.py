@@ -1,4 +1,4 @@
-"""View 4: Outlier / leave-one-out explorer."""
+"""View 5: Outlier / leave-one-out explorer."""
 from __future__ import annotations
 
 import pandas as pd
@@ -37,20 +37,20 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
         st.warning("Pick two different indicators to compare.")
         return
 
-    method = "spearman" if method_choice == "Spearman (robust)" else "pearson"
-    method_label = "Spearman" if method == "spearman" else "Pearson"
+    corr_method = "spearman" if method_choice == "Spearman (robust)" else "pearson"
+    corr_label = "Spearman" if corr_method == "spearman" else "Pearson"
 
-    loo, base = correlations.leave_one_out(data, x_col, y_col, corr_method=method, scaling_method=method)
+    loo, base = correlations.leave_one_out(data, x_col, y_col, corr_method=corr_method, scaling_method=method)
     if loo.empty:
         st.warning("Not enough overlapping data to run the leave-one-out analysis.")
         return
 
     c1, c2, c3 = st.columns(3)
-    c1.metric(f"{method_label} correlation (all countries)", f"{base:.3f}")
+    c1.metric(f"{corr_label} correlation (all countries)", f"{base:.3f}")
     c2.metric("Largest single influence", f"{loo.iloc[0]['delta']:+.3f}", delta=f"{loo.iloc[0]['country']}")
     c3.metric("Countries in the analysis", f"{len(loo)}")
 
-    st.plotly_chart(charts.leave_one_out_bar(loo, base, method_label), width="stretch")
+    st.plotly_chart(charts.leave_one_out_bar(loo, base, corr_label), width="stretch")
 
     top = loo.head(3)
     parts = []
@@ -69,8 +69,8 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
     )
     colA, colB = st.columns([1, 3])
     with colA:
-        corr_excl, n = correlations.corr_with_exclusions(data, x_col, y_col, corr_method=method, excluded=excluded, scaling_method=method)
-        st.metric(f"{method_label} without excluded", f"{corr_excl:.3f}" if not pd.isna(corr_excl) else "—")
+        corr_excl, n = correlations.corr_with_exclusions(data, x_col, y_col, corr_method=corr_method, excluded=excluded, scaling_method=method)
+        st.metric(f"{corr_label} without excluded", f"{corr_excl:.3f}" if not pd.isna(corr_excl) else "—")
         st.metric("Countries used", f"{n}")
         if excluded and st.button("Reset exclusions", key="oo_reset"):
             st.session_state["oo_exclude"] = []

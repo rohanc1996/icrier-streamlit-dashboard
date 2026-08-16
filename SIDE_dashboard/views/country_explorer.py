@@ -1,4 +1,4 @@
-"""View 1: Interactive country explorer (map + profile + comparison)."""
+"""View 2: Interactive country explorer (map + profile + comparison)."""
 from __future__ import annotations
 
 import streamlit as st
