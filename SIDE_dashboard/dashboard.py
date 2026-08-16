@@ -20,9 +20,7 @@ from core import scaling  # noqa: E402
 from core.loader import load_app_data  # noqa: E402
 from views import (  # noqa: E402
     chips_explorer,
-    correlation_explorer,
     country_explorer,
-    outlier_explorer,
     scaling_comparator,
 )
 
@@ -30,8 +28,6 @@ PAGES = {
     "🏆 CHIPS Index Explorer": chips_explorer,
     "🌍 Country Explorer": country_explorer,
     "⚖️ Scaling Comparator": scaling_comparator,
-    "🔬 Correlation Explorer": correlation_explorer,
-    "🕵️ Outlier Explorer": outlier_explorer,
 }
 
 
@@ -51,8 +47,8 @@ def main() -> None:
         st.divider()
         st.caption(
             "**Scoring method** — how raw values become 0–1 scores. Used by the "
-            "single-score pages; the comparator and correlation pages always "
-            "show all four methods."
+            "single-score pages; the Scaling Comparator always shows all four "
+            "methods."
         )
         st.radio(
             "Scoring method",

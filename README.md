@@ -20,13 +20,16 @@ is written up.
 
 ## What's inside
 
-The dashboard has five pages:
+The dashboard has three active pages:
 
 | Page | What it does |
 | --- | --- |
 | 🏆 **CHIPS Index Explorer** | The CHIPS composite index (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with leaderboard, world map, per-country drill-down and full missing-data transparency. |
 | 🌍 **Country Explorer** | Map any indicator, inspect a single country's profile, or compare up to five countries on a spider chart. |
 | ⚖️ **Scaling Comparator** | See how the four scaling methods change rankings on any indicator. |
+
+
+Currently disabled:
 | 🔬 **Correlation Explorer** | Two-indicator scatter plots with Pearson/Spearman trends and a plain-language verdict. |
 | 🕵️ **Outlier Explorer** | Leave-one-out analysis to find which countries drive a correlation. |
 
@@ -36,7 +39,7 @@ The dashboard has five pages:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r SIDE_dashboard/requirements.txt
 streamlit run SIDE_dashboard/dashboard.py
 ```
@@ -45,13 +48,8 @@ Your browser opens at `http://localhost:8501`.
 
 **Streamlit Community Cloud**
 
-Deploy this repository directly and point Streamlit at:
+This app's last commit on main is deployed at: [side2027.streamlit.app](https://side2027.streamlit.app/)
 
-- App entry point: `SIDE_dashboard/dashboard.py`
-- Requirements file: `SIDE_dashboard/requirements.txt`
-
-The dataset (`SIDE 2026 - Rohan - Absolute.csv`) is loaded automatically from
-the repository root, so no extra configuration is needed.
 
 ## Repository layout
 
