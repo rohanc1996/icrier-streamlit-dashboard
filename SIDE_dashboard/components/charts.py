@@ -25,6 +25,18 @@ SCALE_COLORS = {
 UP_COLOR = "#54A24B"      # green  - removing the country strengthens the link
 DOWN_COLOR = "#E45756"    # red    - removing the country weakens the link
 
+# Data-coverage colours mirror the leaderboard's badge: green = full
+# (>= 90% of the CHIPS weight backed by values), amber = partial (>= 70%),
+# red = sparse. Grey marks countries with no CHIPS score.
+COVERAGE_COLORS = {"full": "#2E8B57", "partial": "#D69E2E", "sparse": "#C0392B"}
+NO_SCORE_COLOR = "#C8CCD0"
+
+# The race chart is a full-height figure that scrolls inside a fixed box (the
+# view applies the box via a key-scoped CSS rule); its x-axis is drawn by a
+# slim pinned strip below the box, so both must place ticks identically.
+RACE_BOX_HEIGHT = 620
+RACE_TICKS = [round(i * 0.1, 2) for i in range(11)]
+
 
 def choropleth(data, indicator: str, selected_country: str | None = None) -> go.Figure:
     """World map coloured by one indicator. Clicking is handled by the view."""
@@ -56,6 +68,102 @@ def choropleth(data, indicator: str, selected_country: str | None = None) -> go.
     fig.update_layout(height=540, margin=dict(l=0, r=0, t=10, b=0),
                       geo=dict(bgcolor="rgba(0,0,0,0)"))
     return fig
+
+
+def _coverage_color(row) -> str:
+    """Line colour from a ``chips_table`` row: coverage badge, grey when unscored."""
+    if pd.isna(row["chips"]):
+        return NO_SCORE_COLOR
+    if row["coverage"] >= 0.9:
+        return COVERAGE_COLORS["full"]
+    if row["coverage"] >= 0.7:
+        return COVERAGE_COLORS["partial"]
+    return COVERAGE_COLORS["sparse"]
+
+
+def chips_race(scores: pd.DataFrame) -> tuple[go.Figure, go.Figure]:
+    """Horizontal "race" chart of every country's CHIPS score.
+
+    ``scores`` is the ``chips.chips_table()`` output. Countries are ordered
+    best-first (rank #1 at the top); countries without a CHIPS score sit at
+    the bottom in grey. Each country is drawn as a thin line in the colour of
+    its leaderboard data badge and ends with the country's flag emoji (a text
+    marker, so no image downloads or extra dependencies).
+
+    Returns ``(figure, axis_strip)``: the full-height figure (scrollable in a
+    fixed box by the view) and a slim strip that draws the x-axis ticks below
+    it, so the axis stays visible without scrolling to the bottom of the box.
+    """
+    if scores is None or scores.empty:
+        empty = go.Figure()
+        return empty, go.Figure()
+
+    scored = scores.dropna(subset=["chips"]).sort_values("chips", ascending=True)
+    unscored = scores[scores["chips"].isna()]
+    ordered = pd.concat([unscored, scored], ignore_index=True)
+
+    labels = ordered["Country"].tolist()
+
+    # One thin line per country, from 0 to its score, in its coverage colour.
+    # A line trace per country keeps the colour and hover payload per country.
+    fig = go.Figure()
+    for _, row in ordered.iterrows():
+        v = float(row["chips"]) if pd.notna(row["chips"]) else 0.0
+        fig.add_trace(go.Scatter(
+            x=[0.0, v],
+            y=[row["Country"], row["Country"]],
+            mode="lines",
+            line=dict(color=_coverage_color(row), width=3),
+            customdata=[[
+                str(row["Country"]),
+                f"#{int(row['rank'])}" if pd.notna(row["rank"]) else "—",
+                f"{v:.3f}" if pd.notna(row["chips"]) else "no score",
+                f"{row['coverage'] * 100:.0f}%",
+            ]],
+            hovertemplate=(
+                "%{customdata[0]}<br>rank <b>%{customdata[1]}</b><br>"
+                "CHIPS <b>%{customdata[2]}</b><br>coverage %{customdata[3]}<extra></extra>"
+            ),
+            showlegend=False,
+        ))
+
+    # Flag emoji pinned just past the line end (x = 0 for the unscored rows).
+    flag_x = [v + 0.012 if pd.notna(v) else 0.0 for v in ordered["chips"]]
+    fig.add_trace(go.Scatter(
+        x=flag_x, y=labels, mode="text",
+        text=[country_names.flag_emoji(c) for c in ordered["Country"]],
+        textposition="middle left", textfont=dict(size=15),
+        hoverinfo="skip",
+    ))
+
+    # Full height is kept for the scroll box. Tick labels live in the pinned
+    # axis strip below the box; gridlines stay so values can be read against
+    # the strip's ticks. b=0 puts the gridlines flush with the box bottom.
+    fig.update_layout(
+        height=max(500, 18 + 22 * len(ordered)),
+        margin=dict(l=10, r=10, t=10, b=0),
+        hovermode="y",
+        xaxis=dict(range=[0, 1.10], tickvals=RACE_TICKS, showticklabels=False, ticks=""),
+        yaxis=dict(tickfont=dict(size=13)),
+        showlegend=False,
+    )
+
+    # Pinned x-axis: a slim strip whose top-side axis line sits just below the
+    # scroll box, using the same tick positions as the figure's gridlines.
+    axis = go.Figure()
+    axis.add_trace(go.Scatter(x=[None], y=[None], hoverinfo="skip", showlegend=False))
+    axis.update_layout(
+        height=30,
+        margin=dict(l=10, r=10, t=0, b=0),
+        xaxis=dict(
+            range=[0, 1.10], tickvals=RACE_TICKS, tickformat=".2f",
+            side="top", showgrid=False, showline=True, linecolor="#9AA0A6",
+            ticks="outside", ticklen=4, tickfont=dict(size=11),
+        ),
+        yaxis=dict(visible=False),
+        showlegend=False,
+    )
+    return fig, axis
 
 
 def hist_panels(data, indicator: str, lower: float = 0.05, upper: float = 0.95) -> go.Figure:

@@ -83,6 +83,29 @@ COUNTRY_TO_ISO3 = {
 
 ISO3_TO_COUNTRY = {v: k for k, v in COUNTRY_TO_ISO3.items()}
 
+# ISO-3 -> ISO-2 (lowercase), used to derive regional-indicator flag emoji
+# (e.g. `in` -> 🇮🇳). Plotly renders these as text markers with no image
+# downloads and no extra dependencies.
+ISO3_TO_ISO2 = {
+    "DZA": "dz", "ARG": "ar", "AUS": "au", "AUT": "at", "BGD": "bd",
+    "BEL": "be", "BRA": "br", "BGR": "bg", "CAN": "ca", "CHL": "cl",
+    "CHN": "cn", "COL": "co", "CRI": "cr", "HRV": "hr", "CZE": "cz",
+    "DNK": "dk", "DOM": "do", "ECU": "ec", "EGY": "eg", "ETH": "et",
+    "FIN": "fi", "FRA": "fr", "DEU": "de", "GHA": "gh", "GRC": "gr",
+    "GTM": "gt", "HUN": "hu", "IND": "in", "IDN": "id", "IRQ": "iq",
+    "IRL": "ie", "ISR": "il", "ITA": "it", "JPN": "jp", "KAZ": "kz",
+    "KEN": "ke", "KWT": "kw", "MYS": "my", "MEX": "mx", "MAR": "ma",
+    "NLD": "nl", "NZL": "nz", "NGA": "ng", "NOR": "no", "PAK": "pk",
+    "PER": "pe", "PHL": "ph", "POL": "pl", "PRT": "pt", "QAT": "qa",
+    "KOR": "kr", "ROU": "ro", "RUS": "ru", "RWA": "rw", "SAU": "sa",
+    "SRB": "rs", "SGP": "sg", "SVK": "sk", "ZAF": "za", "ESP": "es",
+    "LKA": "lk", "SWE": "se", "CHE": "ch", "THA": "th", "TUR": "tr",
+    "UKR": "ua", "ARE": "ae", "GBR": "gb", "USA": "us", "UZB": "uz",
+    "VNM": "vn",
+}
+
+COUNTRY_TO_ISO2 = {country: ISO3_TO_ISO2[iso3] for country, iso3 in COUNTRY_TO_ISO3.items()}
+
 # Short display labels used as scatter annotations for highlighted countries.
 SHORT_NAMES = {
     "United States of America": "USA",
@@ -100,3 +123,17 @@ SHORT_NAMES = {
 
 def short_name(country: str) -> str:
     return SHORT_NAMES.get(country, country)
+
+
+def flag_emoji(country: str) -> str:
+    """Country flag as regional-indicator emoji (e.g. ``🇮🇳`` for India).
+
+    Derived from the ISO-2 code: each letter becomes a regional indicator
+    symbol (U+1F1E6–U+1F1FF). Renders as a real flag on macOS, iOS, Android
+    and most desktop browsers; Windows Chrome/Edge fall back to two letters.
+    Returns an empty string for unknown countries.
+    """
+    iso2 = COUNTRY_TO_ISO2.get(country)
+    if not iso2:
+        return ""
+    return "".join(chr(0x1F1E6 + ord(ch) - ord("a")) for ch in iso2)

@@ -134,6 +134,26 @@ def _leaderboard(scores) -> None:
     c3.metric("Median data coverage", f"{scores['coverage'].median() * 100:.0f}%",
               help="Share of the CHIPS weight backed by actual values; see Missing-data for country-level detail.")
 
+    race_fig, axis_fig = charts.chips_race(scores)
+    # The tall race figure scrolls inside a fixed-height box; the x-axis strip
+    # below it stays pinned so the scale is always visible. `key` gives the box
+    # a stable class (st-key-chips_race) so the CSS only affects this chart.
+    box_h = min(charts.RACE_BOX_HEIGHT, int(race_fig.layout.height or 500))
+    st.markdown(
+        f"<style>.st-key-chips_race {{height: {box_h}px !important;"
+        f" overflow-y: auto !important; overflow-x: hidden !important;}}</style>",
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(race_fig, key="chips_race", use_container_width=True)
+    st.plotly_chart(axis_fig, use_container_width=True,
+                    config={"displayModeBar": False, "staticPlot": True})
+    st.caption(
+        "Line colour mirrors the data badge — 🟢 full (≥90% of the CHIPS weight backed by "
+        "values), 🟡 partial (≥70%), 🔴 sparse. Grey rows have no CHIPS score (fewer than 3 "
+        "pillars survived the drop rules). Scroll inside the box to see all countries; the "
+        "score axis stays pinned at the bottom. Each country's flag sits at the end of its line."
+    )
+
     display = scores.copy()
     display["data_badge"] = display["coverage"].apply(
         lambda c: "🟢 full" if c >= 0.9 else ("🟡 partial" if c >= 0.7 else "🔴 sparse"))
