@@ -455,18 +455,23 @@ def leave_one_out_bar(loo_df: pd.DataFrame, base: float, method_label: str) -> g
 
 
 def movers_bar(stability_df: pd.DataFrame, top_n: int = 10) -> go.Figure:
-    """Horizontal bar of the countries whose rank swings most across scalings."""
+    """Horizontal bar of the countries whose score swings most across scalings.
+
+    The four methods are monotone transforms of the raw value, so they preserve
+    the same ordering (ranks never change). What differs is the 0-1 score; this
+    bar highlights the countries whose score is most sensitive to the choice.
+    """
     d = stability_df.head(top_n).iloc[::-1].copy()
     fig = go.Figure(go.Bar(
-        x=d["max_swing"], y=d["Country"], orientation="h",
+        x=d["score_swing"], y=d["Country"], orientation="h",
         marker_color="#4C78A8",
-        customdata=np.stack([d["Country"], d["max_swing"]], axis=-1),
-        hovertemplate="%{customdata[0]}<br>rank swing = %{customdata[1]} places<extra></extra>",
+        customdata=np.stack([d["Country"], d["score_swing"]], axis=-1),
+        hovertemplate="%{customdata[0]}<br>score swing = %{customdata[1]:.2f} points<extra></extra>",
     ))
     fig.update_layout(
         height=40 + len(d) * 26,
         margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Max rank swing between the four scaling methods",
+        xaxis_title="Max score swing between the four scaling methods",
     )
     return fig
 

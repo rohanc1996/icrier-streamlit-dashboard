@@ -23,7 +23,7 @@ Your browser opens at `http://localhost:8501`.
 | --- | --- |
 | 🏆 **CHIPS Index Explorer** | The CHIPS composite (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with full missing-data transparency: leaderboard (scrollable race chart of thin coverage-coloured lines with country flags + sortable table), world map, per-country drill-down (treemap + what-if scenarios), a cross-country missing-data impact section, and the complete methodology. |
 | 🌍 **Country Explorer** | Three views: colour the world map by any indicator (click a country to open its rankings), inspect a single country's profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), or compare up to five countries on a spider chart. |
-| ⚖️ **Scaling Comparator** | Compare the four scaling methods on any indicator. Adjust the cap window with sliders and see which countries' ranks swing most. |
+| ⚖️ **Scaling Comparator** | Compare the four scaling methods on any indicator. Adjust the cap window with sliders and see which countries' scores swing most. |
 
 ## Concepts in the dashboard
 

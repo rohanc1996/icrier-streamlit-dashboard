@@ -1,4 +1,4 @@
-"""Ranking, percentile and rank-stability helpers.
+"""Ranking, percentile and score-stability helpers.
 
 Ranks are always expressed the "intuitive" way: rank 1 = best country. For
 indicators where a *lower* raw value is better (e.g. prices, waste), the scaled
@@ -35,38 +35,27 @@ def scaled_scores(
     return df
 
 
-def _tie_broken_ranks(scores: pd.DataFrame, score_col: str, higher_is_better: bool) -> pd.Series:
-    """Competition ranks that break tied scores by the raw value.
-
-    Countries pinned to the same scaled score (e.g. everyone at the upper cap)
-    are ordered by their raw value, so the ranking mirrors the raw-value
-    ranking. Countries with genuinely identical raw values keep the same rank.
-    """
-    base = scores[score_col].rank(ascending=False, method="min").astype(int)
-    within = (
-        scores.groupby(score_col)["value"]
-        .rank(ascending=not higher_is_better, method="min")
-        .astype(int)
-    )
-    return base + within - 1
-
-
-def rank_stability_table(
+def score_stability_table(
     data,
     indicator: str,
     lower: float = 0.05,
     upper: float = 0.95,
 ) -> pd.DataFrame:
-    """Rank of every country under each scaling method, plus max swing."""
+    """Score of every country under each scaling method, plus the max swing.
+
+    The four scaling methods are all monotone transforms of the raw value, so
+    they always produce the same ordering — the rank can never differ between
+    them. What *does* differ is the 0-1 score itself: the swing between the
+    highest and lowest score a country receives across the methods shows how
+    sensitive that country is to the scaling choice.
+    """
+    score_cols = list(scaling.ALL_METHODS)
     scores = scaled_scores(data, indicator, lower, upper).dropna(subset=["value"]).copy()
-    for method in scaling.ALL_METHODS:
-        scores[f"rank_{method}"] = _tie_broken_ranks(
-            scores, method, data.higher_is_better.get(indicator, True)
-        )
-    rank_cols = [f"rank_{m}" for m in scaling.ALL_METHODS]
-    scores["max_swing"] = scores[rank_cols].max(axis=1) - scores[rank_cols].min(axis=1)
-    cols = ["Country", "value"] + rank_cols + ["max_swing"]
-    return scores[cols].sort_values("max_swing", ascending=False).reset_index(drop=True)
+    # skipna: a method that is not applicable to an indicator (e.g. log on
+    # negative-valued data) contributes nothing to that country's swing.
+    scores["score_swing"] = scores[score_cols].max(axis=1) - scores[score_cols].min(axis=1)
+    cols = ["Country", "value"] + score_cols + ["score_swing"]
+    return scores[cols].sort_values("score_swing", ascending=False).reset_index(drop=True)
 
 
 def profile_ranks(data, country: str) -> pd.DataFrame:

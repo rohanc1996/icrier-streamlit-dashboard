@@ -7,7 +7,8 @@ Direct ports of the transformations in ``skewed_column_scaling_analysis.ipynb``
 - ``capped_minmax``: min-max over a chosen percentile window (default 5th to
   95th), so a handful of extreme values cannot dominate the scale.
 - ``log_minmax``: log1p transform followed by min-max, which compresses the
-  upper tail and highlights percentage-like differences.
+  upper tail and highlights percentage-like differences.  Not defined for
+  negative values; such indicators come back all-NaN for this method.
 - ``z_score``: standardise each column to ``(x - mean) / std`` (population
   standard deviation), then map to 0-1 with the logistic curve
   ``1 / (1 + exp(-z))``.  The logistic transform is monotone, so ranks match a
@@ -63,6 +64,11 @@ def capped_minmax(series: pd.Series, lower: float = 0.05, upper: float = 0.95) -
 
 def log_minmax(series: pd.Series) -> pd.Series:
     s = series.dropna()
+    if (s < 0).any():
+        # log1p is undefined for negative values (NaN for s < -1, ±inf at -1),
+        # which would poison the min-max below. Return NaN so callers can treat
+        # the column as "not applicable" for this indicator.
+        return pd.Series(np.nan, index=s.index)
     logged = np.log1p(s)
     if logged.max() == logged.min():
         return pd.Series(0.0, index=s.index)
