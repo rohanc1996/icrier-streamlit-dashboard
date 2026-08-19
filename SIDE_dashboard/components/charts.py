@@ -7,6 +7,8 @@ purple = z-score).
 from __future__ import annotations
 
 import colorsys
+import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -15,6 +17,22 @@ from plotly.subplots import make_subplots
 
 from components import country_names
 from core import correlations, scaling
+
+# World choropleths render a custom GeoJSON asset (``assets/world_india_official.geojson``)
+# instead of Plotly's built-in country geometry.
+
+_GEO_ASSET = Path(__file__).resolve().parent.parent / "assets" / "world_india_official.geojson"
+
+def _official_world_geojson() -> dict:
+    """Load the merged world GeoJSON (official India extent).
+
+    Deliberately NOT process-cached: a long-running Streamlit server must always
+    render the current asset on disk, never a stale in-memory copy of an older
+    build. The file is ~1.3 MB; re-reading it per rerun is negligible next to
+    the rest of the figure serialisation.
+    """
+    with open(_GEO_ASSET, encoding="utf-8") as fh:
+        return json.load(fh)
 
 SCALE_COLORS = {
     scaling.METHOD_FULL: "#4C78A8",
@@ -51,9 +69,10 @@ def choropleth(data, indicator: str, selected_country: str | None = None) -> go.
         selectedpoints = df.index[df["Country"] == selected_country].tolist()
 
     fig = go.Figure(go.Choropleth(
+        geojson=_official_world_geojson(),
+        featureidkey="id",
         locations=df["iso3"],
         z=values,
-        locationmode="ISO-3",
         customdata=df[["Country"]],
         colorscale="Blues",
         colorbar=dict(title=data.friendly_names.get(indicator, indicator), len=0.7, tickformat=".3g"),
@@ -64,7 +83,8 @@ def choropleth(data, indicator: str, selected_country: str | None = None) -> go.
         unselected=dict(marker=dict(opacity=0.55)),
     ))
     fig.update_geos(projection_type="equirectangular", showframe=False,
-                    showcoastlines=True, coastlinecolor="#cccccc")
+                    showcountries=False, showcoastlines=True,
+                    coastlinecolor="#cccccc")
     fig.update_layout(height=540, margin=dict(l=0, r=0, t=10, b=0),
                       geo=dict(bgcolor="rgba(0,0,0,0)"))
     return fig
@@ -495,9 +515,10 @@ def chips_choropleth(chips_df: pd.DataFrame, selected_country: str | None = None
         selectedpoints = df.index[df["Country"] == selected_country].tolist()
 
     fig = go.Figure(go.Choropleth(
+        geojson=_official_world_geojson(),
+        featureidkey="id",
         locations=df["iso3"],
         z=df["chips"].astype(float),
-        locationmode="ISO-3",
         customdata=df[["Country"]],
         colorscale="Blues",
         colorbar=dict(title="CHIPS score", len=0.7, tickformat=".2f"),
@@ -508,7 +529,8 @@ def chips_choropleth(chips_df: pd.DataFrame, selected_country: str | None = None
         unselected=dict(marker=dict(opacity=0.55)),
     ))
     fig.update_geos(projection_type="equirectangular", showframe=False,
-                    showcoastlines=True, coastlinecolor="#cccccc")
+                    showcountries=False, showcoastlines=True,
+                    coastlinecolor="#cccccc")
     fig.update_layout(height=540, margin=dict(l=0, r=0, t=10, b=0),
                       geo=dict(bgcolor="rgba(0,0,0,0)"))
     return fig
