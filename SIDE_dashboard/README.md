@@ -1,6 +1,6 @@
-# SIDE Digital Economy Dashboard
+# SIDE Dashboard
 
-An interactive Streamlit companion to the SIDE 2026 digital economy dataset
+An interactive Streamlit companion to the SIDE 2026 dataset
 (71 countries, 60+ indicators). It mirrors and extends the analysis in the
 companion notebook, wrapped in a point-and-click interface.
 
@@ -23,17 +23,16 @@ Your browser opens at `http://localhost:8501`.
 | --- | --- |
 | 🏆 **CHIPS Index Explorer** | The CHIPS composite (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with full missing-data transparency: leaderboard (scrollable race chart of thin coverage-coloured lines with country flags + sortable table), world map, per-country drill-down (treemap + what-if scenarios), a cross-country missing-data impact section, and the complete methodology. |
 | 🌍 **Country Explorer** | Three views: colour the world map by any indicator (click a country to open its rankings), inspect a single country's profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), or compare up to five countries on a spider chart. |
-| ⚖️ **Scaling Comparator** | Compare the four scaling methods on any indicator. Adjust the cap window with sliders and see which countries' scores swing most. |
+| ⚖️ **Scaling Comparator** | Compare the three scaling methods on any indicator. Adjust the cap window with sliders and see which countries' scores swing most. |
 
 ## Concepts in the dashboard
 
-- **Four scaling methods.** Raw values are mapped to 0–1 scores four ways so
+- **Three scaling methods.** Raw values are mapped to 0–1 scores three ways so
   you can see how sensitive the rankings are to the choice. A sidebar selector
   sets the method used by the single-score pages (Country Explorer, CHIPS
-  Explorer); the comparator page always shows all four side by side:
+  Explorer); the comparator page always shows all three side by side:
   - *Full-range min-max* — simple, but a single extreme country can compress everyone else.
   - *5–95 percentile capped min-max* (default) — the robust choice for reporting.
-  - *Log-transformed min-max* — reflects percentage-like differences, compresses the upper tail.
   - *Z-score (standardized)* — each country's distance from the mean in standard
     deviations, mapped to 0–1 via the logistic curve. Ranks match plain
     z-scores, but the values stay on the same scale as the other methods.
@@ -75,7 +74,7 @@ SIDE_dashboard/
 ├── requirements.txt
 ├── core/                     # data + analysis logic (no UI)
 │   ├── loader.py             # reads the CSV, friendly names, categories
-│   ├── scaling.py            # the four 0–1 scaling methods
+│   ├── scaling.py            # the three 0–1 scaling methods
 │   ├── rankings.py           # rank stability, profile ranks
 │   ├── correlations.py       # pair preparation, leave-one-out, exclusions
 │   ├── chips_hierarchy.py    # CHIPS spec: pillars, sub-pillars, weights, column map

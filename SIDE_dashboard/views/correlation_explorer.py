@@ -23,7 +23,7 @@ def _verdict(table: pd.DataFrame) -> str:
     worst = max(diffs)
     sp = capped["spearman"]
     if worst < 0.05:
-        msg = "All four scalings agree closely, so this relationship is **robust** — outliers are not driving it."
+        msg = "All three scalings agree closely, so this relationship is **robust** — outliers are not driving it."
     elif worst < 0.15:
         msg = "The relationship is **moderately sensitive** to the scaling choice. A few extreme countries matter, but the overall picture holds."
     else:
@@ -42,7 +42,7 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
     )
     ui.explainer(
         "🧪",
-        "You choose the two indicators. For each of the four scaling methods "
+        "You choose the two indicators. For each of the three scaling methods "
         "you get Pearson (linear) and Spearman (rank-based) correlations plus a "
         "trend line.",
     )

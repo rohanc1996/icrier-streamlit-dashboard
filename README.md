@@ -26,7 +26,7 @@ The dashboard has three active pages:
 | --- | --- |
 | 🏆 **CHIPS Index Explorer** | The CHIPS composite index (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with leaderboard (scrollable race chart of thin lines with flags + table), world map, per-country drill-down and full missing-data transparency. |
 | 🌍 **Country Explorer** | Map any indicator, inspect a single country's profile, or compare up to five countries on a spider chart. |
-| ⚖️ **Scaling Comparator** | See how the four scaling methods reshape scores on any indicator — all of them preserve the same ordering, but each country's 0–1 score can swing. |
+| ⚖️ **Scaling Comparator** | See how the three scaling methods reshape scores on any indicator — all of them preserve the same ordering, but each country's 0–1 score can swing. |
 
 
 Currently disabled:
@@ -68,7 +68,7 @@ This app's last commit on main is deployed at: [side2027.streamlit.app](https://
 
 ## Documentation
 
-The detailed technical README — pages, the four scaling methods, and the
+The detailed technical README — pages, the three scaling methods, and the
 complete CHIPS methodology — lives in
 [`SIDE_dashboard/README.md`](SIDE_dashboard/README.md).
 

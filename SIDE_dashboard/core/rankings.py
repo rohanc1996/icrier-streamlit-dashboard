@@ -18,7 +18,7 @@ def scaled_scores(
     upper: float = 0.95,
     invert_lower_is_better: bool = True,
 ) -> pd.DataFrame:
-    """Return Country, raw value, and full/capped/log scores for an indicator.
+    """Return Country, raw value, and the scaled scores for an indicator.
 
     When ``invert_lower_is_better`` is True, scores for indicators where a low
     value is "good" (prices, waste, risk) are flipped to ``1 - score`` so that a
@@ -43,7 +43,7 @@ def score_stability_table(
 ) -> pd.DataFrame:
     """Score of every country under each scaling method, plus the max swing.
 
-    The four scaling methods are all monotone transforms of the raw value, so
+    The scaling methods are all monotone transforms of the raw value, so
     they always produce the same ordering — the rank can never differ between
     them. What *does* differ is the 0-1 score itself: the swing between the
     highest and lowest score a country receives across the methods shows how
@@ -51,8 +51,8 @@ def score_stability_table(
     """
     score_cols = list(scaling.ALL_METHODS)
     scores = scaled_scores(data, indicator, lower, upper).dropna(subset=["value"]).copy()
-    # skipna: a method that is not applicable to an indicator (e.g. log on
-    # negative-valued data) contributes nothing to that country's swing.
+    # skipna: a method with no usable values for this indicator contributes
+    # nothing to that country's swing.
     scores["score_swing"] = scores[score_cols].max(axis=1) - scores[score_cols].min(axis=1)
     cols = ["Country", "value"] + score_cols + ["score_swing"]
     return scores[cols].sort_values("score_swing", ascending=False).reset_index(drop=True)

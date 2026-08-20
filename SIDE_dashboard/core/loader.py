@@ -3,7 +3,9 @@
 Mirrors the cleaning steps in ``skewed_column_scaling_analysis.ipynb``
 (cells 1-2):
 
-1. Normalise column headers (collapse duplicate spaces, strip source URLs).
+1. Normalise column headers (collapse duplicate spaces, strip source URLs) and
+   drop pandas' auto-named ``Unnamed: N`` columns (stray cells in the source
+   sheet, not real indicators).
 2. Parse cells into numbers (strip, remove thousands separators, treat
    ``-`` / ``--`` / blank cells as missing).
 3. Keep only real country rows (the file ends with summary rows such as
@@ -241,6 +243,11 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
 
     raw = pd.read_csv(path, dtype=str, keep_default_na=False)
     raw.columns = _dedupe_columns(pd.Index(normalize_column_name(c) for c in raw.columns))
+
+    # Drop pandas' auto-generated "Unnamed: N" columns. They are stray cells in
+    # the source sheet, not real indicators, so they must never reach the
+    # dashboard (indicator lists, charts, tables or CHIPS calculations).
+    raw = raw.loc[:, ~raw.columns.astype(str).str.match(r"^Unnamed:\s*\d+$")]
 
     # Keep only real country rows (drop the summary rows at the end of the file).
     country_clean = raw["Country"].astype(str).str.strip()

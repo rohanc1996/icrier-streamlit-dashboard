@@ -1,7 +1,7 @@
 """Plotly chart builders used by the dashboard views.
 
 Every function returns a ``plotly.graph_objects.Figure`` so the views stay thin.
-Colours match the notebook (blue = full, orange = capped, green = log,
+Colours match the notebook (blue = full, orange = capped,
 purple = z-score).
 """
 from __future__ import annotations
@@ -37,7 +37,6 @@ def _official_world_geojson() -> dict:
 SCALE_COLORS = {
     scaling.METHOD_FULL: "#4C78A8",
     scaling.METHOD_CAPPED: "#F58518",
-    scaling.METHOD_LOG: "#54A24B",
     scaling.METHOD_Z: "#6A3D9A",
 }
 UP_COLOR = "#54A24B"      # green  - removing the country strengthens the link
@@ -457,7 +456,7 @@ def leave_one_out_bar(loo_df: pd.DataFrame, base: float, method_label: str) -> g
 def movers_bar(stability_df: pd.DataFrame, top_n: int = 10) -> go.Figure:
     """Horizontal bar of the countries whose score swings most across scalings.
 
-    The four methods are monotone transforms of the raw value, so they preserve
+    The methods are monotone transforms of the raw value, so they preserve
     the same ordering (ranks never change). What differs is the 0-1 score; this
     bar highlights the countries whose score is most sensitive to the choice.
     """
@@ -471,7 +470,7 @@ def movers_bar(stability_df: pd.DataFrame, top_n: int = 10) -> go.Figure:
     fig.update_layout(
         height=40 + len(d) * 26,
         margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Max score swing between the four scaling methods",
+        xaxis_title="Max score swing between the scaling methods",
     )
     return fig
 

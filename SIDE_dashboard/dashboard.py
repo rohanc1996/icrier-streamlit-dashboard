@@ -1,4 +1,4 @@
-"""SIDE Digital Economy Dashboard — interactive companion to the 2026 dataset.
+"""SIDE Dashboard — interactive companion to the 2026 dataset.
 
 Run from the repository root:
 
@@ -9,7 +9,7 @@ from __future__ import annotations
 import streamlit as st
 
 st.set_page_config(
-    page_title="SIDE Digital Economy Dashboard",
+    page_title="SIDE Dashboard",
     page_icon="🌐",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -35,7 +35,7 @@ def main() -> None:
     # Compact topbar shown on every tab: title + dataset tagline on one row.
     title_col, tagline_col = st.columns([3, 1], vertical_alignment="center")
     with title_col:
-        st.markdown("## 🌐 SIDE Digital Economy Dashboard")
+        st.markdown("## 🌐 SIDE Dashboard")
     with tagline_col:
         st.markdown(
             "Interactive companion to the SIDE 2026 dataset. 71 countries, 60+ indicators."
@@ -47,7 +47,7 @@ def main() -> None:
         st.divider()
         st.caption(
             "**Scoring method** — how raw values become 0–1 scores. Used by the "
-            "single-score pages; the Scaling Comparator always shows all four "
+            "single-score pages; the Scaling Comparator always shows all three "
             "methods."
         )
         st.radio(
@@ -62,7 +62,7 @@ def main() -> None:
         )
         st.caption(
             "Full-range min-max · 5–95 percentile capped min-max (default) · "
-            "log-transformed min-max · z-score (standardized)."
+            "z-score (standardized)."
         )
 
     data = load_app_data()

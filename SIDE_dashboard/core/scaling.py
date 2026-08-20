@@ -1,4 +1,4 @@
-"""Four scaling methods used across the dashboard.
+"""Three scaling methods used across the dashboard.
 
 Direct ports of the transformations in ``skewed_column_scaling_analysis.ipynb``
 (cell 3), plus the z-score method:
@@ -6,9 +6,6 @@ Direct ports of the transformations in ``skewed_column_scaling_analysis.ipynb``
 - ``full_minmax``: simple min-max normalisation over the observed range.
 - ``capped_minmax``: min-max over a chosen percentile window (default 5th to
   95th), so a handful of extreme values cannot dominate the scale.
-- ``log_minmax``: log1p transform followed by min-max, which compresses the
-  upper tail and highlights percentage-like differences.  Not defined for
-  negative values; such indicators come back all-NaN for this method.
 - ``z_score``: standardise each column to ``(x - mean) / std`` (population
   standard deviation), then map to 0-1 with the logistic curve
   ``1 / (1 + exp(-z))``.  The logistic transform is monotone, so ranks match a
@@ -25,14 +22,12 @@ import pandas as pd
 
 METHOD_FULL = "full"
 METHOD_CAPPED = "capped"
-METHOD_LOG = "log"
 METHOD_Z = "z"
-ALL_METHODS = [METHOD_FULL, METHOD_CAPPED, METHOD_LOG, METHOD_Z]
+ALL_METHODS = [METHOD_FULL, METHOD_CAPPED, METHOD_Z]
 
 METHOD_LABELS = {
     METHOD_FULL: "Full-range min-max",
     METHOD_CAPPED: "Capped min-max",
-    METHOD_LOG: "Log-transformed min-max",
     METHOD_Z: "Z-score (standardized)",
 }
 
@@ -40,7 +35,6 @@ METHOD_LABELS = {
 METHOD_SHORT_LABELS = {
     METHOD_FULL: "Full",
     METHOD_CAPPED: "Capped",
-    METHOD_LOG: "Log",
     METHOD_Z: "Z-score",
 }
 
@@ -60,19 +54,6 @@ def capped_minmax(series: pd.Series, lower: float = 0.05, upper: float = 0.95) -
         return pd.Series(0.0, index=s.index)
     clipped = s.clip(lower=low, upper=high)
     return (clipped - low) / (high - low)
-
-
-def log_minmax(series: pd.Series) -> pd.Series:
-    s = series.dropna()
-    if (s < 0).any():
-        # log1p is undefined for negative values (NaN for s < -1, ±inf at -1),
-        # which would poison the min-max below. Return NaN so callers can treat
-        # the column as "not applicable" for this indicator.
-        return pd.Series(np.nan, index=s.index)
-    logged = np.log1p(s)
-    if logged.max() == logged.min():
-        return pd.Series(0.0, index=s.index)
-    return (logged - logged.min()) / (logged.max() - logged.min())
 
 
 def z_score(series: pd.Series) -> pd.Series:
@@ -100,13 +81,11 @@ def transform_series(
     lower: float = 0.05,
     upper: float = 0.95,
 ) -> pd.Series:
-    """Apply one of the four scalings to a raw series."""
+    """Apply one of the scalings to a raw series."""
     if method == METHOD_FULL:
         return full_minmax(series)
     if method == METHOD_CAPPED:
         return capped_minmax(series, lower, upper)
-    if method == METHOD_LOG:
-        return log_minmax(series)
     if method == METHOD_Z:
         return z_score(series)
     raise ValueError(f"Unknown scaling method: {method!r}")

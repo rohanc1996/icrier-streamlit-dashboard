@@ -12,7 +12,7 @@ DEFAULT_INDICATOR = "Median Mobile Download Speeds (Mbps)"
 def render(data, method=scaling.METHOD_CAPPED) -> None:
     ui.page_header(
         "⚖️ Scaling comparator",
-        "Raw numbers are turned into 0–1 scores in four different ways. "
+        "Raw numbers are turned into 0–1 scores in three different ways. "
         "This page shows how that choice changes the picture — and which "
         "countries' scores are most sensitive to it.",
     )
@@ -38,7 +38,7 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
 
     st.plotly_chart(charts.hist_panels(data, indicator, lower_f, upper_f), width="stretch")
 
-    col_a, col_b, col_c, col_d = st.columns(4)
+    col_a, col_b, col_c = st.columns(3)
     with col_a:
         st.markdown("**Full-range min-max**")
         st.markdown("Simple and easy to explain, but a single extreme value can squash everyone else into a narrow band.")
@@ -46,25 +46,22 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
         st.markdown(f"**{lower}–{upper} percentile capped**")
         st.markdown("The robust choice for reporting: the scale ignores the extremes, so values stay stable.")
     with col_c:
-        st.markdown("**Log-transformed min-max**")
-        st.markdown("Compresses the upper tail to reflect percentage-like differences, but is less intuitive.")
-    with col_d:
         st.markdown("**Z-score (standardized)**")
         st.markdown("Measures how far each country sits from the mean in standard deviations, then maps to 0–1 — ranks match plain z-scores, but the values stay on the same scale as the others.")
 
     st.markdown("### How the scores change under each scaling")
     st.caption(
-        "The four scalings are monotone transforms of the raw value, so they all "
+        "The three scalings are monotone transforms of the raw value, so they all "
         "produce the **same country ordering** — the rank never differs between "
-        "methods. What differs is the 0–1 score: the swing column shows how much "
-        "each country's score moves around with the scaling choice."
+        "methods. What differs is the 0–1 score each country receives under the "
+        "different methods."
     )
     stability = rankings.score_stability_table(data, indicator, lower_f, upper_f)
 
     left, right = st.columns([3, 2])
     with left:
         ui.show_table(
-            stability[["Country", "value"] + list(scaling.ALL_METHODS) + ["score_swing"]],
+            stability[["Country", "value"] + list(scaling.ALL_METHODS)],
             column_config=ui.rank_column_config(data),
             height=400,
         )
@@ -76,7 +73,7 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
     avg_swing = float(stability["score_swing"].mean())
     st.info(
         f"💡 On average, a country's score swings by **{avg_swing:.2f} points** between the "
-        f"four methods for this indicator. The capped {lower}–{upper} scaling is the "
+        f"three methods for this indicator. The capped {lower}–{upper} scaling is the "
         "middle-ground choice that keeps values stable without hiding the largest "
         "economies.",
     )
