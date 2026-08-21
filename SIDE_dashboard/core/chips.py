@@ -208,12 +208,19 @@ def _build_pillar_result(
 def score_matrix(
     data, pillars: list[H.Pillar], method: str = SCORE_METHOD,
     lower: float = SCORE_LOWER, upper: float = SCORE_UPPER,
+    indicator_overrides: dict | None = None,
 ) -> pd.DataFrame:
     """0-1 "goodness" score for every leaf, all countries.
 
     Columns are keyed by the indicator *name* and aligned to
     ``data.numeric_df`` rows (the Country column is first).  Missing raw values
     stay NaN so presence is readable straight off this frame.
+
+    ``indicator_overrides`` maps ``country -> {indicator name -> 0-1 score}``;
+    each override replaces the computed score for that country and makes the
+    indicator count as *present* even where the raw value is missing (the
+    "fill a data gap with your judgement" case).  The override keys are the
+    indicator *names* (the score-matrix columns).
     """
     base = data.numeric_df[["Country"]].copy()
     out = {}
@@ -230,6 +237,14 @@ def score_matrix(
             out[leaf.name] = score
     frame = pd.DataFrame(out, index=base.index)
     frame.insert(0, "Country", base["Country"].values)
+    if indicator_overrides:
+        for country, ov in indicator_overrides.items():
+            mask = frame["Country"] == country
+            for name, score in ov.items():
+                # Guard against stale keys (e.g. an indicator later removed
+                # from the framework but still present in a saved override set).
+                if name in frame.columns:
+                    frame.loc[mask, name] = score
     return frame
 
 
@@ -273,6 +288,16 @@ def _coverage(row: pd.Series, pillars: list[H.Pillar]) -> dict:
     }
 
 
+def _mark_overrides(node: NodeResult, country: str, overrides: dict | None) -> None:
+    """Tag indicator nodes that were overridden so the reason shows on hover."""
+    if not overrides or country not in overrides:
+        return
+    for child in node.children:
+        if child.kind == "indicator" and child.name in overrides[country]:
+            child.reason = f"your override ({overrides[country][child.name]:.2f})"
+        _mark_overrides(child, country, overrides)
+
+
 def aggregate_country(
     data,
     country: str,
@@ -280,6 +305,7 @@ def aggregate_country(
     score_df: pd.DataFrame | None = None,
     override: dict | None = None,
     fill_missing: float | None = None,
+    indicator_overrides: dict | None = None,
     method: str = SCORE_METHOD,
     lower: float = SCORE_LOWER,
     upper: float = SCORE_UPPER,
@@ -290,15 +316,18 @@ def aggregate_country(
     ``score_df`` to avoid recomputing the scaling for every call; ``method``/
     ``lower``/``upper`` are used only when ``score_df`` is None.  ``override``
     and ``fill_missing`` implement the what-if simulations (see
-    ``_build_pillar_result``).
+    ``_build_pillar_result``).  ``indicator_overrides`` replaces individual
+    indicator scores for this country (see ``score_matrix``); it must match
+    the ``score_df`` actually used when that is passed in.
     """
     if pillars is None:
         pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
     if score_df is None:
-        score_df = score_matrix(data, pillars, method, lower, upper)
+        score_df = score_matrix(data, pillars, method, lower, upper, indicator_overrides)
     row = _country_row(score_df, country)
     pillar_results = [_build_pillar_result(row, p, override, fill_missing) for p in pillars]
     chips_node = _aggregate_children("CHIPS composite", "chips", pillar_results, 1.0)
+    _mark_overrides(chips_node, country, indicator_overrides)
     coverage = _coverage(row, pillars)
     coverage["pillars_present"] = sum(1 for pr in pillar_results if pr.status == "present")
     return CountryResult(country=country, chips=chips_node, coverage=coverage, pillars=pillar_results)
@@ -313,6 +342,7 @@ def chips_table(
     pillars: list[H.Pillar] | None = None,
     override: dict | None = None,
     fill_missing: float | None = None,
+    indicator_overrides: dict | None = None,
     method: str = SCORE_METHOD,
     lower: float = SCORE_LOWER,
     upper: float = SCORE_UPPER,
@@ -321,15 +351,18 @@ def chips_table(
 
     Countries that score (at least 3 pillars survived) get a rank; the others
     keep a NaN score/rank so the page can call them out as data-insufficient.
+    ``indicator_overrides`` (see ``score_matrix``) is applied before scoring,
+    so it can lift a country's score and rank.
     """
     if pillars is None:
         pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
-    score_df = score_matrix(data, pillars, method, lower, upper)
+    score_df = score_matrix(data, pillars, method, lower, upper, indicator_overrides)
     rows = []
     for country in data.country_list:
         res = aggregate_country(
             data, country, pillars=pillars, score_df=score_df,
             override=override, fill_missing=fill_missing,
+            indicator_overrides=indicator_overrides,
         )
         row = {
             "Country": country,

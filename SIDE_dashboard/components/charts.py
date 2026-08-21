@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 from plotly.subplots import make_subplots
 
 from components import country_names
@@ -23,13 +24,14 @@ from core import correlations, scaling
 
 _GEO_ASSET = Path(__file__).resolve().parent.parent / "assets" / "world_india_official.geojson"
 
+@st.cache_data(show_spinner=False)
 def _official_world_geojson() -> dict:
     """Load the merged world GeoJSON (official India extent).
 
-    Deliberately NOT process-cached: a long-running Streamlit server must always
-    render the current asset on disk, never a stale in-memory copy of an older
-    build. The file is ~1.3 MB; re-reading it per rerun is negligible next to
-    the rest of the figure serialisation.
+    Cached: the ~1.3 MB file is parsed once per server process instead of on
+    every map rerun. The asset only changes when ``scripts/build_official_world.py``
+    is re-run, at which point ``st.cache_data.clear()`` (or a server restart)
+    picks up the new build.
     """
     with open(_GEO_ASSET, encoding="utf-8") as fh:
         return json.load(fh)

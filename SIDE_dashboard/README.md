@@ -22,6 +22,7 @@ Your browser opens at `http://localhost:8501`.
 | Page | What it does |
 | --- | --- |
 | 🏆 **CHIPS Index Explorer** | The CHIPS composite (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with full missing-data transparency: leaderboard (scrollable race chart of thin coverage-coloured lines with country flags + sortable table), world map, per-country drill-down (treemap + what-if scenarios), a cross-country missing-data impact section, and the complete methodology. |
+| 🎛️ **Create Your Own CHIPS Framework** | A thought-experiment editor: reweight or rebuild the CHIPS index (pillar / sub-pillar / indicator weights, indicator membership via per-row sub-pillar dropdowns, added dataset indicators), or override a country's individual indicator scores — then see how the whole leaderboard and each country's score and rank would change. Weights must total 100% at every level before results are shown; the published framework is never altered. |
 | 🌍 **Country Explorer** | Three views: colour the world map by any indicator (click a country to open its rankings), inspect a single country's profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), or compare up to five countries on a spider chart. |
 | ⚖️ **Scaling Comparator** | Compare the three scaling methods on any indicator. Adjust the cap window with sliders and see which countries' scores swing most. |
 

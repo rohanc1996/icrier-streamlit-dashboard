@@ -21,6 +21,8 @@ This module is the single source of truth for the CHIPS indicator framework:
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 
 # ---------------------------------------------------------------------------
@@ -434,6 +436,72 @@ def _normalise_pillars(pillars: list[Pillar]) -> None:
                 leaves_weights = _normalise([leaf.weight for leaf in sp.leaves])
                 for leaf, lw in zip(sp.leaves, leaves_weights):
                     object.__setattr__(leaf, "weight", lw)
+
+
+def spec_digest(spec: list[dict]) -> str:
+    """Stable fingerprint of a declarative spec, used as a cache key.
+
+    The spec is JSON-serialisable (strings, floats, None), so a sorted dump
+    gives a robust key that changes whenever any weight, name or membership
+    changes and stays identical when the spec is semantically unchanged.
+    """
+    return hashlib.md5(json.dumps(spec, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def _group_total(weights: list[float | None]) -> float | None:
+    """Sum of the entered weights of one group, in index/pillar fractions.
+
+    ``None`` weights are treated as 1.0 (matching ``_normalise``).  Empty
+    groups and all-equal (every weight None) groups return None to signal
+    "not manually weighted" — those are valid by construction.
+    """
+    if not weights:
+        return None
+    if all(w is None for w in weights):
+        return None
+    return sum(1.0 if w is None else float(w) for w in weights)
+
+
+def validate_spec_totals(spec: list[dict], tol: float = 0.005) -> list[dict]:
+    """Levels whose entered weights do not sum to 100% (within ``tol``).
+
+    Weights are hierarchical: the five pillars, each pillar's sub-pillars, the
+    INNOVATE · AI internal groups, and each indicator group must each total to
+    1.0 for the framework to "make sense".  Returns a list of
+    ``{"level", "path", "total"}`` (``total`` in fractions) for every level
+    that is off; empty and all-equal groups are skipped.  The page uses this
+    to gate results until the user's weights are consistent.
+    """
+    issues: list[dict] = []
+
+    pw = _group_total([p.get("weight") for p in spec])
+    if pw is not None and abs(pw - 1.0) > tol:
+        issues.append({"level": "pillars", "path": "CHIPS index", "total": pw})
+
+    for p in spec:
+        sps = p["sub_pillars"]
+        spw = _group_total([sp.get("weight") for sp in sps])
+        if spw is not None and abs(spw - 1.0) > tol:
+            issues.append({"level": "sub-pillars", "path": p["name"], "total": spw})
+        for sp in sps:
+            if sp.get("internal_groups"):
+                for g in sp["internal_groups"]:
+                    gw = _group_total([w for _n, w in g["indicators"]])
+                    if gw is not None and abs(gw - 1.0) > tol:
+                        issues.append({
+                            "level": "indicators",
+                            "path": f"{p['name']} · {sp['name']} · {g['name']}",
+                            "total": gw,
+                        })
+            else:
+                iw = _group_total([w for _n, w in sp.get("indicators", [])])
+                if iw is not None and abs(iw - 1.0) > tol:
+                    issues.append({
+                        "level": "indicators",
+                        "path": f"{p['name']} · {sp['name']}",
+                        "total": iw,
+                    })
+    return issues
 
 
 def all_leaves(pillars: list[Pillar]) -> list[Leaf]:

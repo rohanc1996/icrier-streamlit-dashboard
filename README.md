@@ -20,11 +20,12 @@ is written up.
 
 ## What's inside
 
-The dashboard has three active pages:
+The dashboard has four active pages:
 
 | Page | What it does |
 | --- | --- |
 | 🏆 **CHIPS Index Explorer** | The CHIPS composite index (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with leaderboard (scrollable race chart of thin lines with flags + table), world map, per-country drill-down and full missing-data transparency. |
+| 🎛️ **Create Your Own CHIPS Framework** | Reweight or rebuild the CHIPS index (pillar / sub-pillar / indicator weights, indicator membership, added dataset indicators, per-country score overrides) and see how the whole leaderboard and each country's score would change — without altering the published framework. |
 | 🌍 **Country Explorer** | Map any indicator, inspect a single country's profile, or compare up to five countries on a spider chart. |
 | ⚖️ **Scaling Comparator** | See how the three scaling methods reshape scores on any indicator — all of them preserve the same ordering, but each country's 0–1 score can swing. |
 

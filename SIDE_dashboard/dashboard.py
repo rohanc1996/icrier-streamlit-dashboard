@@ -21,6 +21,7 @@ from core.loader import load_app_data  # noqa: E402
 from views import (  # noqa: E402
     chips_explorer,
     country_explorer,
+    framework_editor,
     scaling_comparator,
 )
 
@@ -28,6 +29,7 @@ PAGES = {
     "🏆 CHIPS Index Explorer": chips_explorer,
     "🌍 Country Explorer": country_explorer,
     "⚖️ Scaling Comparator": scaling_comparator,
+    "🎛️ Create Your Own CHIPS Framework": framework_editor,
 }
 
 

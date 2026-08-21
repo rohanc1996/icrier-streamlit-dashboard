@@ -58,6 +58,43 @@ def score_stability_table(
     return scores[cols].sort_values("score_swing", ascending=False).reset_index(drop=True)
 
 
+def rank_delta_table(
+    baseline: pd.DataFrame,
+    custom: pd.DataFrame,
+    pillar_names: list[str] | None = None,
+) -> pd.DataFrame:
+    """Side-by-side of two CHIPS leaderboards.
+
+    Joins the ``chips.chips_table`` output of two frameworks on Country and
+    reports each country's rank and CHIPS score under both, plus the deltas
+    (Δrank > 0 means the country slipped down under the custom framework).
+    Countries that only score under one framework keep a NaN on the other side
+    and are sorted to the bottom.  ``pillar_names`` optionally carries the
+    custom pillar score columns alongside the CHIPS columns.
+    """
+    b = baseline.set_index("Country")[["rank", "chips"]]
+    c = custom.set_index("Country")[["rank", "chips"]]
+    out = pd.DataFrame({
+        "baseline_rank": b["rank"],
+        "custom_rank": c["rank"],
+        "baseline_chips": b["chips"],
+        "custom_chips": c["chips"],
+    })
+    if pillar_names:
+        for name in pillar_names:
+            out[f"custom_{name}"] = custom.set_index("Country")[name]
+    out["Δrank"] = out["custom_rank"] - out["baseline_rank"]
+    out["Δchips"] = out["custom_chips"] - out["baseline_chips"]
+    # Countries scored under both come first, best custom rank at the top;
+    # countries that only score under one framework sink to the bottom.
+    out["_both"] = out[["baseline_rank", "custom_rank"]].notna().all(axis=1)
+    out = out.sort_values(["_both", "custom_rank"], ascending=[False, True], na_position="last")
+    out = out.drop(columns="_both")
+    return out[["baseline_rank", "custom_rank", "Δrank",
+                "baseline_chips", "custom_chips", "Δchips"]
+               + [f"custom_{n}" for n in (pillar_names or [])]]
+
+
 def profile_ranks(data, country: str) -> pd.DataFrame:
     """For one country: rank / total / percentile for every usable indicator."""
     rows = []
