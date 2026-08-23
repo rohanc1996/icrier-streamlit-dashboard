@@ -44,7 +44,7 @@ DEFAULT_COUNTRY = "India"
 # (a stray "Count" column and a duplicate of an already-used AI column).
 JUNK_ADDABLE = {"Count", "AI Infrastructure"}
 
-NOT_IN_FRAMEWORK = "— not in framework —"
+NOT_IN_FRAMEWORK = "— remove from framework —"
 GROUP_NONE = "—"
 AI_GROUPS = ["Research", "Investment & commercial"]
 AI_DEFAULT_GROUP = "Investment & commercial"
@@ -264,7 +264,7 @@ def _spec_from_table(data, spec: list[dict], df: pd.DataFrame) -> list[dict]:
     """Rebuild the spec from the (possibly edited) indicator table.
 
     The table's Sub-pillar (and Group, for INNOVATE · AI) dropdowns decide
-    where every indicator counts; "— not in framework —" removes it.  Pillar /
+    where every indicator counts; "— remove from framework —" removes it.  Pillar /
     sub-pillar / group weights are carried over untouched.  Weight cells hold
     raw percentages; blank keeps the indicator's previous weight (or equal
     weight for a fresh addition).
@@ -333,6 +333,46 @@ def _spec_from_table(data, spec: list[dict], df: pd.DataFrame) -> list[dict]:
                         for col in cols]
                 new_sp_list.append({"name": sp["name"], "weight": sp.get("weight"), "indicators": inds})
         new_spec.append({"name": p["name"], "weight": p.get("weight"), "sub_pillars": new_sp_list})
+    return _rescale_groups_after_edit(spec, new_spec)
+
+
+def _rescale_groups_after_edit(prev_spec: list[dict], new_spec: list[dict]) -> list[dict]:
+    """Re-balance groups that lost indicators back to a 100% total.
+
+    When an indicator leaves a group (dropped from the framework or moved to
+    another sub-pillar/group), the survivors' entered weights are scaled
+    proportionally so the group again sums to 1.0 — otherwise the edit would
+    leave the group flagged as off and the user would have to fix it by hand.
+    Groups that grew or stayed the same keep their raw weights, so a
+    deliberately non-100% total the user is mid-editing is left alone.
+    """
+    def _group_keys(spec: list[dict]) -> dict[tuple[str, str, str | None], set[str]]:
+        out: dict[tuple[str, str, str | None], set[str]] = {}
+        for p in spec:
+            for sp in p["sub_pillars"]:
+                if sp.get("internal_groups"):
+                    for g in sp["internal_groups"]:
+                        out[(p["name"], sp["name"], g["name"])] = {n for n, _ in g["indicators"]}
+                else:
+                    out[(p["name"], sp["name"], None)] = {n for n, _ in sp["indicators"]}
+        return out
+
+    prev = _group_keys(prev_spec)
+    for p in new_spec:
+        for sp in p["sub_pillars"]:
+            if sp.get("internal_groups"):
+                for g in sp["internal_groups"]:
+                    key = (p["name"], sp["name"], g["name"])
+                    cur = {n for n, _ in g["indicators"]}
+                    if cur and cur < prev.get(key, set()):
+                        scaled = _normalize_weights([w for _n, w in g["indicators"]])
+                        g["indicators"] = [(n, nw) for (n, _), nw in zip(g["indicators"], scaled)]
+            else:
+                key = (p["name"], sp["name"], None)
+                cur = {n for n, _ in sp["indicators"]}
+                if cur and cur < prev.get(key, set()):
+                    scaled = _normalize_weights([w for _n, w in sp["indicators"]])
+                    sp["indicators"] = [(n, nw) for (n, _), nw in zip(sp["indicators"], scaled)]
     return new_spec
 
 
@@ -360,6 +400,37 @@ def _total_caption(label: str, total: float) -> None:
         st.markdown(f":red[**{label} total {pct:.1f}%** ✗ — must equal 100%]")
 
 
+def _live_sub_pillar_total(pillar_name: str, sub_pillars: list[dict]) -> float:
+    """Sum of a pillar's sub-pillar weights, read from the live widgets.
+
+    The total box sits above the sub-pillar inputs, so reading the spec alone
+    would lag one rerun behind the control being edited.  Reading the current
+    ``number_input`` values from session state keeps the box in sync.
+    """
+    total = 0.0
+    for sp in sub_pillars:
+        key = _fw_widget_key("spw", pillar_name, sp["name"])
+        v = st.session_state.get(key)
+        total += (float(v) / 100.0) if v is not None else float(sp.get("weight") or 0.0)
+    return total
+
+
+def _pillar_total_box(pillar_name: str, sub_pillars: list[dict]) -> None:
+    """Highlighted box under each pillar name showing its sub-pillars total."""
+    total = _live_sub_pillar_total(pillar_name, sub_pillars)
+    pct = total * 100
+    ok = abs(total - 1.0) <= 0.005
+    color = "#188038" if ok else "#d93025"
+    bg = "rgba(24,128,56,0.12)" if ok else "rgba(217,48,37,0.12)"
+    state = "✓" if ok else "✗ must equal 100%"
+    st.markdown(
+        f'<div style="background:{bg}; border:1px solid {color}; border-radius:6px; '
+        f'padding:4px 8px; color:{color}; font-weight:600;">'
+        f"Sub-pillars total&nbsp;·&nbsp;{pct:.1f}%&nbsp;{state}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def _edit_weight_controls(data, spec: list[dict]) -> list[dict]:
     """Pillar, sub-pillar and (for INNOVATE · AI) internal-group weights.
 
@@ -375,6 +446,7 @@ def _edit_weight_controls(data, spec: list[dict]) -> list[dict]:
         rp = norm.get(p["name"])
         with pillar_cols[i]:
             st.markdown(f"**{p['name']}**")
+            _pillar_total_box(p["name"], p["sub_pillars"])
             seed_p = float(p["weight"]) * 100 if p.get("weight") is not None else (rp.weight * 100 if rp else 0.0)
             pct = st.number_input(
                 "Pillar weight (%)", min_value=0.0, value=seed_p,
@@ -403,7 +475,6 @@ def _edit_weight_controls(data, spec: list[dict]) -> list[dict]:
                                  "The two groups must total 100%.")
                         g["weight"] = g_pct / 100
                     _total_caption("Groups", sum(g["weight"] for g in sp["internal_groups"]))
-            _total_caption(f"{p['name']} sub-pillars", sum(sp["weight"] for sp in p["sub_pillars"]))
     st.divider()
     _total_caption("All pillars", sum(p["weight"] for p in spec))
     st.caption("Every level must total 100% before the results are shown. Use "
@@ -430,6 +501,8 @@ def _score_override_editor(data, country: str, pillars, method: str, spec_json: 
         "apply only to this country, feed straight into its CHIPS score and rank, and a "
         "missing indicator can be filled with a subjective value (coverage then reflects it).",
     )
+    st.caption("This feeds the alternative calculation only — the published CHIPS index "
+               "is never changed.")
     base = _custom_score_matrix(method, spec_json, "{}")
     row = base[base["Country"] == country].iloc[0]
     existing = _get_overrides().get(country, {})
@@ -520,10 +593,10 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
 
     spec = _get_spec()
 
-    with st.expander("⚖️ Weight controls", expanded=True):
+    with st.expander("⚖️ Pillar & sub-pillar weights", expanded=True):
         spec = _edit_weight_controls(data, spec)
 
-        st.markdown("**Indicator membership & within-group weights**")
+    with st.expander("📋 Indicator membership & within-group weights", expanded=True):
         table = _framework_table(data, spec)
         edited = st.data_editor(
             table,
@@ -539,7 +612,7 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
                     options=_sub_pillar_options(spec),
                     width="medium",
                     help="Which sub-pillar this indicator counts in. "
-                         "'— not in framework —' removes it."),
+                         "'— remove from framework —' removes it."),
                 "Group": st.column_config.SelectboxColumn(
                     "Group",
                     options=[GROUP_NONE] + AI_GROUPS,
@@ -555,10 +628,10 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
         spec = _spec_from_table(data, spec, edited)
         st.session_state["ch_fw_spec"] = spec
         st.caption("Assign an indicator by picking its **Sub-pillar** (INNOVATE · AI rows also "
-                   "pick a **Group**); set it to '— not in framework —' to drop it. Edit the "
+                   "pick a **Group**); set it to '— remove from framework —' to drop it. Edit the "
                    "weight column to change how much an indicator counts within its group. "
                    "Moving or adding an indicator usually means re-balancing the affected "
-                   "groups to 100%.")
+                   "groups to 100% — dropping one re-balances the survivors automatically.")
 
     _empty_group_warnings(spec)
 
@@ -610,7 +683,7 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
                     st.rerun()
 
     with st.expander("👁️ View / copy the current framework as JSON"):
-        st.code(_spec_to_json(spec), language="json")
+        st.code(json.dumps(spec, indent=2, sort_keys=True, allow_nan=False), language="json")
 
     # ------------------------------------------------------------------
     # Results (gated on valid weights)
@@ -619,6 +692,9 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
         st.info("Fix the weights above (or use **↔ Scale to 100**), then the leaderboard "
                 "comparison and country drill-down will appear here.")
         return
+
+    st.warning("These are **alternative-calculation** results under your custom framework — "
+               "**not** the published CHIPS index.")
 
     custom_pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns, spec=spec)
     spec_json = _spec_to_json(spec)
@@ -659,8 +735,29 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
         _custom_country_drilldown(data, method, spec, custom_pillars, baseline_scores)
 
 
+WATERMARK_TEXT = "ALTERNATIVE CALCULATION — NOT THE PUBLISHED CHIPS INDEX"
+
+
+def _watermark_fig(fig) -> None:
+    """Stamp a clear diagonal watermark on an alternative-calc chart."""
+    fig.add_annotation(
+        text=WATERMARK_TEXT,
+        textangle=-35,
+        opacity=0.35,
+        font=dict(size=26, color="#37474f"),
+        xref="paper", yref="paper",
+        x=0.5, y=0.5,
+        showarrow=False,
+    )
+
+
+def _alt_caption(text: str) -> None:
+    st.caption(f"{text} Under your custom framework — **not** the published CHIPS index.")
+
+
 def _custom_leaderboard(custom_pillars, custom_scores, baseline_scores) -> None:
     st.markdown("#### How the leaderboard changes")
+    _alt_caption("Ranks and scores below come from this alternative calculation.")
     scored_base = int(baseline_scores["chips"].notna().sum())
     scored_cust = int(custom_scores["chips"].notna().sum())
     med_base = baseline_scores["chips"].dropna().median()
@@ -696,6 +793,7 @@ def _custom_leaderboard(custom_pillars, custom_scores, baseline_scores) -> None:
     }
     for name in pillar_names:
         cfg[f"custom_{name}"] = st.column_config.NumberColumn(name.title(), format="%.2f")
+    _alt_caption("This table compares your custom framework against the published index.")
     ui.show_table(display, column_config=cfg, height=540)
     st.caption("Sorted by Δ rank (most improved first). A positive Δ rank means the country slips "
                "down under your framework; negative means it climbs. Sorted? Click a column header.")
@@ -711,6 +809,7 @@ def _custom_leaderboard(custom_pillars, custom_scores, baseline_scores) -> None:
 
     st.markdown("#### Leaderboard under your framework")
     race_fig, axis_fig = charts.chips_race(custom_scores)
+    _watermark_fig(race_fig)
     box_h = min(charts.RACE_BOX_HEIGHT, int(race_fig.layout.height or 500))
     st.markdown(
         f"<style>.st-key-ch_fw_race {{height: {box_h}px !important;"
@@ -722,7 +821,10 @@ def _custom_leaderboard(custom_pillars, custom_scores, baseline_scores) -> None:
                     config={"displayModeBar": False, "staticPlot": True})
 
     st.markdown("#### World map under your framework")
-    st.plotly_chart(charts.chips_choropleth(custom_scores, None), width="stretch")
+    map_fig = charts.chips_choropleth(custom_scores, None)
+    _watermark_fig(map_fig)
+    st.plotly_chart(map_fig, width="stretch")
+    _alt_caption("This map colours countries by the alternative calculation.")
 
     csv = custom_scores.to_csv(index=False).encode()
     st.download_button("⬇️ Download custom CHIPS table (CSV)", data=csv,
@@ -736,6 +838,8 @@ def _custom_country_drilldown(data, method, spec, custom_pillars, baseline_score
 
     spec_json = _spec_to_json(spec)
     _score_override_editor(data, country, custom_pillars, method, spec_json)
+
+    _alt_caption("Every metric and chart below is computed from the alternative calculation.")
 
     # Recompute with the freshest overrides (the editor above may have changed them).
     overrides_json = _overrides_to_json(_get_overrides())
@@ -767,6 +871,7 @@ def _custom_country_drilldown(data, method, spec, custom_pillars, baseline_score
               help="Share of the custom CHIPS weight backed by an actual value.")
 
     st.markdown("#### Pillar breakdown — baseline vs your framework")
+    _alt_caption("'Your score' is the alternative-calculation score for this pillar.")
     rows = []
     all_pillar_names = list(dict.fromkeys([p.name for p in base_pillars] + [p.name for p in custom_pillars]))
     base_by_name = {p.name: p for p in base_pillars}
@@ -797,7 +902,9 @@ def _custom_country_drilldown(data, method, spec, custom_pillars, baseline_score
 
     st.markdown("#### Score breakdown under your framework")
     rows = chips.tree_to_frame(cust_res.chips, chips.leaf_global_weights(custom_pillars))
-    st.plotly_chart(charts.chips_treemap(rows), width="stretch")
+    treemap = charts.chips_treemap(rows)
+    _watermark_fig(treemap)
+    st.plotly_chart(treemap, width="stretch")
     st.caption("Area = share of the CHIPS weight **under your framework**; colour = pillar hue "
                "shaded by score. Hover any block to see its weight, score and missing-data "
                "status — overridden indicators are marked 'your override'.")

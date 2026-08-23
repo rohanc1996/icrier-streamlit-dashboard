@@ -457,6 +457,57 @@ def test_validate_spec_totals() -> None:
     check("1/3 x 3 accepted within tolerance", H.validate_spec_totals(roundy) == [])
 
 
+def test_rescale_on_drop() -> None:
+    print("\nIndicator table auto-scales a group to 100% when it loses a member")
+    from views.framework_editor import _rescale_groups_after_edit
+
+    # Dropping one of two equal members scales the survivor to 100%.
+    spec = _two_pillar_spec(0.5)
+    prev = copy.deepcopy(spec)
+    spec[0]["sub_pillars"][0]["indicators"] = [("X1", 0.5)]
+    out = _rescale_groups_after_edit(prev, spec)
+    inds = out[0]["sub_pillars"][0]["indicators"]
+    check("survivor scaled to 100%",
+          len(inds) == 1 and abs(inds[0][1] - 1.0) < 1e-9)
+
+    # Dropping one of three unequal members rescales the pair to 50/50.
+    spec2 = _two_pillar_spec(0.5)
+    spec2[0]["sub_pillars"][0]["indicators"] = [("X1", 0.33), ("X2", 0.33), ("X3", 0.34)]
+    prev2 = copy.deepcopy(spec2)
+    spec2[0]["sub_pillars"][0]["indicators"] = [("X1", 0.33), ("X2", 0.33)]
+    out2 = _rescale_groups_after_edit(prev2, spec2)
+    inds2 = out2[0]["sub_pillars"][0]["indicators"]
+    check("pair rescaled proportionally",
+          len(inds2) == 2 and all(abs(w - 0.5) < 1e-9 for _n, w in inds2))
+
+    # A group that only grew keeps its raw (entered) weights untouched.
+    spec3 = _two_pillar_spec(0.5)
+    prev3 = copy.deepcopy(spec3)
+    spec3[0]["sub_pillars"][0]["indicators"] = [("X1", 0.5), ("X2", 0.25)]
+    out3 = _rescale_groups_after_edit(prev3, spec3)
+    inds3 = out3[0]["sub_pillars"][0]["indicators"]
+    check("growing a group does not rescale",
+          len(inds3) == 2 and abs(inds3[0][1] - 0.5) < 1e-9 and abs(inds3[1][1] - 0.25) < 1e-9)
+
+    # INNOVATE · AI internal groups rescale the same way; untouched groups stay.
+    ai = [{"name": "P", "weight": 1.0, "sub_pillars": [
+        {"name": "AI", "is_ai": True, "internal_groups": [
+            {"name": "Research", "weight": 0.5, "indicators": [("A1", 0.5), ("A2", 0.5)]},
+            {"name": "Investment & commercial", "weight": 0.5,
+             "indicators": [("B1", 1 / 3), ("B2", 1 / 3), ("B3", 1 / 3)]},
+        ]},
+    ]}]
+    prev_ai = copy.deepcopy(ai)
+    ai[0]["sub_pillars"][0]["internal_groups"][1]["indicators"] = [("B1", 1 / 3), ("B2", 1 / 3)]
+    out_ai = _rescale_groups_after_edit(prev_ai, ai)
+    grp = out_ai[0]["sub_pillars"][0]["internal_groups"][1]["indicators"]
+    check("AI internal group rescaled on drop",
+          len(grp) == 2 and all(abs(w - 0.5) < 1e-9 for _n, w in grp))
+    res = out_ai[0]["sub_pillars"][0]["internal_groups"][0]["indicators"]
+    check("untouched AI group keeps weights",
+          all(abs(w - 0.5) < 1e-9 for _n, w in res))
+
+
 def test_indicator_overrides() -> None:
     print("\nPer-country indicator score overrides")
     data = _polarised_data()
@@ -571,6 +622,7 @@ def run_all() -> int:
     test_rank_delta_table()
     test_added_indicator_changes_scores()
     test_validate_spec_totals()
+    test_rescale_on_drop()
     test_indicator_overrides()
     test_real_data()
     print()
