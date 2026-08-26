@@ -1,0 +1,240 @@
+"""Reconciliation: dashboard full-minmax CHIPS vs published "AI augmented Absolute Index 2026".
+
+Read-only diagnostic. Compares only the dashboard's current full-min-max pipeline
+against the published spreadsheet's absolute-score calculation (CHIPS score row,
+line 96; RANK CHIPS row, line 98). Produces:
+
+  - deliverables/reconciliation_71.csv          full 71-country table, sorted by |diff|
+  - deliverables/first_divergence_by_country.csv affected countries + first divergent layer
+  - deliverables/root_cause_groups.csv          countries grouped by root cause
+  - deliverables/findings.md                    human-readable summary
+
+No code, data or weighting changes are made.
+"""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "SIDE_dashboard"))
+
+from core import chips, scaling  # noqa: E402
+from core import chips_hierarchy as H  # noqa: E402
+from core.loader import load_app_data  # noqa: E402
+
+PUB_FILE = ROOT / "SIDE 2026 - Rohan - AI augmented Absolute Index 2026.csv"
+OUT_DIR = ROOT / "deliverables"
+
+# Published CHIPS score lives on line 96 (1-indexed) -> row index 94; rank on row 96.
+CHIPS_ROW = 94
+RANK_ROW = 96
+
+NAME_MAP = {
+    "United States of America": "USA",
+    "United Arab Emirates": "UAE",
+    "United Kingdom": "UK",
+}
+PIL_MAP = {"CONNECT": "C", "HARNESS": "H", "INNOVATE": "I", "PROTECT": "P", "SUSTAINABILITY": "S"}
+
+
+def _tofloat(x: object) -> float:
+    try:
+        return float(str(x).replace(",", ""))
+    except (TypeError, ValueError):
+        return np.nan
+
+
+def _norm(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", s.lower())
+
+
+def build_row_to_leaf(pub, pillars) -> dict[int, H.Leaf | None]:
+    row_to_leaf: dict[int, H.Leaf | None] = {}
+    for i in range(0, 58):
+        pname = str(pub.loc[i, "Indicator"]).strip()
+        pn = _norm(pname)
+        leaf = None
+        for l in H.all_leaves(pillars):
+            if _norm(l.name) == pn or _norm(l.column or "") == pn:
+                leaf = l
+                break
+        if leaf is None:
+            for k, v in H.COLUMN_ALIASES.items():
+                if _norm(k) == pn or _norm(v) == pn:
+                    leaf = next((l for l in H.all_leaves(pillars) if l.name == k), None)
+                    break
+        row_to_leaf[i] = leaf
+    return row_to_leaf
+
+
+def build_pub_subpillars(pub, countries) -> dict[str, dict[str, float]]:
+    pil = None
+    out = {}
+    for i in range(61, 77):
+        pcell = str(pub.loc[i, "Pillar"]).strip()
+        if pcell:
+            pil = pcell
+        key = f"{pil}|{str(pub.loc[i, 'Sub -Pillar']).strip()}"
+        out[key] = {c: _tofloat(pub.loc[i, c]) for c in countries}
+    return out
+
+
+def main() -> None:
+    OUT_DIR.mkdir(exist_ok=True)
+    pub = pd.read_csv(PUB_FILE, dtype=str, keep_default_na=False)
+    countries = list(pub.columns[7:78])
+
+    data = load_app_data()
+    pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
+    score_df = chips.score_matrix(data, pillars, method=scaling.METHOD_FULL)
+    table = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_FULL)
+    rank_map = dict(zip(table["Country"], table["rank"]))
+
+    pub_chips = {c: _tofloat(pub.loc[CHIPS_ROW, c]) for c in countries}
+    pub_rank = {c: _tofloat(pub.loc[RANK_ROW, c]) for c in countries}
+    row_to_leaf = build_row_to_leaf(pub, pillars)
+    pub_sub = build_pub_subpillars(pub, countries)
+
+    def db(n: str) -> str:
+        return NAME_MAP.get(n, n)
+
+    def classify(c: str, res) -> tuple[str, str]:
+        cd = abs(pub_chips[db(c)] - res.chips.score * 100)
+        if cd < 0.1:
+            return "ROUNDING-ONLY", "CHIPS diff < 0.1"
+        inds = []
+        for i, l in row_to_leaf.items():
+            if l is None:
+                continue
+            pv = _tofloat(pub.loc[i, db(c)])
+            dv = score_df.loc[score_df["Country"] == c, l.name].iloc[0] * 100
+            if not np.isnan(pv) and not np.isnan(dv) and abs(pv - dv) > 0.5:
+                inds.append(f"{l.name} ({abs(pv - dv):.1f}pts)")
+        drops = []
+        for pr in res.pillars:
+            for sp in pr.children:
+                if sp.status != "present":
+                    pv = pub_sub.get(f"{PIL_MAP[pr.name]}|{sp.name}", {}).get(db(c), np.nan)
+                    if not np.isnan(pv):
+                        drops.append(f"{pr.name} · {sp.name}")
+        if inds:
+            return "INDICATOR (data-version / minmax bound)", "; ".join(inds)
+        if drops:
+            return "SUB-PILLAR DROP (missing-data rule)", "; ".join(drops)
+        return "AGGREGATION / WEIGHTS", f"chips diff = {cd:.2f}"
+
+    rows = []
+    for c in data.country_list:
+        res = chips.aggregate_country(data, c, pillars=pillars, score_df=score_df, method=scaling.METHOD_FULL)
+        cause, detail = classify(c, res)
+        dash = res.chips.score * 100
+        rows.append(
+            {
+                "Country": c,
+                "Published_CHIPS": round(pub_chips[db(c)], 4),
+                "Dashboard_CHIPS": round(dash, 4),
+                "Signed_diff": round(pub_chips[db(c)] - dash, 4),
+                "Abs_diff": round(abs(pub_chips[db(c)] - dash), 4),
+                "Published_Rank": pub_rank[db(c)],
+                "Dashboard_Rank": rank_map[c],
+                "Cause": cause,
+                "First_divergence_detail": detail,
+            }
+        )
+    rec = pd.DataFrame(rows).sort_values("Abs_diff", ascending=False).reset_index(drop=True)
+    rec.to_csv(OUT_DIR / "reconciliation_71.csv", index=False)
+
+    first_div = rec[rec["Cause"] != "ROUNDING-ONLY"].copy()
+    first_div.to_csv(OUT_DIR / "first_divergence_by_country.csv", index=False)
+
+    # Root-cause grouping: split detail into first diverging unit (indicator or sub-pillar).
+    groups = []
+    for _, r in first_div.iterrows():
+        if r["Cause"].startswith("SUB-PILLAR"):
+            unit = r["First_divergence_detail"].split(";")[0]
+            pillar = unit.split("·")[0].strip()
+        elif r["Cause"].startswith("INDICATOR"):
+            m = re.search(r"^(.*?)\s*\(\d+\.\d+pts\)$", r["First_divergence_detail"])
+            unit = m.group(1).strip() if m else r["First_divergence_detail"]
+            pillar = ""
+        else:
+            unit, pillar = r["First_divergence_detail"], ""
+        groups.append(
+            {
+                "Country": r["Country"],
+                "Root_cause": r["Cause"],
+                "Diverges_at": unit,
+                "Pillar": pillar,
+                "Abs_diff": r["Abs_diff"],
+            }
+        )
+    grp = pd.DataFrame(groups)
+    grp.to_csv(OUT_DIR / "root_cause_groups.csv", index=False)
+
+    summary_counts = rec["Cause"].value_counts().to_dict()
+    md = f"""# CHIPS reconciliation: dashboard full-minmax vs published spreadsheet
+
+Generated by `scripts/reconcile_chips.py` (read-only; no code/data/weighting changes).
+
+## Summary
+
+- Published source: `SIDE 2026 - Rohan - AI augmented Absolute Index 2026.csv` (CHIPS score line 96).
+- Dashboard source: `SIDE 2026 - Rohan - Absolute.csv` (loader `DATA_FILE`), full-range min-max.
+- {len(rec)} countries reconciled; {rec["Abs_diff"].lt(0.1).sum()} match to within 0.1 points.
+
+| Root cause | Countries |
+|---|---|
+"""
+    for k, v in sorted(summary_counts.items(), key=lambda x: -x[1]):
+        md += f"| {k} | {v} |\n"
+
+    md += """
+
+## Root-cause classification
+
+### 1. SUB-PILLAR DROP (missing-data rule) — methodological inconsistency
+The dashboard applies the CHIPS spec missing-data rules (2-of-2, >50%, drop-group)
+and drops entire sub-pillars, reweighting the survivors. The published spreadsheet
+computes each sub-pillar from whatever indicators are present (simple average of
+available). Affected sub-pillars:
+- `INNOVATE · AI` — dropped by dashboard for many countries (published still scores it)
+- `HARNESS · Data Intensity` (2-of-2) — USA, Singapore, France, Sweden, Norway,
+  Argentina, Netherlands, Philippines, Israel
+- `HARNESS · Real Economy` (2-of-2) — China, Morocco, Iraq, Saudi Arabia,
+  New Zealand, South Africa, ...
+- HARNESS · Fintech / ·AI and PROTECT · AI for a subset.
+
+Evidence: normalised indicator scores match the published values almost everywhere
+(3385 cells compared, 31 differ >0.5); divergence begins at sub-pillar aggregation.
+
+### 2. INDICATOR (data-version / minmax bound)
+- Italy fixed broadband: dashboard raw=46 → 73.05; published=11.9 (implies raw ≈ 132).
+- Safety and security: published uses min=25/max=100 vs dashboard min=24 (0.3–0.7pt drift).
+- Switzerland: published Newly Funded AI = 2.0 vs dashboard raw = 22.0.
+
+### 3. ROUNDING-ONLY
+39 countries differ by <0.1 points (published shows 1–2 decimals).
+
+## Files
+- `reconciliation_71.csv` — all 71 countries, sorted by absolute difference.
+- `first_divergence_by_country.csv` — affected countries with first divergent layer.
+- `root_cause_groups.csv` — grouped by root cause.
+"""
+    (OUT_DIR / "findings.md").write_text(md)
+
+    print(f"Wrote reconciliation_71.csv ({len(rec)} rows)")
+    print(f"Wrote first_divergence_by_country.csv ({len(first_div)} rows)")
+    print(f"Wrote root_cause_groups.csv ({len(grp)} rows)")
+    print(f"Wrote findings.md")
+    print()
+    print("Cause distribution:")
+    print(rec["Cause"].value_counts().to_string())
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,33 @@
+Country,Root_cause,Diverges_at,Pillar,Abs_diff
+China,SUB-PILLAR DROP (missing-data rule),HARNESS · Real Economy,HARNESS,2.3816
+United States of America,SUB-PILLAR DROP (missing-data rule),HARNESS · Data Intensity,HARNESS,1.5213
+Bangladesh,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,1.1992
+Italy,INDICATOR (data-version / minmax bound),"Fixed (broadband) internet price, USD PPP",,0.9547
+Singapore,SUB-PILLAR DROP (missing-data rule),HARNESS · Data Intensity,HARNESS,0.7239
+Croatia,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.708
+France,SUB-PILLAR DROP (missing-data rule),HARNESS · Data Intensity,HARNESS,0.6682
+Netherlands,INDICATOR (data-version / minmax bound),Safety and security,,0.6506
+Ukraine,INDICATOR (data-version / minmax bound),Safety and security,,0.5638
+Nigeria,INDICATOR (data-version / minmax bound),Safety and security,,0.5089
+Philippines,INDICATOR (data-version / minmax bound),Safety and security,,0.5023
+Israel,INDICATOR (data-version / minmax bound),Safety and security,,0.4846
+Norway,INDICATOR (data-version / minmax bound),Safety and security,,0.4329
+Greece,INDICATOR (data-version / minmax bound),Safety and security,,0.4271
+Sweden,SUB-PILLAR DROP (missing-data rule),HARNESS · Data Intensity,HARNESS,0.4224
+Argentina,SUB-PILLAR DROP (missing-data rule),HARNESS · Data Intensity,HARNESS,0.3836
+Saudi Arabia,INDICATOR (data-version / minmax bound),Safety and security (0.6pts); Public trust score,,0.374
+Morocco,SUB-PILLAR DROP (missing-data rule),HARNESS · Real Economy,HARNESS,0.3509
+Viet Nam,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.3281
+Switzerland,INDICATOR (data-version / minmax bound),Public trust score,,0.2863
+New Zealand,INDICATOR (data-version / minmax bound),Safety and security,,0.2642
+Indonesia,INDICATOR (data-version / minmax bound),Safety and security,,0.2471
+Hungary,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.2371
+Pakistan,INDICATOR (data-version / minmax bound),Safety and security,,0.2366
+Czechia,INDICATOR (data-version / minmax bound),Safety and security,,0.2362
+Slovakia,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.2176
+Chile,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.2075
+South Africa,INDICATOR (data-version / minmax bound),Public trust score,,0.1953
+Russian Federation,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.1401
+Iraq,SUB-PILLAR DROP (missing-data rule),HARNESS · Real Economy,HARNESS,0.1206
+Qatar,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.1176
+Serbia,SUB-PILLAR DROP (missing-data rule),INNOVATE · AI,INNOVATE,0.1022
