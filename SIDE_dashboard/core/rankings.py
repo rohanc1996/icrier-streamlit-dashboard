@@ -17,20 +17,23 @@ def scaled_scores(
     lower: float = 0.05,
     upper: float = 0.95,
     invert_lower_is_better: bool = True,
+    methods: list[str] | None = None,
 ) -> pd.DataFrame:
     """Return Country, raw value, and the scaled scores for an indicator.
 
     When ``invert_lower_is_better`` is True, scores for indicators where a low
     value is "good" (prices, waste, risk) are flipped to ``1 - score`` so that a
-    score of 1.0 always means "best".
+    score of 1.0 always means "best".  ``methods`` restricts the scaling methods
+    returned (defaults to all of them).
     """
+    methods = methods or list(scaling.ALL_METHODS)
     s = data.numeric_df[indicator]
     df = pd.DataFrame({"Country": data.numeric_df["Country"]})
     df["value"] = s
-    for method in scaling.ALL_METHODS:
+    for method in methods:
         df[method] = scaling.transform_series(s, method, lower, upper)
     if invert_lower_is_better and not data.higher_is_better.get(indicator, True):
-        for method in scaling.ALL_METHODS:
+        for method in methods:
             df[method] = 1.0 - df[method]
     return df
 
@@ -40,6 +43,7 @@ def score_stability_table(
     indicator: str,
     lower: float = 0.05,
     upper: float = 0.95,
+    methods: list[str] | None = None,
 ) -> pd.DataFrame:
     """Score of every country under each scaling method, plus the max swing.
 
@@ -48,9 +52,12 @@ def score_stability_table(
     them. What *does* differ is the 0-1 score itself: the swing between the
     highest and lowest score a country receives across the methods shows how
     sensitive that country is to the scaling choice.
+
+    ``methods`` restricts which scalings are compared (defaults to all of them).
     """
-    score_cols = list(scaling.ALL_METHODS)
-    scores = scaled_scores(data, indicator, lower, upper).dropna(subset=["value"]).copy()
+    methods = methods or list(scaling.ALL_METHODS)
+    score_cols = methods
+    scores = scaled_scores(data, indicator, lower, upper, methods=methods).dropna(subset=["value"]).copy()
     # skipna: a method with no usable values for this indicator contributes
     # nothing to that country's swing.
     scores["score_swing"] = scores[score_cols].max(axis=1) - scores[score_cols].min(axis=1)
@@ -123,3 +130,62 @@ def profile_ranks(data, country: str) -> pd.DataFrame:
     if len(result):
         result = result.sort_values("rank").reset_index(drop=True)
     return result
+
+
+PILLAR_COLUMNS = ["CONNECT", "HARNESS", "INNOVATE", "PROTECT", "SUSTAINABILITY"]
+
+
+def composite_scaling_comparison(
+    data,
+    pillars,
+    method_a: str,
+    method_b: str,
+) -> pd.DataFrame:
+    """Full-minmax vs z-score comparison of the composite CHIPS index.
+
+    Runs ``chips.chips_table`` under both scaling methods and joins the results
+    per country, so every level (overall CHIPS plus the five pillars) carries
+    both scores and both ranks, plus the deltas:
+
+    - ``{level}_a`` / ``{level}_b``  — the 0-1 score under each method
+    - ``{level}_dscore``             — ``abs(a - b)``
+    - ``{level}_rank_a`` / ``{level}_rank_b``
+    - ``{level}_drank``              — ``abs(rank_a - rank_b)``
+
+    Unlike single indicators (where every scaling is a monotone transform and
+    ranks never change), the composite aggregates many differently-shaped
+    indicator transforms, so the two methods CAN produce different orderings.
+    This frame is what the Scaling Comparator's scatter plots and diverger
+    tables draw from.
+    """
+    from . import chips as chips_mod
+
+    ta = chips_mod.chips_table(data, pillars=pillars, method=method_a)
+    tb = chips_mod.chips_table(data, pillars=pillars, method=method_b)
+
+    rows = []
+    for _, ra in ta.iterrows():
+        c = ra["Country"]
+        rb = tb.loc[tb["Country"] == c].iloc[0]
+        row = {"Country": c}
+        for level in ["chips"] + PILLAR_COLUMNS:
+            a = ra[level]
+            b = rb[level]
+            ra_rank = ra["rank"]
+            rb_rank = rb["rank"]
+            if pd.isna(a) or pd.isna(b):
+                row[f"{level}_a"] = np.nan
+                row[f"{level}_b"] = np.nan
+                row[f"{level}_dscore"] = np.nan
+                row[f"{level}_rank_a"] = np.nan
+                row[f"{level}_rank_b"] = np.nan
+                row[f"{level}_drank"] = np.nan
+                continue
+            row[f"{level}_a"] = float(a)
+            row[f"{level}_b"] = float(b)
+            row[f"{level}_dscore"] = abs(float(a) - float(b))
+            row[f"{level}_rank_a"] = int(ra_rank)
+            row[f"{level}_rank_b"] = int(rb_rank)
+            row[f"{level}_drank"] = abs(int(ra_rank) - int(rb_rank))
+        rows.append(row)
+    return pd.DataFrame(rows)

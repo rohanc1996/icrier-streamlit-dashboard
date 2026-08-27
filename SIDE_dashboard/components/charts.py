@@ -17,7 +17,7 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from components import country_names
-from core import correlations, scaling
+from core import correlations, rankings, scaling
 
 # World choropleths render a custom GeoJSON asset (``assets/world_india_official.geojson``)
 # instead of Plotly's built-in country geometry.
@@ -201,9 +201,18 @@ def chips_race(scores: pd.DataFrame) -> tuple[go.Figure, go.Figure]:
     return fig, axis
 
 
-def hist_panels(data, indicator: str, lower: float = 0.05, upper: float = 0.95) -> go.Figure:
-    """Side-by-side histograms of the same indicator under each scaling."""
-    methods = list(scaling.ALL_METHODS)
+def hist_panels(
+    data,
+    indicator: str,
+    lower: float = 0.05,
+    upper: float = 0.95,
+    methods: list[str] | None = None,
+) -> go.Figure:
+    """Side-by-side histograms of the same indicator under each scaling.
+
+    ``methods`` restricts which scalings get a panel (defaults to all three).
+    """
+    methods = methods or list(scaling.ALL_METHODS)
     titles = [
         f"{lower * 100:g}-{upper * 100:g} percentile capped" if m == scaling.METHOD_CAPPED
         else scaling.METHOD_LABELS[m]
@@ -638,4 +647,94 @@ def missingness_heatmap(codes: pd.DataFrame, reasons: pd.DataFrame) -> go.Figure
         xaxis=dict(tickangle=30),
     )
     fig.update_yaxes(autorange="reversed")
+    return fig
+
+
+def chips_scaling_scatter(
+    comparison_df: pd.DataFrame,
+    method_a: str,
+    method_b: str,
+    level: str,
+    top_n: int = 5,
+) -> go.Figure:
+    """Single-panel scatter of one composite level under two scaling methods.
+
+    ``level`` is ``"chips"`` or one of the pillar column names in
+    ``rankings.PILLAR_COLUMNS``. x = score under ``method_a``, y = score under
+    ``method_b``. Countries that would sit on the dashed diagonal are unchanged
+    by the scaling choice; the further a country sits from it, the more the
+    method matters.
+
+    ``comparison_df`` is the ``rankings.composite_scaling_comparison`` output.
+    Markers are coloured by ``|a - b|`` (dark = big divergence) and the ``top_n``
+    most-divergent countries are labelled with their short name.
+    """
+    label_a = scaling.METHOD_SHORT_LABELS[method_a]
+    label_b = scaling.METHOD_SHORT_LABELS[method_b]
+    level_label = "CHIPS composite" if level == "chips" else f"{level.capitalize()} pillar"
+
+    a_col, b_col, d_col = f"{level}_a", f"{level}_b", f"{level}_dscore"
+    d = comparison_df.dropna(subset=[a_col, b_col]).copy()
+    if d.empty:
+        fig = go.Figure()
+        fig.update_layout(
+            height=560, title=f"<b>{level_label}</b>", title_x=0.05,
+            xaxis_title=f"{label_a} score", yaxis_title=f"{label_b} score",
+        )
+        return fig
+
+    names = d["Country"].astype(str)
+    xs = d[a_col].astype(float)
+    ys = d[b_col].astype(float)
+    dscore = d[d_col].astype(float)
+
+    fig = go.Figure()
+    # Baseline points: everyone, coloured by divergence magnitude.
+    fig.add_trace(go.Scatter(
+        x=xs, y=ys, mode="markers", name="Countries",
+        marker=dict(
+            color=dscore, colorscale="Viridis", cmin=0, cmax=dscore.max(),
+            size=9, opacity=0.75, line=dict(width=0.5, color="white"),
+        ),
+        customdata=np.stack([names, np.round(xs.values, 3),
+                             np.round(ys.values, 3), np.round(dscore.values, 3)], axis=-1),
+        hovertemplate=(
+            "%{customdata[0]}<br>"
+            f"{label_a} = %{{customdata[1]}}<br>"
+            f"{label_b} = %{{customdata[2]}}<br>"
+            "Δ = %{customdata[3]}<extra></extra>"
+        ),
+    ))
+
+    # The diagonal (unchanged-by-scaling line).
+    fig.add_trace(go.Scatter(
+        x=[0, 1], y=[0, 1], mode="lines",
+        name="Unchanged",
+        line=dict(color="#555555", width=1, dash="dash"),
+        hoverinfo="skip",
+    ))
+
+    # Top divergers: labelled.
+    top = d.nlargest(top_n, d_col)
+    fig.add_trace(go.Scatter(
+        x=top[a_col], y=top[b_col], mode="markers+text",
+        name="Top divergers",
+        text=[country_names.short_name(c) for c in top["Country"]],
+        textposition="top center",
+        textfont=dict(size=11, color="#111111"),
+        marker=dict(color="#111111", size=10, line=dict(width=1, color="white")),
+        customdata=np.stack([top["Country"].astype(str), np.round(top[d_col].astype(float), 3)], axis=-1),
+        hovertemplate="%{customdata[0]}<br>Δ = %{customdata[1]}<extra></extra>",
+    ))
+
+    fig.update_layout(
+        height=560,
+        margin=dict(l=10, r=10, t=70, b=10),
+        title=f"<b>{level_label}</b>",
+        title_x=0.05,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                    xanchor="left", x=0, font=dict(size=12)),
+        xaxis=dict(title=f"{label_a} score", range=[0, 1], tickformat=".1f"),
+        yaxis=dict(title=f"{label_b} score", range=[0, 1], tickformat=".1f"),
+    )
     return fig

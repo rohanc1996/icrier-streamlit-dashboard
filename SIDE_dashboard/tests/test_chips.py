@@ -307,6 +307,58 @@ def test_zscore_scaling() -> None:
     check("unknown method raises ValueError", raised)
 
 
+def test_composite_scaling_comparison() -> None:
+    print("\nComposite scaling comparison (full min-max vs z-score)")
+    try:
+        from core.loader import load_app_data
+        data = load_app_data()
+    except FileNotFoundError:
+        print("  skip (data file not found)")
+        return
+
+    pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
+    check("every spec indicator maps to a real column", not unresolved)
+
+    comp = rankings.composite_scaling_comparison(
+        data, pillars, scaling.METHOD_FULL, scaling.METHOD_Z
+    )
+    check("one row per country", len(comp) == len(data.country_list))
+    check("country names present", "Country" in comp.columns)
+    for level in ["chips"] + rankings.PILLAR_COLUMNS:
+        for suffix in ("_a", "_b", "_dscore", "_rank_a", "_rank_b", "_drank"):
+            check(f"column {level}{suffix} exists", f"{level}{suffix}" in comp.columns)
+
+    scored = comp.dropna(subset=["chips_a", "chips_b"])
+    check("all countries scored under both methods",
+          len(scored) == len(data.country_list))
+    check("chips scores in [0, 1] under both",
+          bool(((scored["chips_a"] >= 0) & (scored["chips_a"] <= 1)).all()) and
+          bool(((scored["chips_b"] >= 0) & (scored["chips_b"] <= 1)).all()))
+    check("dscore is absolute difference",
+          np.allclose(scored["chips_dscore"],
+                      (scored["chips_b"] - scored["chips_a"]).abs()))
+    check("drank is absolute rank difference",
+          bool((scored["chips_drank"] == (scored["chips_rank_b"] - scored["chips_rank_a"]).abs()).all()))
+    check("ranks are 1..N for both methods",
+          scored["chips_rank_a"].min() == 1 and scored["chips_rank_a"].max() == len(scored) and
+          scored["chips_rank_b"].min() == 1 and scored["chips_rank_b"].max() == len(scored))
+
+    # Regression guards: the composite CAN reorder countries even though each
+    # indicator transform is monotone, and the biggest movers are stable.
+    top = scored.sort_values("chips_dscore", ascending=False).head(1)
+    check("top CHIPS diverger is Japan",
+          top["Country"].iloc[0] == "Japan" and abs(top["chips_dscore"].iloc[0] - 0.305) < 0.02)
+
+    harness = comp.dropna(subset=["HARNESS_a", "HARNESS_b"])
+    check("top HARNESS diverger is Kazakhstan",
+          harness.loc[harness["HARNESS_dscore"].idxmax(), "Country"] == "Kazakhstan")
+
+    # Composite ranks are NOT guaranteed equal between methods (unlike a single
+    # indicator) — the whole point of the scatter comparison.
+    check("composite ranks can differ between methods",
+          int(scored["chips_drank"].max()) > 0)
+
+
 # ---------------------------------------------------------------------------
 # Custom framework (Create Your Own CHIPS)
 # ---------------------------------------------------------------------------
@@ -616,6 +668,7 @@ def run_all() -> int:
     test_overrides_and_coverage()
     test_hierarchy_resolution()
     test_zscore_scaling()
+    test_composite_scaling_comparison()
     test_spec_digest()
     test_custom_framework_weights()
     test_custom_framework_removal()
