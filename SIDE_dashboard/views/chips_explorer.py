@@ -339,8 +339,8 @@ def _missingness(data, scores, pillars, method) -> None:
     reasons = reasons.rename(columns=short_cols)
     st.plotly_chart(charts.missingness_heatmap(codes, reasons), width="stretch")
     st.caption("Grey = the sub-pillar has no data for that country; red = a rule dropped it "
-               "(e.g. only 1 of 2 components present). Countries are ordered by coverage, "
-               "lowest first.")
+               "(e.g. more than half of its components missing). Countries are ordered by "
+               "coverage, lowest first.")
 
     with st.expander("🧊 Most data-fragile countries"):
         fragile = scores.dropna(subset=["chips"]).sort_values("coverage").head(20)
@@ -366,17 +366,19 @@ def _methodology(pillars, unresolved) -> None:
    across the remaining present components of the same group.
 3. **More than half missing → the group drops** — and is then treated as unavailable one
    level up.
-4. **A 2-component group with only 1 component present drops** — the whole pair is
-   unreliable and is removed as a unit.
+4. **1-of-2 groups survive (published-source exception)** — a 2-component group with only 1
+   component present reweights the survivor to 100% and stays, matching the published
+   spreadsheet which scores each sub-pillar from whatever indicators are present.
 5. **Same logic at every level** — indicators → sub-pillar → pillar → CHIPS. A dropped
    component is never silently zeroed; it is recorded with its reason.
 6. **CHIPS needs at least 3 of 5 pillars** — fewer means no composite score.
 7. **INNOVATE → AI is non-flat** — it splits into two internal groups: the **research pair**
    (AI Innovation - Research + AI R&D score, ½ each) and the **remaining three AI indicators**
-   (AI commercial, private investment, newly funded AI companies, ⅓ each). A pair that loses
-   one member drops (rule 4) — and because the sub-pillar has only 2 groups it drops if either
-   group is lost. Inside the 3-indicator group, 1 missing is redistributed and 2 missing drop it.
-8. **Scoring** — every indicator is min–max scaled to 0–1 over the full observed range
+   (AI commercial, private investment, newly funded AI companies, ⅓ each). Inside each group,
+   1 missing is redistributed and (for the 3-indicator group) 2 missing drop it.
+8. **Rounding matches the published source** — indicator scores are rounded to 1 decimal
+   place (0–100 scale) and the final CHIPS score to 2 decimal places before ranking.
+9. **Scoring** — every indicator is min–max scaled to 0–1 over the full observed range
    (inverted for lower-is-better indicators such as prices and risk).""")
 
     st.markdown("#### The indicator map")

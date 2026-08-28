@@ -41,9 +41,11 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 
 def test_group_rules() -> None:
     print("\nGroup-level missingness rules")
-    # 2-of-2 rule: 1 of 2 present -> drop
+    # 1-of-2 present -> the survivor reweights to 1.0 (published-source exception:
+    # no longer drops the pair like the spec sheet's 2-of-2 rule).
     score, reason, eff = chips._group_aggregate([True, False], [0.9, None], [0.5, 0.5])
-    check("2-of-2: drops the pair", score is None and "2-of-2" in (reason or ""))
+    check("1-of-2: survivor reweights", score is not None and abs(score - 0.9) < 1e-9)
+    check("1-of-2: survivor gets full weight", np.allclose(eff, [1.0, 0.0]))
     # 2-of-2: both present -> equal 0.5/0.5
     score, reason, eff = chips._group_aggregate([True, True], [0.8, 0.6], [0.5, 0.5])
     check("2-of-2: both present keeps score", score is not None and abs(score - 0.7) < 1e-9)
@@ -120,14 +122,15 @@ def test_ai_subpillar() -> None:
     check("all data score near top", sp.score is not None and sp.score > 0.9)
     check("2 internal groups present", sum(1 for g in sp.children if g.status == "present") == 2)
 
-    # One member of the research pair missing -> the pair drops (2-of-2 rule)
-    # and, with only 2 groups in the sub-pillar, the sub-pillar drops too.
+    # One member of the research pair missing -> the pair reweights the survivor
+    # to 1.0 (published-source exception to the spec's 2-of-2 rule) and the
+    # sub-pillar survives with the research pair at its nominal 1/2.
     data2 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data2, "D", "P1A2")
     res = chips.aggregate_country(data2, "D", pillars=pillars)
     sp = res.pillars[0].children[0]
-    check("research pair loses one member -> sub-pillar drops", sp.status == "dropped")
-    check("dropped sub-pillar records a reason", sp.reason is not None)
+    check("research pair loses one member -> sub-pillar survives", sp.status == "present")
+    check("research pair score = survivor", sp.score is not None and abs(sp.score - (res.pillars[0].children[0].children[0].score)) < 1e-9)
 
     # One member of the 3-indicator group missing -> reweight inside the group
     # to 0.5/0.5; the sub-pillar survives with both groups at their nominal 1/2.
@@ -142,18 +145,22 @@ def test_ai_subpillar() -> None:
           np.allclose([g.effective_weight for g in sp.children], [0.5, 0.5]))
 
     # Two members of the 3-indicator group missing -> the >50% rule drops the
-    # group, and the sub-pillar drops with it (1 of 2 groups left).
+    # group, and the sub-pillar survives with just the research pair (the 2-of-2
+    # "drop the sub-pillar" propagation is disabled to match the published source).
     data4 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data4, "D", "P1B")
     _set_nan(data4, "D", "P1C1")
     res = chips.aggregate_country(data4, "D", pillars=pillars)
     sp = res.pillars[0].children[0]
-    check("2 of 3 group missing -> sub-pillar drops", sp.status == "dropped")
+    check("2 of 3 group missing -> sub-pillar survives on research", sp.status == "present")
+    check("investment group itself dropped",
+          sp.children[1].status == "dropped" and ">50%" in (sp.children[1].reason or ""))
 
 
 def test_drop_propagation() -> None:
     print("\nDrop propagation up the hierarchy")
-    # A 2-sub-pillar pillar: losing one sub-pillar drops the whole pillar.
+    # A 2-sub-pillar pillar: losing one sub-pillar now survives with the survivor
+    # reweighted to 1.0 (the 2-of-2 "drop the pillar" rule is disabled).
     pillar = H.Pillar("PROTECT", 1.0, [
         H.SubPillar("Prep", 0.5, leaves=[H.Leaf("S1", "S1", 1.0)]),
         H.SubPillar("Risk", 0.5, leaves=[H.Leaf("S2", "S2", 1.0)]),
@@ -161,7 +168,9 @@ def test_drop_propagation() -> None:
     data = _fake(["S1", "S2"])
     _set_nan(data, "D", "S2")
     res = chips.aggregate_country(data, "D", pillars=[pillar])
-    check("2-of-2 pillar: 1 sub-pillar lost -> pillar drops", res.pillars[0].status == "dropped")
+    check("2-of-2 pillar: 1 sub-pillar lost -> pillar survives", res.pillars[0].status == "present")
+    check("surviving sub-pillar reweighted to 1.0",
+          np.allclose([c.effective_weight for c in res.pillars[0].children], [1.0, 0.0]))
 
     # CHIPS: needs at least 3 of 5 pillars.
     def _five_pillar() -> list[H.Pillar]:
@@ -188,6 +197,24 @@ def test_drop_propagation() -> None:
     res = chips.aggregate_country(data3, "D", pillars=_five_pillar())
     check("2 of 5 pillars -> no CHIPS score",
           res.chips.status == "dropped" and res.chips.score is None)
+
+
+def test_rounding_precision() -> None:
+    print("\nRounding to match the published source")
+    pillar = H.Pillar("P1", 1.0, [
+        H.SubPillar("SP1", 1.0, leaves=[H.Leaf("X1", "X1", 0.5), H.Leaf("X2", "X2", 0.5)]),
+    ])
+    data = _fake(["X1", "X2"])
+    res = chips.aggregate_country(data, "B", pillars=[pillar], method=scaling.METHOD_FULL)
+    # X1 raw 2 -> full min-max (2-1)/(4-1) = 1/3 = 33.33… on the 0-100 scale; the
+    # leaf is rounded to 1 dp (33.3), like the published spreadsheet's display.
+    leaf = res.pillars[0].children[0].children[0]
+    check("leaf rounded to 1 dp on the 0-100 scale", np.isclose(leaf.score * 100, 33.3, atol=1e-9))
+    check("leaf carries no finer precision", np.isclose(leaf.score * 100, round(leaf.score * 100, 1)))
+    # SP1 = avg(0.333, 0.333) = 0.333; the CHIPS score is rounded to 2 dp on 0-100.
+    check("CHIPS rounded to 2 dp on 0-100",
+          np.isclose(res.chips.score * 100, round(res.chips.score * 100, 2)))
+    check("CHIPS = avg of the rounded leaves", np.isclose(res.chips.score * 100, 33.3, atol=1e-9))
 
 
 def test_overrides_and_coverage() -> None:
@@ -350,8 +377,8 @@ def test_composite_scaling_comparison() -> None:
           top["Country"].iloc[0] == "Japan" and abs(top["chips_dscore"].iloc[0] - 0.305) < 0.02)
 
     harness = comp.dropna(subset=["HARNESS_a", "HARNESS_b"])
-    check("top HARNESS diverger is Kazakhstan",
-          harness.loc[harness["HARNESS_dscore"].idxmax(), "Country"] == "Kazakhstan")
+    check("top HARNESS diverger is Germany",
+          harness.loc[harness["HARNESS_dscore"].idxmax(), "Country"] == "Germany")
 
     # Composite ranks are NOT guaranteed equal between methods (unlike a single
     # indicator) — the whole point of the scatter comparison.
@@ -434,8 +461,10 @@ def test_custom_framework_removal() -> None:
     b_before = float(full.loc[full["Country"] == "B", "chips"].iloc[0])
     b_after = float(table.loc[table["Country"] == "B", "chips"].iloc[0])
     check("removal changes B's score", abs(b_before - b_after) > 1e-9)
-    # B's X1 is at 4/9 (min 1, max 10) and P2 at 4/9; weighted 50/50.
-    check("B reweighted to X1 alone", abs(b_after - 4 / 9) < 1e-9)
+    # B's X1 is at 4/9 (min 1, max 10) and P2 at 4/9; weighted 50/50. The leaf
+    # is rounded to 1 dp on the 0-100 scale (4/9 -> 44.4 -> 0.444).
+    check("B reweighted to X1 alone",
+          abs(b_after - round(4 / 9 * 100, 1) / 100) < 1e-9)
 
 
 def test_rank_delta_table() -> None:
@@ -665,6 +694,7 @@ def run_all() -> int:
     test_group_rules()
     test_ai_subpillar()
     test_drop_propagation()
+    test_rounding_precision()
     test_overrides_and_coverage()
     test_hierarchy_resolution()
     test_zscore_scaling()

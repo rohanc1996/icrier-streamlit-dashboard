@@ -57,12 +57,17 @@ are handled explicitly rather than silently ignored:
 
 - weights are equal inside a group unless the spec gives one;
 - a missing component's weight is redistributed across its present siblings;
-- more than half of a group missing (or only 1 of 2 present) drops the group,
-  and the drop propagates up one level;
+- more than half of a group missing drops the group, and the drop propagates up
+  one level;
+- a 2-component group with only 1 present is *kept* (survivor reweighted to
+  100%) — an exception to the spec's 2-of-2 rule that matches the published
+  spreadsheet, which scores each sub-pillar from whatever indicators are present;
 - the INNOVATE → AI sub-pillar has two internal groups — the research pair
   (AI Innovation - Research + AI R&D score) and the remaining three AI
-  indicators — and needs both to survive;
-- CHIPS itself requires at least 3 of the 5 pillars.
+  indicators — aggregated with the same rules;
+- CHIPS itself requires at least 3 of the 5 pillars;
+- indicator scores are rounded to 1 decimal place and the final CHIPS score to
+  2 decimal places (0–100 scale) to match the published source.
 
 Every decision is recorded per country, so the page can show *why* a score is
 what it is — hover any treemap block or heatmap cell.

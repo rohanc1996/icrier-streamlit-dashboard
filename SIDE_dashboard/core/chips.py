@@ -8,26 +8,35 @@ constants are the *defaults* used when a call does not pass an explicit
 ``method``/``lower``/``upper``; the dashboard passes the sidebar-selected
 method down explicitly, so the constants are only a fallback for headless calls.
 
-Missing-data rules (from the CHIPS spec sheet)
-----------------------------------------------
+Missing-data rules (from the CHIPS spec sheet, with one published-source exception)
+------------------------------------------------------------------------------------
 1. Components are weighted equally unless a weight is given — the five pillars
    are not equal: CONNECT, HARNESS and INNOVATE each carry 25% of the index and
    PROTECT and SUSTAINABILITY 12.5% each.
 2. If a component is missing, redistribute its weight across the remaining
    present components in the same group.
 3. If more than half of a group's components are missing, drop the group.
-4. If a group has exactly 2 components and 1 is missing, drop the group.
-5. The same logic applies at every level, so a dropped component counts as
+4. The same logic applies at every level, so a dropped component counts as
    unavailable one level up (indicator -> sub-pillar -> pillar -> CHIPS).
-6. CHIPS itself needs at least 3 of its 5 pillars present.
+5. CHIPS itself needs at least 3 of its 5 pillars present.
+
+The spec sheet's "only 1 of 2 present -> drop" rule is deliberately *not*
+applied so the dashboard matches the published spreadsheet, which scores every
+sub-pillar from whatever indicators are present (simple average of available).
+A 2-component group with 1 present therefore reweights the survivor to 1.0 and
+survives, rather than dropping.
 
 The INNOVATE -> AI sub-pillar nests one extra level: its two internal groups —
 the research pair (AI Innovation - Research + AI R&D score) and the remaining
-three AI indicators — are aggregated first with the same rules.  The research
-pair follows the 2-of-2 rule (losing one member drops the pair as a unit), and
-because the sub-pillar itself has only 2 groups it drops if either group is
-lost (rule 4).  Inside the 3-indicator group the generic ">50% missing" rule
-reproduces exactly the spec-sheet's "1 of 3 lost -> reweight, 2 of 3 lost -> drop".
+three AI indicators — are aggregated first with the same rules.  Inside the
+3-indicator group the generic ">50% missing" rule reproduces exactly the
+spec-sheet's "1 of 3 lost -> reweight, 2 of 3 lost -> drop".
+
+Rounding (to match the published source): each indicator's 0-1 score is rounded
+to 1 decimal place on the 0-100 scale at the leaf, sub-pillar and pillar
+aggregates are carried at full precision, and the final CHIPS score is rounded
+to 2 decimal places (0-100) before ranking — the same precision the published
+spreadsheet uses for its CHIPS score and rank rows.
 
 Every node of the result tree records its status (present / missing / dropped),
 the rule that dropped it, its nominal weight, the weight actually applied after
@@ -97,8 +106,6 @@ def _group_aggregate(
     n = len(present_idx)
     if n == 0:
         return None, "no components have data", [0.0] * total
-    if total == 2 and n == 1:
-        return None, "2-of-2 rule: only 1 of 2 components has data", [0.0] * total
     if 2 * n < total:
         return None, ">50% of components are missing", [0.0] * total
     wsum = sum(weights[i] for i in present_idx)
@@ -134,7 +141,12 @@ def _aggregate_children(
 
 
 def _indicator_results(row: pd.Series, leaves: list[H.Leaf]) -> list[NodeResult]:
-    """Indicator nodes for one country; presence comes from the score matrix."""
+    """Indicator nodes for one country; presence comes from the score matrix.
+
+    Leaf scores are rounded to 1 decimal place on the 0-100 scale to match the
+    published spreadsheet, which aggregates sub-pillars from its displayed
+    (1-dp) indicator values.
+    """
     out = []
     for leaf in leaves:
         if leaf.column is None:
@@ -150,7 +162,7 @@ def _indicator_results(row: pd.Series, leaves: list[H.Leaf]) -> list[NodeResult]
             name=leaf.name, kind="indicator",
             status="present" if present else "missing",
             reason=None if present else "no data",
-            score=None if not present else float(value),
+            score=None if not present else round(float(value) * 100, 1) / 100,
             nominal_weight=leaf.weight, effective_weight=0.0,
         ))
     return out
@@ -327,6 +339,10 @@ def aggregate_country(
     row = _country_row(score_df, country)
     pillar_results = [_build_pillar_result(row, p, override, fill_missing) for p in pillars]
     chips_node = _aggregate_children("CHIPS composite", "chips", pillar_results, 1.0)
+    # Round the CHIPS score to 2 decimal places on the 0-100 scale, matching the
+    # published spreadsheet's CHIPS score / rank precision.
+    if chips_node.score is not None:
+        chips_node.score = round(chips_node.score * 100, 2) / 100
     _mark_overrides(chips_node, country, indicator_overrides)
     coverage = _coverage(row, pillars)
     coverage["pillars_present"] = sum(1 for pr in pillar_results if pr.status == "present")
