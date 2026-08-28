@@ -15,6 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
 from components import ui  # noqa: E402
 from core import scaling  # noqa: E402
 from core.loader import load_app_data  # noqa: E402
