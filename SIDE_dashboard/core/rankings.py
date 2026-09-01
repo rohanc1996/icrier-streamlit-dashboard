@@ -149,7 +149,10 @@ def composite_scaling_comparison(
 
     - ``{level}_a`` / ``{level}_b``  — the 0-1 score under each method
     - ``{level}_dscore``             — ``abs(a - b)``
-    - ``{level}_rank_a`` / ``{level}_rank_b``
+    - ``{level}_rank_a`` / ``{level}_rank_b`` — the rank *within that level*,
+      using the published convention (score rounded to 2 dp on the 0-100 scale
+      before ranking). So the CONNECT columns rank countries by their CONNECT
+      pillar score, not by overall CHIPS.
     - ``{level}_drank``              — ``abs(rank_a - rank_b)``
 
     Unlike single indicators (where every scaling is a monotone transform and
@@ -163,6 +166,22 @@ def composite_scaling_comparison(
     ta = chips_mod.chips_table(data, pillars=pillars, method=method_a)
     tb = chips_mod.chips_table(data, pillars=pillars, method=method_b)
 
+    # Rank *within each level* (best = 1), using the published convention:
+    # the score is rounded to 2 dp on the 0-100 scale before ranking, exactly
+    # as the overall CHIPS rank is derived. For the "chips" level this
+    # reproduces ``ta["rank"]``/``tb["rank"]``; for a pillar it ranks countries
+    # by that pillar's own score. ``rank`` ignores NaN scores, so a country
+    # only competes with others where that level survived.
+    rank_a: dict[str, pd.Series] = {}
+    rank_b: dict[str, pd.Series] = {}
+    for level in ["chips"] + PILLAR_COLUMNS:
+        ra_rounded = (ta[level] * 100).round(2) / 100
+        rb_rounded = (tb[level] * 100).round(2) / 100
+        rank_a[level] = ra_rounded.rank(ascending=False, method="min")
+        rank_b[level] = rb_rounded.rank(ascending=False, method="min")
+        rank_a[level].index = ta["Country"].values
+        rank_b[level].index = tb["Country"].values
+
     rows = []
     for _, ra in ta.iterrows():
         c = ra["Country"]
@@ -171,8 +190,8 @@ def composite_scaling_comparison(
         for level in ["chips"] + PILLAR_COLUMNS:
             a = ra[level]
             b = rb[level]
-            ra_rank = ra["rank"]
-            rb_rank = rb["rank"]
+            ra_rank = rank_a[level].loc[c]
+            rb_rank = rank_b[level].loc[c]
             if pd.isna(a) or pd.isna(b):
                 row[f"{level}_a"] = np.nan
                 row[f"{level}_b"] = np.nan

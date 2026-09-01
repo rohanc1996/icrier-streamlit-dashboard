@@ -385,6 +385,15 @@ def test_composite_scaling_comparison() -> None:
     check("composite ranks can differ between methods",
           int(scored["chips_drank"].max()) > 0)
 
+    # Pillar ranks must be *within that pillar* (published convention: rounded
+    # to 2 dp on the 0-100 scale before ranking), not the overall CHIPS rank.
+    for level in rankings.PILLAR_COLUMNS:
+        sub = comp.dropna(subset=[f"{level}_a"])
+        expected_a = (sub[f"{level}_a"] * 100).round(2) / 100
+        expected_a = expected_a.rank(ascending=False, method="min").astype(int)
+        check(f"{level} rank_a orders by {level} score",
+              bool((sub[f"{level}_rank_a"].astype(int) == expected_a.values).all()))
+
 
 # ---------------------------------------------------------------------------
 # Custom framework (Create Your Own CHIPS)
