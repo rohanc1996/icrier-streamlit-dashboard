@@ -14,8 +14,6 @@ from . import scaling
 def scaled_scores(
     data,
     indicator: str,
-    lower: float = 0.05,
-    upper: float = 0.95,
     invert_lower_is_better: bool = True,
     methods: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -31,7 +29,7 @@ def scaled_scores(
     df = pd.DataFrame({"Country": data.numeric_df["Country"]})
     df["value"] = s
     for method in methods:
-        df[method] = scaling.transform_series(s, method, lower, upper)
+        df[method] = scaling.transform_series(s, method)
     if invert_lower_is_better and not data.higher_is_better.get(indicator, True):
         for method in methods:
             df[method] = 1.0 - df[method]
@@ -41,8 +39,6 @@ def scaled_scores(
 def score_stability_table(
     data,
     indicator: str,
-    lower: float = 0.05,
-    upper: float = 0.95,
     methods: list[str] | None = None,
 ) -> pd.DataFrame:
     """Score of every country under each scaling method, plus the max swing.
@@ -57,7 +53,7 @@ def score_stability_table(
     """
     methods = methods or list(scaling.ALL_METHODS)
     score_cols = methods
-    scores = scaled_scores(data, indicator, lower, upper, methods=methods).dropna(subset=["value"]).copy()
+    scores = scaled_scores(data, indicator, methods=methods).dropna(subset=["value"]).copy()
     # skipna: a method with no usable values for this indicator contributes
     # nothing to that country's swing.
     scores["score_swing"] = scores[score_cols].max(axis=1) - scores[score_cols].min(axis=1)

@@ -11,7 +11,7 @@ DEFAULT_X = "Median Mobile Download Speeds (Mbps)"
 DEFAULT_Y = "Total AI Private Investment in Millions"
 
 
-def render(data, method=scaling.METHOD_CAPPED) -> None:
+def render(data, method=scaling.METHOD_Z) -> None:
     ui.page_header(
         "🕵️ Outlier explorer",
         "Which countries are pulling the relationship one way or the other? "

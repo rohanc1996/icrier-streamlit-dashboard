@@ -574,7 +574,7 @@ def _default_country(data) -> str:
     return DEFAULT_COUNTRY if DEFAULT_COUNTRY in data.country_list else data.country_list[0]
 
 
-def render(data, method=scaling.METHOD_CAPPED) -> None:
+def render(data, method=scaling.METHOD_Z) -> None:
     ui.page_header(
         "🎛️ Create Your Own CHIPS Framework",
         "The CHIPS index embeds a weighting judgement. Build an alternative — reweight "

@@ -24,25 +24,24 @@ Your browser opens at `http://localhost:8501`.
 | 🏆 **CHIPS Index Explorer** | The CHIPS composite (CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY) with full missing-data transparency: leaderboard (scrollable race chart of thin coverage-coloured lines with country flags + sortable table), world map, per-country drill-down (treemap + what-if scenarios), a cross-country missing-data impact section, and the complete methodology. |
 | 🎛️ **Create Your Own CHIPS Framework** | A thought-experiment editor: reweight or rebuild the CHIPS index (pillar / sub-pillar / indicator weights, indicator membership via per-row sub-pillar dropdowns, added dataset indicators), or override a country's individual indicator scores — then see how the whole leaderboard and each country's score and rank would change. Weights must total 100% at every level before results are shown; the published framework is never altered. |
 | 🌍 **Country Explorer** | Three views: colour the world map by any indicator (click a country to open its rankings), inspect a single country's profile (headline metrics, full indicator ranking, strengths/weaknesses, score vs. the world median), or compare up to five countries on a spider chart. |
-| ⚖️ **Scaling Comparator** | Compare the three scaling methods on any indicator. Adjust the cap window with sliders and see which countries' scores swing most. |
+| ⚖️ **Scaling Comparator** | Compare the two scaling methods on any indicator and see which countries' scores swing most. |
 
 ## Concepts in the dashboard
 
-- **Three scaling methods.** Raw values are mapped to 0–1 scores three ways so
+- **Two scaling methods.** Raw values are mapped to 0–1 scores two ways so
   you can see how sensitive the rankings are to the choice. A sidebar selector
   sets the method used by the single-score pages (Country Explorer, CHIPS
-  Explorer); the comparator page always shows all three side by side:
+  Explorer); the comparator page always shows both side by side:
   - *Full-range min-max* — simple, but a single extreme country can compress everyone else.
-  - *5–95 percentile capped min-max* (default) — the robust choice for reporting.
-  - *Z-score (standardized)* — each country's distance from the mean in standard
+  - *Z-score (standardized)* (default) — each country's distance from the mean in standard
     deviations, mapped to 0–1 via the logistic curve. Ranks match plain
-    z-scores, but the values stay on the same scale as the other methods.
+    z-scores, but the values stay on the same scale as the other method.
 - **Pearson vs. Spearman.** Pearson measures linear correlation; Spearman ranks
   the data first, so it tolerates outliers. When the two disagree strongly, the
   link is driven by a few extreme countries.
-- **Capped score = "goodness" (higher is better).** In comparison charts, each
-  indicator is capped-scaled and inverted where a low raw value is better, so
-  1.0 always means "best on this indicator".
+- **Score = "goodness" (higher is better).** In comparison charts, each
+  indicator is scaled with the selected method and inverted where a low raw
+  value is better, so 1.0 always means "best on this indicator".
 
 ## The CHIPS composite index
 
@@ -80,7 +79,7 @@ SIDE_dashboard/
 ├── requirements.txt
 ├── core/                     # data + analysis logic (no UI)
 │   ├── loader.py             # reads the CSV, friendly names, categories
-│   ├── scaling.py            # the three 0–1 scaling methods
+│   ├── scaling.py            # the two 0–1 scaling methods
 │   ├── rankings.py           # rank stability, profile ranks
 │   ├── correlations.py       # pair preparation, leave-one-out, exclusions
 │   ├── chips_hierarchy.py    # CHIPS spec: pillars, sub-pillars, weights, column map

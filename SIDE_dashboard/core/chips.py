@@ -2,11 +2,11 @@
 
 Scoring
 -------
-Every indicator is rescaled to 0-1 via ``scaling.transform_series`` (capped
-5-95 min-max by default, inverted where lower is better).  The ``SCORE_*``
-constants are the *defaults* used when a call does not pass an explicit
-``method``/``lower``/``upper``; the dashboard passes the sidebar-selected
-method down explicitly, so the constants are only a fallback for headless calls.
+Every indicator is rescaled to 0-1 via ``scaling.transform_series`` (z-score
+by default, inverted where lower is better).  The ``SCORE_*`` constants are
+the *defaults* used when a call does not pass an explicit ``method``; the
+dashboard passes the sidebar-selected method down explicitly, so the constants
+are only a fallback for headless calls.
 
 Missing-data rules (from the CHIPS spec sheet, with one published-source exception)
 ------------------------------------------------------------------------------------
@@ -59,12 +59,10 @@ from . import scaling
 # ---------------------------------------------------------------------------
 # CHIPS indicator scaling — defaults.
 #   Every public entry point accepts an explicit ``method`` (the dashboard
-#   passes the sidebar selection).  These constants are used only when a call
-#   omits it and match the dashboard-standard capped 5-95 scaling.
+#   passes the sidebar selection).  This constant is used only when a call
+#   omits it and defaults to the dashboard-standard z-score scaling.
 # ---------------------------------------------------------------------------
-SCORE_METHOD = scaling.METHOD_CAPPED
-SCORE_LOWER = 0.05
-SCORE_UPPER = 0.95
+SCORE_METHOD = scaling.METHOD_Z
 
 
 @dataclass
@@ -219,7 +217,6 @@ def _build_pillar_result(
 
 def score_matrix(
     data, pillars: list[H.Pillar], method: str = SCORE_METHOD,
-    lower: float = SCORE_LOWER, upper: float = SCORE_UPPER,
     indicator_overrides: dict | None = None,
 ) -> pd.DataFrame:
     """0-1 "goodness" score for every leaf, all countries.
@@ -241,7 +238,7 @@ def score_matrix(
             out[leaf.name] = np.nan
         else:
             raw = data.numeric_df[leaf.column]
-            score = scaling.transform_series(raw, method, lower, upper)
+            score = scaling.transform_series(raw, method)
             if not data.higher_is_better.get(leaf.column, True):
                 score = 1.0 - score
             # Assign the Series, not .values: transform_series drops NaN rows, so
@@ -319,14 +316,12 @@ def aggregate_country(
     fill_missing: float | None = None,
     indicator_overrides: dict | None = None,
     method: str = SCORE_METHOD,
-    lower: float = SCORE_LOWER,
-    upper: float = SCORE_UPPER,
 ) -> CountryResult:
     """Compute the full CHIPS result tree for one country.
 
     Pass ``pillars`` (from ``resolve_hierarchy``) and a precomputed
-    ``score_df`` to avoid recomputing the scaling for every call; ``method``/
-    ``lower``/``upper`` are used only when ``score_df`` is None.  ``override``
+    ``score_df`` to avoid recomputing the scaling for every call; ``method`` is
+    used only when ``score_df`` is None.  ``override``
     and ``fill_missing`` implement the what-if simulations (see
     ``_build_pillar_result``).  ``indicator_overrides`` replaces individual
     indicator scores for this country (see ``score_matrix``); it must match
@@ -335,7 +330,7 @@ def aggregate_country(
     if pillars is None:
         pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
     if score_df is None:
-        score_df = score_matrix(data, pillars, method, lower, upper, indicator_overrides)
+        score_df = score_matrix(data, pillars, method, indicator_overrides)
     row = _country_row(score_df, country)
     pillar_results = [_build_pillar_result(row, p, override, fill_missing) for p in pillars]
     chips_node = _aggregate_children("CHIPS composite", "chips", pillar_results, 1.0)
@@ -360,8 +355,6 @@ def chips_table(
     fill_missing: float | None = None,
     indicator_overrides: dict | None = None,
     method: str = SCORE_METHOD,
-    lower: float = SCORE_LOWER,
-    upper: float = SCORE_UPPER,
 ) -> pd.DataFrame:
     """One row per country: CHIPS score, rank, pillar scores and coverage.
 
@@ -372,7 +365,7 @@ def chips_table(
     """
     if pillars is None:
         pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
-    score_df = score_matrix(data, pillars, method, lower, upper, indicator_overrides)
+    score_df = score_matrix(data, pillars, method, indicator_overrides)
     rows = []
     for country in data.country_list:
         res = aggregate_country(

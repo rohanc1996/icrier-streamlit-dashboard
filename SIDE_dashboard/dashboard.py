@@ -48,28 +48,29 @@ def main() -> None:
     with st.sidebar:
         choice = st.radio("Navigate", list(PAGES.keys()), key="nav", label_visibility="collapsed")
         st.divider()
+        if st.session_state.get("scaling_method") not in scaling.ALL_METHODS:
+            st.session_state["scaling_method"] = scaling.METHOD_Z
         st.caption(
             "**Scoring method** — how raw values become 0–1 scores. Used by the "
-            "single-score pages; the Scaling Comparator always shows all three "
+            "single-score pages; the Scaling Comparator always shows both "
             "methods."
         )
         st.radio(
             "Scoring method",
             list(scaling.ALL_METHODS),
             format_func=lambda m: scaling.METHOD_SHORT_LABELS[m],
-            index=scaling.ALL_METHODS.index(scaling.METHOD_CAPPED),
+            index=scaling.ALL_METHODS.index(scaling.METHOD_Z),
             key="scaling_method",
             horizontal=True,
             help="Scores are inverted where a low raw value is better, so 1.0 "
                  "always means 'best'.",
         )
         st.caption(
-            "Full-range min-max · 5–95 percentile capped min-max (default) · "
-            "z-score (standardized)."
+            "Full-range min-max · z-score (standardized, default)."
         )
 
     data = load_app_data()
-    method = st.session_state.get("scaling_method", scaling.METHOD_CAPPED)
+    method = st.session_state.get("scaling_method", scaling.METHOD_Z)
     PAGES[choice].render(data, method=method)
 
 

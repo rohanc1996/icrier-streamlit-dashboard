@@ -116,7 +116,7 @@ def test_ai_subpillar() -> None:
     data = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     pillars = [_ai_pillar()]
 
-    res = chips.aggregate_country(data, "D", pillars=pillars)
+    res = chips.aggregate_country(data, "D", pillars=pillars, method=scaling.METHOD_FULL)
     sp = res.pillars[0].children[0]
     check("all data present", sp.status == "present")
     check("all data score near top", sp.score is not None and sp.score > 0.9)
@@ -127,7 +127,7 @@ def test_ai_subpillar() -> None:
     # sub-pillar survives with the research pair at its nominal 1/2.
     data2 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data2, "D", "P1A2")
-    res = chips.aggregate_country(data2, "D", pillars=pillars)
+    res = chips.aggregate_country(data2, "D", pillars=pillars, method=scaling.METHOD_FULL)
     sp = res.pillars[0].children[0]
     check("research pair loses one member -> sub-pillar survives", sp.status == "present")
     check("research pair score = survivor", sp.score is not None and abs(sp.score - (res.pillars[0].children[0].children[0].score)) < 1e-9)
@@ -136,7 +136,7 @@ def test_ai_subpillar() -> None:
     # to 0.5/0.5; the sub-pillar survives with both groups at their nominal 1/2.
     data3 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data3, "D", "P1B")
-    res = chips.aggregate_country(data3, "D", pillars=pillars)
+    res = chips.aggregate_country(data3, "D", pillars=pillars, method=scaling.METHOD_FULL)
     sp = res.pillars[0].children[0]
     check("1 of 3 group missing -> sub-pillar survives", sp.status == "present")
     check("group reweighted to 0.5/0.5 inside",
@@ -150,7 +150,7 @@ def test_ai_subpillar() -> None:
     data4 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data4, "D", "P1B")
     _set_nan(data4, "D", "P1C1")
-    res = chips.aggregate_country(data4, "D", pillars=pillars)
+    res = chips.aggregate_country(data4, "D", pillars=pillars, method=scaling.METHOD_FULL)
     sp = res.pillars[0].children[0]
     check("2 of 3 group missing -> sub-pillar survives on research", sp.status == "present")
     check("investment group itself dropped",
@@ -670,10 +670,10 @@ def test_real_data() -> None:
     check("chips scores in [0, 1]", bool(((scored["chips"] >= 0) & (scored["chips"] <= 1)).all()))
     check("ranks are 1..N", scored["rank"].min() == 1 and scored["rank"].max() == len(scored))
     check("coverage in [0, 1]", bool(((table["coverage"] >= 0) & (table["coverage"] <= 1)).all()))
-    # Regression: the default (SCORE_METHOD=capped 5-95) must equal an explicit
-    # capped call, so the dashboard's default selection keeps the published scores.
-    explicit = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_CAPPED)
-    check("default chips_table equals explicit capped method",
+    # Regression: the default (SCORE_METHOD=z-score) must equal an explicit
+    # z-score call, so the dashboard's default selection drives the engine.
+    explicit = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_Z)
+    check("default chips_table equals explicit z-score method",
           bool(np.allclose(table["chips"], explicit["chips"], equal_nan=True)))
     table_z = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_Z)
     scored_z = table_z.dropna(subset=["chips"])

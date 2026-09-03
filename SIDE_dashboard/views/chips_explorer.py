@@ -76,7 +76,7 @@ def _short_subpillar(key: str) -> str:
     return f"{PILLAR_SHORT.get(pillar, pillar[:4])}·{sp}"
 
 
-def render(data, method=scaling.METHOD_CAPPED) -> None:
+def render(data, method=scaling.METHOD_Z) -> None:
     ui.page_header(
         "🏆 CHIPS Index Explorer",
         "CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY — a transparent "
@@ -100,7 +100,7 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
             f"**{n_indicators} indicators → {n_sub} sub-pillars → 5 pillars → CHIPS (0–1).** "
             "CONNECT, HARNESS and INNOVATE each carry **25%** of the index; PROTECT and "
             "SUSTAINABILITY **12.5%** each. Every indicator is scaled to 0–1 with the "
-            "sidebar-selected method (capped min-max by default; inverted where lower "
+            "sidebar-selected method (z-score by default; inverted where lower "
             "is better). Missing data is never "
             "silently ignored: weights are "
             "redistributed and groups that lose too many components are dropped with the reason "

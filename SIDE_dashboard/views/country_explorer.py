@@ -72,7 +72,7 @@ def _on_map_select() -> None:
         st.session_state["ce_section"] = "📋 Country rankings"
 
 
-def render(data, method=scaling.METHOD_CAPPED) -> None:
+def render(data, method=scaling.METHOD_Z) -> None:
     ui.page_header(
         "🌍 Country Explorer",
         "Three views in one place: colour the world map by any indicator, "
@@ -229,7 +229,7 @@ def _comparison_panel(data, method) -> None:
             default=[i for i in COMPARISON_INDICATORS if i in data.indicators],
             key="ce_compare_indicators",
             format_func=lambda i: data.friendly_names.get(i, i),
-            help="Scores use the sidebar-selected scaling method (capped 5–95 by "
+            help="Scores use the sidebar-selected scaling method (z-score by "
                  "default), inverted where a low value is better, so 1.0 always "
                  "means 'best'.",
         )

@@ -44,15 +44,13 @@ def compare_pair(
     data,
     x_col: str,
     y_col: str,
-    lower: float = 0.05,
-    upper: float = 0.95,
 ) -> pd.DataFrame:
     """Pearson and Spearman for each scaling method (mirrors the notebook)."""
     x_common, y_common, _ = prepare_pair(data, x_col, y_col)
     rows = []
     for method in scaling.ALL_METHODS:
-        xs = scaling.transform_series(x_common, method, lower, upper).dropna()
-        ys = scaling.transform_series(y_common, method, lower, upper).dropna()
+        xs = scaling.transform_series(x_common, method).dropna()
+        ys = scaling.transform_series(y_common, method).dropna()
         common = xs.index.intersection(ys.index)
         if len(common) < 3:
             pearson = spearman = np.nan
@@ -76,15 +74,13 @@ def corr_with_exclusions(
     y_col: str,
     corr_method: str = "spearman",
     excluded: list[str] | None = None,
-    scaling_method: str = scaling.METHOD_CAPPED,
-    lower: float = 0.05,
-    upper: float = 0.95,
+    scaling_method: str = scaling.METHOD_Z,
 ):
     """Correlation after removing the given countries, under the given scaling."""
     x_common, y_common, countries = prepare_pair(data, x_col, y_col)
     keep = ~countries.isin(excluded or [])
-    xs = scaling.transform_series(x_common[keep], scaling_method, lower, upper).dropna()
-    ys = scaling.transform_series(y_common[keep], scaling_method, lower, upper).dropna()
+    xs = scaling.transform_series(x_common[keep], scaling_method).dropna()
+    ys = scaling.transform_series(y_common[keep], scaling_method).dropna()
     common = xs.index.intersection(ys.index)
     if len(common) < 3:
         return np.nan, int(len(common))
@@ -96,19 +92,17 @@ def leave_one_out(
     x_col: str,
     y_col: str,
     corr_method: str = "spearman",
-    scaling_method: str = scaling.METHOD_CAPPED,
-    lower: float = 0.05,
-    upper: float = 0.95,
+    scaling_method: str = scaling.METHOD_Z,
 ):
     """Correlation with each country removed one at a time.
 
     Returns ``(result_df, base_correlation)`` where ``result_df`` has columns
     ``country``, ``corr_without`` and ``delta`` (corr_without - base), sorted by
-    the absolute change. Uses the given scaling method (capped by default).
+    the absolute change. Uses the given scaling method (z-score by default).
     """
     x_common, y_common, countries = prepare_pair(data, x_col, y_col)
-    xs = scaling.transform_series(x_common, scaling_method, lower, upper)
-    ys = scaling.transform_series(y_common, scaling_method, lower, upper)
+    xs = scaling.transform_series(x_common, scaling_method)
+    ys = scaling.transform_series(y_common, scaling_method)
     common = xs.index.intersection(ys.index)
     xs, ys, countries = xs.loc[common], ys.loc[common], countries.loc[common]
 

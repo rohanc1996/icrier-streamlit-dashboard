@@ -1,8 +1,7 @@
 """Plotly chart builders used by the dashboard views.
 
 Every function returns a ``plotly.graph_objects.Figure`` so the views stay thin.
-Colours match the notebook (blue = full, orange = capped,
-purple = z-score).
+Colours match the notebook (blue = full, purple = z-score).
 """
 from __future__ import annotations
 
@@ -38,7 +37,6 @@ def _official_world_geojson() -> dict:
 
 SCALE_COLORS = {
     scaling.METHOD_FULL: "#4C78A8",
-    scaling.METHOD_CAPPED: "#F58518",
     scaling.METHOD_Z: "#6A3D9A",
 }
 UP_COLOR = "#54A24B"      # green  - removing the country strengthens the link
@@ -204,23 +202,17 @@ def chips_race(scores: pd.DataFrame) -> tuple[go.Figure, go.Figure]:
 def hist_panels(
     data,
     indicator: str,
-    lower: float = 0.05,
-    upper: float = 0.95,
     methods: list[str] | None = None,
 ) -> go.Figure:
     """Side-by-side histograms of the same indicator under each scaling.
 
-    ``methods`` restricts which scalings get a panel (defaults to all three).
+    ``methods`` restricts which scalings get a panel (defaults to both).
     """
     methods = methods or list(scaling.ALL_METHODS)
-    titles = [
-        f"{lower * 100:g}-{upper * 100:g} percentile capped" if m == scaling.METHOD_CAPPED
-        else scaling.METHOD_LABELS[m]
-        for m in methods
-    ]
+    titles = [scaling.METHOD_LABELS[m] for m in methods]
     fig = make_subplots(rows=1, cols=len(methods), subplot_titles=titles)
     for i, method in enumerate(methods, start=1):
-        vals = scaling.transform_series(data.numeric_df[indicator], method, lower, upper).dropna()
+        vals = scaling.transform_series(data.numeric_df[indicator], method).dropna()
         fig.add_trace(go.Histogram(
             x=vals, nbinsx=20, opacity=0.85,
             marker_color=SCALE_COLORS[method],
@@ -279,8 +271,6 @@ def scatter_panels(
     x_col: str,
     y_col: str,
     highlight_countries: list[str] | None = None,
-    lower: float = 0.05,
-    upper: float = 0.95,
     exclude: list[str] | None = None,
 ) -> go.Figure:
     """One scatter panel per scaling method, with trendlines and highlighted countries."""
@@ -291,15 +281,11 @@ def scatter_panels(
         x_common, y_common, countries = x_common[mask], y_common[mask], countries[mask]
 
     methods = list(scaling.ALL_METHODS)
-    titles = [
-        f"{lower * 100:g}-{upper * 100:g} percentile capped" if m == scaling.METHOD_CAPPED
-        else scaling.METHOD_LABELS[m]
-        for m in methods
-    ]
+    titles = [scaling.METHOD_LABELS[m] for m in methods]
     fig = make_subplots(rows=1, cols=len(methods), subplot_titles=titles)
     for i, method in enumerate(scaling.ALL_METHODS, start=1):
-        xs = scaling.transform_series(x_common, method, lower, upper).dropna()
-        ys = scaling.transform_series(y_common, method, lower, upper).dropna()
+        xs = scaling.transform_series(x_common, method).dropna()
+        ys = scaling.transform_series(y_common, method).dropna()
         common = xs.index.intersection(ys.index)
         xs, ys = xs.loc[common], ys.loc[common]
         names = countries.loc[common].astype(str)
@@ -353,20 +339,20 @@ def scatter_panels(
 # Comparison & analysis charts
 # ---------------------------------------------------------------------------
 
-def _goodness_frame(data, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> pd.DataFrame:
+def _goodness_frame(data, indicators, method=scaling.METHOD_Z) -> pd.DataFrame:
     """Scores (1.0 = best) for a set of indicators, one row per country."""
     df = data.numeric_df[["Country"]].copy()
     for indicator in indicators:
-        sc = scaling.transform_series(data.numeric_df[indicator], method, lower, upper)
+        sc = scaling.transform_series(data.numeric_df[indicator], method)
         if not data.higher_is_better.get(indicator, True):
             sc = 1.0 - sc
         df[indicator] = sc
     return df
 
 
-def radar_chart(data, countries, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> go.Figure:
+def radar_chart(data, countries, indicators, method=scaling.METHOD_Z) -> go.Figure:
     """Overlaid radar of scaled scores (1.0 = best) for 2-5 countries."""
-    scores = _goodness_frame(data, indicators, lower, upper, method=method)
+    scores = _goodness_frame(data, indicators, method=method)
     theta = [data.friendly_names.get(i, i) for i in indicators]
     fig = go.Figure()
     for country in countries:
@@ -387,9 +373,9 @@ def radar_chart(data, countries, indicators, lower=0.05, upper=0.95, method=scal
     return fig
 
 
-def parallel_coords(data, countries, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> go.Figure:
+def parallel_coords(data, countries, indicators, method=scaling.METHOD_Z) -> go.Figure:
     """Parallel-coordinates view of the same scaled scores."""
-    scores = _goodness_frame(data, indicators, lower, upper, method=method)
+    scores = _goodness_frame(data, indicators, method=method)
     if countries:
         scores = scores[scores["Country"].isin(countries)]
     dims = []
@@ -408,9 +394,9 @@ def parallel_coords(data, countries, indicators, lower=0.05, upper=0.95, method=
     return fig
 
 
-def profile_bars(data, country, indicators, lower=0.05, upper=0.95, method=scaling.METHOD_CAPPED) -> go.Figure:
+def profile_bars(data, country, indicators, method=scaling.METHOD_Z) -> go.Figure:
     """Country score vs the world median for a set of indicators."""
-    scores = _goodness_frame(data, indicators, lower, upper, method=method)
+    scores = _goodness_frame(data, indicators, method=method)
     rows = []
     for indicator in indicators:
         row = scores[scores["Country"] == country]
@@ -439,7 +425,7 @@ def profile_bars(data, country, indicators, lower=0.05, upper=0.95, method=scali
     fig.update_layout(
         height=45 + 26 * len(labels), barmode="group",
         margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(range=[0, 1], title="Capped score (0-1, higher is better)"),
+        xaxis=dict(range=[0, 1], title="Score (0-1, higher is better)"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
     )
     return fig

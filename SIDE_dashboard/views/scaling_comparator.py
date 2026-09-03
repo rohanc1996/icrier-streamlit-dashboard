@@ -9,49 +9,22 @@ from core import rankings, scaling
 
 DEFAULT_INDICATOR = "Median Mobile Download Speeds (Mbps)"
 
-# The three possible pairs a user can pick from; stored as (method_a, method_b)
-# where ``method_a`` is the x-axis (reference) and ``method_b`` the y-axis.
-PAIR_OPTIONS = {
-    f"{scaling.METHOD_LABELS[scaling.METHOD_FULL]} ↔ {scaling.METHOD_LABELS[scaling.METHOD_Z]}": (
-        scaling.METHOD_FULL,
-        scaling.METHOD_Z,
-    ),
-    f"{scaling.METHOD_LABELS[scaling.METHOD_FULL]} ↔ {scaling.METHOD_LABELS[scaling.METHOD_CAPPED]}": (
-        scaling.METHOD_FULL,
-        scaling.METHOD_CAPPED,
-    ),
-    f"{scaling.METHOD_LABELS[scaling.METHOD_CAPPED]} ↔ {scaling.METHOD_LABELS[scaling.METHOD_Z]}": (
-        scaling.METHOD_CAPPED,
-        scaling.METHOD_Z,
-    ),
-}
-DEFAULT_PAIR = f"{scaling.METHOD_LABELS[scaling.METHOD_FULL]} ↔ {scaling.METHOD_LABELS[scaling.METHOD_Z]}"
+# The two scaling methods compared on this page: ``method_a`` is the x-axis
+# (reference) and ``method_b`` the y-axis.
+METHOD_A = scaling.METHOD_FULL
+METHOD_B = scaling.METHOD_Z
 
 SECTION_OPTIONS = ["📊 Individual indicator", "🧩 Composite CHIPS"]
 DEFAULT_SECTION = SECTION_OPTIONS[1]
 
 
-def _selected_pair() -> tuple[str, str]:
-    label = st.radio(
-        "Compare which two scalings?",
-        list(PAIR_OPTIONS.keys()),
-        index=list(PAIR_OPTIONS.keys()).index(DEFAULT_PAIR),
-        key="sc_pair",
-        horizontal=True,
-    )
-    return PAIR_OPTIONS[label]
-
-
-def render(data, method=scaling.METHOD_CAPPED) -> None:
+def render(data, method=scaling.METHOD_Z) -> None:
     ui.page_header(
         "⚖️ Scaling comparator",
-        "Raw numbers are turned into 0–1 scores in different ways. Pick two "
-        "methods and see how that choice changes individual indicators and the "
-        "overall CHIPS composite — and which countries' scores are most "
-        "sensitive to it.",
+        "Raw numbers are turned into 0–1 scores in two different ways. See how "
+        "the choice changes individual indicators and the overall CHIPS "
+        "composite — and which countries' scores are most sensitive to it.",
     )
-
-    method_a, method_b = _selected_pair()
 
     section = st.radio(
         "Section",
@@ -62,41 +35,27 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
         key="sc_section",
     )
     if section == SECTION_OPTIONS[0]:
-        _indicator_section(data, method_a, method_b)
+        _indicator_section(data)
     else:
-        _composite_section(data, method_a, method_b)
+        _composite_section(data)
 
 
-def _indicator_section(data, method_a: str, method_b: str) -> None:
+def _indicator_section(data) -> None:
     indicator = ui.indicator_selectbox(data, "Indicator", key="sc_indicator", default=DEFAULT_INDICATOR)
     if indicator is None:
         return
 
-    if scaling.METHOD_CAPPED in (method_a, method_b):
-        c1, c2 = st.columns(2)
-        with c1:
-            lower = st.slider("Lower cap percentile", 1, 49, 5, key="sc_lower",
-                              help="Values below this percentile are pulled up to the cap.")
-        with c2:
-            upper = st.slider("Upper cap percentile", 51, 99, 95, key="sc_upper",
-                              help="Values above this percentile are pulled down to the cap.")
-    else:
-        lower, upper = 5, 95
-
-    lower_f, upper_f = lower / 100.0, upper / 100.0
-
     st.plotly_chart(
-        charts.hist_panels(data, indicator, lower_f, upper_f, methods=[method_a, method_b]),
+        charts.hist_panels(data, indicator, methods=[METHOD_A, METHOD_B]),
         width="stretch",
     )
 
     col_a, col_b = st.columns(2)
-    for col, method in ((col_a, method_a), (col_b, method_b)):
+    for col, method in ((col_a, METHOD_A), (col_b, METHOD_B)):
         with col:
             st.markdown(f"**{scaling.METHOD_LABELS[method]}**")
             st.markdown({
                 scaling.METHOD_FULL: "Simple and easy to explain, but a single extreme value can squash everyone else into a narrow band.",
-                scaling.METHOD_CAPPED: "The robust choice for reporting: the scale ignores the extremes, so values stay stable.",
                 scaling.METHOD_Z: "Measures how far each country sits from the mean in standard deviations, then maps to 0–1 — ranks match plain z-scores, but the values stay on the same scale as the others.",
             }[method])
 
@@ -110,42 +69,42 @@ def _indicator_section(data, method_a: str, method_b: str) -> None:
         "so the two methods CAN change the overall ranking.)"
     )
     stability = rankings.score_stability_table(
-        data, indicator, lower_f, upper_f, methods=[method_a, method_b]
+        data, indicator, methods=[METHOD_A, METHOD_B]
     )
 
     left, right = st.columns([3, 2])
     with left:
         ui.show_table(
-            stability[["Country", "value", method_a, method_b, "score_swing"]],
+            stability[["Country", "value", METHOD_A, METHOD_B, "score_swing"]],
             column_config=ui.rank_column_config(data),
             height=400,
         )
     with right:
         st.subheader("Biggest movers")
-        st.caption(f"Countries whose 0–1 score moves the most between {scaling.METHOD_SHORT_LABELS[method_a]} and {scaling.METHOD_SHORT_LABELS[method_b]}.")
+        st.caption(f"Countries whose 0–1 score moves the most between {scaling.METHOD_SHORT_LABELS[METHOD_A]} and {scaling.METHOD_SHORT_LABELS[METHOD_B]}.")
         st.plotly_chart(charts.movers_bar(stability), width="stretch")
 
     avg_swing = float(stability["score_swing"].mean())
     st.info(
         f"💡 On average, a country's score swings by **{avg_swing:.2f} points** "
-        f"between {scaling.METHOD_LABELS[method_a]} and "
-        f"{scaling.METHOD_LABELS[method_b]} for this indicator.",
+        f"between {scaling.METHOD_LABELS[METHOD_A]} and "
+        f"{scaling.METHOD_LABELS[METHOD_B]} for this indicator.",
     )
 
 
-def _composite_section(data, method_a: str, method_b: str) -> None:
+def _composite_section(data) -> None:
     st.markdown("### Composite CHIPS: where the two scalings disagree")
     st.caption(
         "Each panel plots one level of the composite index: x = "
-        f"**{scaling.METHOD_LABELS[method_a]}** score, y = "
-        f"**{scaling.METHOD_LABELS[method_b]}** score. Countries on the dashed "
+        f"**{scaling.METHOD_LABELS[METHOD_A]}** score, y = "
+        f"**{scaling.METHOD_LABELS[METHOD_B]}** score. Countries on the dashed "
         "diagonal are unchanged by the scaling choice; the further a country "
         "sits from it, the more the choice matters. Dark markers diverge most, "
         "and the top divergers are labelled."
     )
 
     pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
-    comp = rankings.composite_scaling_comparison(data, pillars, method_a, method_b)
+    comp = rankings.composite_scaling_comparison(data, pillars, METHOD_A, METHOD_B)
 
     levels = ["chips"] + list(rankings.PILLAR_COLUMNS)
     level_labels = ["CHIPS composite"] + [f"{p.capitalize()} pillar" for p in rankings.PILLAR_COLUMNS]
@@ -171,14 +130,14 @@ def _composite_section(data, method_a: str, method_b: str) -> None:
             st.rerun()
 
     st.plotly_chart(
-        charts.chips_scaling_scatter(comp, method_a, method_b, level=levels[idx], top_n=5),
+        charts.chips_scaling_scatter(comp, METHOD_A, METHOD_B, level=levels[idx], top_n=5),
         width="stretch",
     )
 
-    _diverger_table(comp, method_a, method_b)
+    _diverger_table(comp)
 
 
-def _diverger_table(comp, method_a: str, method_b: str) -> None:
+def _diverger_table(comp) -> None:
     st.markdown("#### Divergence details")
     level_names = ["chips"] + rankings.PILLAR_COLUMNS
     level_label = st.selectbox(
@@ -187,8 +146,8 @@ def _diverger_table(comp, method_a: str, method_b: str) -> None:
         format_func=lambda l: "Overall CHIPS" if l == "chips" else f"{l.capitalize()} pillar",
         key="sc_comp_level",
     )
-    label_a = scaling.METHOD_SHORT_LABELS[method_a]
-    label_b = scaling.METHOD_SHORT_LABELS[method_b]
+    label_a = scaling.METHOD_SHORT_LABELS[METHOD_A]
+    label_b = scaling.METHOD_SHORT_LABELS[METHOD_B]
 
     tab = comp.dropna(subset=[f"{level_label}_a", f"{level_label}_b"]).copy()
     tab = tab.sort_values(f"{level_label}_dscore", ascending=False)

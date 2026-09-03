@@ -15,26 +15,24 @@ DEFAULT_Y = "Total AI Private Investment in Millions"
 def _verdict(table: pd.DataFrame) -> str:
     """Plain-language summary of how robust the correlation is."""
     row = {r["method"]: r for _, r in table.iterrows()}
-    capped = row["capped"]
-    diffs = []
-    for m in scaling.ALL_METHODS:
-        diffs.append(abs(capped["pearson"] - row[m]["pearson"]))
-        diffs.append(abs(capped["spearman"] - row[m]["spearman"]))
-    worst = max(diffs)
-    sp = capped["spearman"]
+    full = row[scaling.METHOD_FULL]
+    z = row[scaling.METHOD_Z]
+    worst = max(abs(full["pearson"] - z["pearson"]),
+                abs(full["spearman"] - z["spearman"]))
+    sp = z["spearman"]
     if worst < 0.05:
-        msg = "All three scalings agree closely, so this relationship is **robust** — outliers are not driving it."
+        msg = "Both scalings agree closely, so this relationship is **robust** — outliers are not driving it."
     elif worst < 0.15:
         msg = "The relationship is **moderately sensitive** to the scaling choice. A few extreme countries matter, but the overall picture holds."
     else:
-        msg = "The relationship is **strongly influenced by a few extreme countries** — the correlation changes a lot depending on how the data is scaled. The capped (robust) and Spearman values are the most trustworthy."
+        msg = "The relationship is **strongly influenced by a few extreme countries** — the correlation changes a lot depending on how the data is scaled. The z-score and Spearman values are the most trustworthy."
     if sp is not None and not pd.isna(sp):
         direction = "positive" if sp > 0 else "negative"
-        msg += f" The robust (capped, Spearman) correlation is **{sp:+.2f}**, a {direction} relationship."
+        msg += f" The robust (rank-based) correlation is **Spearman {sp:+.2f}**, a {direction} relationship."
     return msg
 
 
-def render(data, method=scaling.METHOD_CAPPED) -> None:
+def render(data, method=scaling.METHOD_Z) -> None:
     ui.page_header(
         "🔬 Correlation explorer",
         "Test your own hypotheses: pick any two indicators and see how strongly "
@@ -42,7 +40,7 @@ def render(data, method=scaling.METHOD_CAPPED) -> None:
     )
     ui.explainer(
         "🧪",
-        "You choose the two indicators. For each of the three scaling methods "
+        "You choose the two indicators. For each of the two scaling methods "
         "you get Pearson (linear) and Spearman (rank-based) correlations plus a "
         "trend line.",
     )
