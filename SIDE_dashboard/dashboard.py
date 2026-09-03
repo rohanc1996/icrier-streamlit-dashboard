@@ -48,8 +48,8 @@ def main() -> None:
     with st.sidebar:
         choice = st.radio("Navigate", list(PAGES.keys()), key="nav", label_visibility="collapsed")
         st.divider()
-        if st.session_state.get("scaling_method") not in scaling.ALL_METHODS:
-            st.session_state["scaling_method"] = scaling.METHOD_Z
+        if "scaling_method" in st.session_state and st.session_state["scaling_method"] not in scaling.ALL_METHODS:
+            del st.session_state["scaling_method"]
         st.caption(
             "**Scoring method** — how raw values become 0–1 scores. Used by the "
             "single-score pages; the Scaling Comparator always shows both "
