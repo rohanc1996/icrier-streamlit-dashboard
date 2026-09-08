@@ -9,6 +9,7 @@ Writes: min-max mismatch investigation/divergences_detail.csv
 """
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -21,10 +22,11 @@ sys.path.insert(0, str(ROOT / "SIDE_dashboard"))
 
 from core import chips, scaling  # noqa: E402
 from core import chips_hierarchy as H  # noqa: E402
-from core.loader import load_app_data  # noqa: E402
+from core.loader import DATA_FILE, load_app_data  # noqa: E402
 
 PUB_FILE = ROOT / "SIDE 2026 - Rohan - AI augmented Absolute Index 2026.csv"
-OUT_FILE = ROOT / "min-max mismatch investigation" / "divergences_detail.csv"
+OUT_DIR = ROOT / "min-max mismatch investigation"
+OUT_FILE = OUT_DIR / "divergences_detail.csv"
 
 CHIPS_ROW = 94
 RANK_ROW = 96
@@ -93,11 +95,11 @@ def parent_sp(pillars, leaf_name: str) -> tuple[str, str] | None:
     return None
 
 
-def main() -> None:
+def main(out_file: Path = OUT_FILE, data_file: Path | str = DATA_FILE) -> None:
     pub = pd.read_csv(PUB_FILE, dtype=str, keep_default_na=False)
     countries = list(pub.columns[7:78])
 
-    data = load_app_data()
+    data = load_app_data(data_file)
     pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
     score_df = chips.score_matrix(data, pillars, method=scaling.METHOD_FULL)
     table = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_FULL)
@@ -228,9 +230,16 @@ def main() -> None:
                                  dash_sub, dash_pil, dash_chips))
 
     df = pd.DataFrame(rows).sort_values(["Country", "Divergence_level"], ignore_index=True)
-    df.to_csv(OUT_FILE, index=False)
-    print(f"Wrote {OUT_FILE} ({len(df)} rows, {df['Country'].nunique()} countries)")
+    out_file.parent.mkdir(exist_ok=True, parents=True)
+    df.to_csv(out_file, index=False)
+    print(f"Wrote {out_file} ({len(df)} rows, {df['Country'].nunique()} countries)")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--data-file", type=str, default=DATA_FILE,
+                        help="dashboard absolute-values CSV (default: loader DATA_FILE)")
+    parser.add_argument("--out-file", type=str, default=OUT_FILE,
+                        help="output CSV path (default: min-max mismatch investigation/divergences_detail.csv)")
+    args = parser.parse_args()
+    main(out_file=Path(args.out_file), data_file=args.data_file)

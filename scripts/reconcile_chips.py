@@ -13,6 +13,7 @@ No code, data or weighting changes are made.
 """
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -25,7 +26,7 @@ sys.path.insert(0, str(ROOT / "SIDE_dashboard"))
 
 from core import chips, scaling  # noqa: E402
 from core import chips_hierarchy as H  # noqa: E402
-from core.loader import load_app_data  # noqa: E402
+from core.loader import DATA_FILE, load_app_data  # noqa: E402
 
 PUB_FILE = ROOT / "SIDE 2026 - Rohan - AI augmented Absolute Index 2026.csv"
 OUT_DIR = ROOT / "deliverables"
@@ -84,12 +85,12 @@ def build_pub_subpillars(pub, countries) -> dict[str, dict[str, float]]:
     return out
 
 
-def main() -> None:
-    OUT_DIR.mkdir(exist_ok=True)
+def main(out_dir: Path = OUT_DIR, data_file: Path | str = DATA_FILE) -> None:
+    out_dir.mkdir(exist_ok=True, parents=True)
     pub = pd.read_csv(PUB_FILE, dtype=str, keep_default_na=False)
     countries = list(pub.columns[7:78])
 
-    data = load_app_data()
+    data = load_app_data(data_file)
     pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
     score_df = chips.score_matrix(data, pillars, method=scaling.METHOD_FULL)
     table = chips.chips_table(data, pillars=pillars, method=scaling.METHOD_FULL)
@@ -147,10 +148,10 @@ def main() -> None:
             }
         )
     rec = pd.DataFrame(rows).sort_values("Abs_diff", ascending=False).reset_index(drop=True)
-    rec.to_csv(OUT_DIR / "reconciliation_71.csv", index=False)
+    rec.to_csv(out_dir / "reconciliation_71.csv", index=False)
 
     first_div = rec[rec["Cause"] != "ROUNDING-ONLY"].copy()
-    first_div.to_csv(OUT_DIR / "first_divergence_by_country.csv", index=False)
+    first_div.to_csv(out_dir / "first_divergence_by_country.csv", index=False)
 
     # Root-cause grouping: split detail into first diverging unit (indicator or sub-pillar).
     groups = []
@@ -174,7 +175,7 @@ def main() -> None:
             }
         )
     grp = pd.DataFrame(groups)
-    grp.to_csv(OUT_DIR / "root_cause_groups.csv", index=False)
+    grp.to_csv(out_dir / "root_cause_groups.csv", index=False)
 
     summary_counts = rec["Cause"].value_counts().to_dict()
     md = f"""# CHIPS reconciliation: dashboard full-minmax vs published spreadsheet
@@ -222,7 +223,7 @@ noise below the reconciliation threshold.
 - `first_divergence_by_country.csv` — affected countries with first divergent layer.
 - `root_cause_groups.csv` — grouped by root cause.
 """
-    (OUT_DIR / "findings.md").write_text(md)
+    (out_dir / "findings.md").write_text(md)
 
     print(f"Wrote reconciliation_71.csv ({len(rec)} rows)")
     print(f"Wrote first_divergence_by_country.csv ({len(first_div)} rows)")
@@ -234,4 +235,10 @@ noise below the reconciliation threshold.
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--data-file", type=str, default=DATA_FILE,
+                        help="dashboard absolute-values CSV (default: loader DATA_FILE)")
+    parser.add_argument("--out-dir", type=str, default=OUT_DIR,
+                        help="output directory (default: deliverables)")
+    args = parser.parse_args()
+    main(out_dir=Path(args.out_dir), data_file=args.data_file)

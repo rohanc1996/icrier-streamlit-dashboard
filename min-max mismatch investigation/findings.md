@@ -41,3 +41,10 @@ noise below the reconciliation threshold.
 - `reconciliation_71.csv` — all 71 countries, sorted by absolute difference.
 - `first_divergence_by_country.csv` — affected countries with first divergent layer.
 - `root_cause_groups.csv` — grouped by root cause.
+
+
+
+Summary of changes/corrections:
+- Bangladesh, patents filed for sustainability was not linked to the score calculation in the published report. We fix it in the dashboard.
+- Italy fixed internet price (PPP) was mistyped in the published report. We fix this as well. (correct raw value is 46)
+- The dashboard raw data did not have decimal values because of a formatting issue in excel, which is now also fixed.
