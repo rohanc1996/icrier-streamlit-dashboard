@@ -24,7 +24,7 @@ from core import chips, scaling  # noqa: E402
 from core import chips_hierarchy as H  # noqa: E402
 from core.loader import DATA_FILE, load_app_data  # noqa: E402
 
-PUB_FILE = ROOT / "SIDE 2026 - Rohan - AI augmented Absolute Index 2026.csv"
+PUB_FILE = ROOT / "data" / "SIDE 2026 - AI augmented Absolute Index 2026.csv"
 OUT_DIR = ROOT / "min-max mismatch investigation"
 OUT_FILE = OUT_DIR / "divergences_detail.csv"
 
@@ -95,8 +95,9 @@ def parent_sp(pillars, leaf_name: str) -> tuple[str, str] | None:
     return None
 
 
-def main(out_file: Path = OUT_FILE, data_file: Path | str = DATA_FILE) -> None:
-    pub = pd.read_csv(PUB_FILE, dtype=str, keep_default_na=False)
+def main(out_file: Path = OUT_FILE, data_file: Path | str = DATA_FILE,
+         pub_file: Path | str = PUB_FILE) -> None:
+    pub = pd.read_csv(pub_file, dtype=str, keep_default_na=False)
     countries = list(pub.columns[7:78])
 
     data = load_app_data(data_file)
@@ -239,7 +240,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data-file", type=str, default=DATA_FILE,
                         help="dashboard absolute-values CSV (default: loader DATA_FILE)")
+    parser.add_argument("--pub-file", type=str, default=PUB_FILE,
+                        help="published AI-augmented index CSV (default: AI augmented Absolute Index 2026)")
     parser.add_argument("--out-file", type=str, default=OUT_FILE,
                         help="output CSV path (default: min-max mismatch investigation/divergences_detail.csv)")
     args = parser.parse_args()
-    main(out_file=Path(args.out_file), data_file=args.data_file)
+    main(out_file=Path(args.out_file), data_file=args.data_file, pub_file=args.pub_file)

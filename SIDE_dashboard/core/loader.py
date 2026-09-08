@@ -25,10 +25,73 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-# The dataset lives next to the project root (repository root), one level up
-# from the SIDE_dashboard package folder.
-DATA_FILE = Path(__file__).resolve().parents[2] / "SIDE 2026 - Rohan - Absolute.csv"
+# The datasets live in the repository root's ``data/`` folder, one level up
+# from the SIDE_dashboard package folder.  The dashboard can switch between the
+# two base-score variants (relative-normalised values, the default, and the
+# raw absolute values) via the sidebar "Base scores" selector.
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+DATA_SOURCES = {
+    # Order matters: the first entry is the dashboard's default selection.
+    "Relative": DATA_DIR / "SIDE 2026 - Relative.csv",
+    "Absolute": DATA_DIR / "SIDE 2026 - Absolute.csv",
+}
+DATA_FILE = DATA_SOURCES["Absolute"]  # headless default (scripts / tests)
 MIN_VALID_VALUES = 5
+
+# --------------------------------------------------------------------------
+# Relative dataset: rename its "relative" (per-GNI / per-capita / % / per-user)
+# main-block headers to the canonical absolute-equivalent header names that the
+# CHIPS spec, loader config and dashboard are keyed on.  Columns without a
+# canonical counterpart are left as-is (extra addable indicators) or dropped.
+# --------------------------------------------------------------------------
+RELATIVE_TO_CANONICAL = {
+    "Price of mobile data and voice basket (HC) (% of GNI PC)": "Price of mobile data and voice basket (HC) (PPP)",
+    "Price of mobile data and voice basket (HC) (% of GNI PC).1": "Price of mobile data and voice basket (LC) (PPP)",
+    "Price of cheapest smartphone (% of GNI per capita)": "Price of cheapest smartphone (PPP$)",
+    "Price of fixed broadband internet (% of GNI)": "Price of fixed broadband internet (PPP)",
+    "Median Mobile Download Speeds (Mbps)": "Median Mobile Download Speeds (Mbps)",
+    "Median Fixed Broadband Download Speed (Mbps)": "Median Fixed Broadband Download Speed (Mbps)",
+    "% of population using the internet": "Number of Internet Users (absolute numbers)",
+    "Mobile Cellular Subscriptions per 100 population": "Mobile Cellular Subscriptions in millions (absolute numbers)",
+    "% of Population covered by LTE": "Population covered by LTE (Absolute numbers)",
+    "% of population using smartphones users": "Number of smartphone users (million)",
+    "% of internet users (16-64 years) using social media for work related activities": "Number of internet users (16-64 years) using social media for work related activities",
+    "Percent of internet users using digital food delivery platforms": "Number of users of digital food delivery platforms (millions)",
+    "Percent of internet users using digital health applications": "Number of users of digital health applications",
+    "Percent of internet users using e-commerce users": "Number of e-commerce users",
+    "Consumer Spend per internet user on Mobile Apps (millions USD) PPP per internet user": "Consumer Spend on Mobile Apps (millions USD)",
+    "Percent of internet users using video on demand users": "Number of video on demand users",
+    "Fixed-broadband Internet traffic per subscriber (GB)": "Fixed-broadband Internet traffic (EB)",
+    "Mobile broadband internet traffic (GB per subscription)": "Mobile broadband internet traffic (EB)",
+    "Value of digital payment transactions (PPP$ adjusted) per internet user": "Value of digital payment transactions (millions of dollars)",
+    "% of internet users who made or received a digital payment": "Users of Digital Payments (in millions)",
+    "Total digitally delivered services (million USD) as percent of GDP USD": "Total digitally delivered services (million USD)",
+    "ICT sector employment (% of Total Labour force)": "Employment: ICT sector (thousands)",
+    "Number of Start-ups per limited liability company": "Number of Start-ups",
+    "Valuation of Unicorns as a percent of GDP": "Valuation of Unicorns (Millions of USD)",
+    "Total funding till date of Startups having their Head Quarters or atleast one office location in India per startup (Millions of USD)": "Total funding till date of Startups having their Head Quarters or atleast one office location in India (Millions of USD)",
+    "Consumer IoT revenues (USD PPP$ adjusted) per internet user": "Consumer and Industrial IoT revenues (millions of USD)",
+    "AR/ VR revenues (PPP$ adjusted) per smartphone user": "AR/ VR revenues (millions of USD)",
+    "Metaverse revenue (PPP$ adjusted) per smartphone user": "Metaverse revenue (millions of USD)",
+    "DeFi revenue (millions of USD PPP$ adjusted) per internet user": "DeFi revenue (millions of USD)",
+    "Robotics revenue (millions of USD)": "Robotics revenue (millions of USD)",
+    "Drones revenue (millions of USD)": "Drones revenue (millions of USD)",
+    "Crypto Index Score": "Crypto Index Score",
+    "Cybersecurity revenue (PPP exchange rate adjusted ) in million $ , per internet users": "Cybersecurity revenue (Mn USD)",
+    "Number of Secure servers per internet user": "Number of Secure servers",
+    "Ransomware attacks detected per month as a % of internet users": "Ransomware attacks 30 day average",
+    "Ransomware victims per million internet users": "Ransomware victims",
+    "Total number of email leaks (Quarterly average) (2022 Q3 - 2025 Q3)": "Total number of email leaks (Quarterly average) (2022 Q3 - 2025 Q3)",
+    "E-waste generated (kg per capita) - directly from source": "E-waste generated (million kg)",
+    "Share of energy startups that are digital": "Number of energy and digital startups",
+    "VC investments in AI and environmental sustainability by country (USD million) per capita": "VC investments in AI and environmental sustainability by country (USD million)",
+    "Patents filed (2000-2023) in Smart Grids as a % of enabling tech patents": "Patents filed (2000-2024) in Smart Grids",
+    "Patents filed (2000-2023) in Information/Communication Technologies for Electromobility as a % of total patents filed": "Patents filed (2000-2024) in Information/Communication Technologies for Electromobility",
+    "Renewable energy share of electricity production (%)": "Total renewable energy production (GWh)",
+    "Relative AAL by Climate (% of Exposed value) for the Telecom Sector - Existing Climate": "AAL by Climate (Million USD) for the Telecom Sector- Existing Climate",
+}
+# Relative-file columns that are metadata or duplicate variants, never indicators.
+RELATIVE_DROP = {"BLOC"}
 
 # --------------------------------------------------------------------------
 # Plain-language labels and organisation (keys are *normalised* column names).
@@ -243,6 +306,14 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
 
     raw = pd.read_csv(path, dtype=str, keep_default_na=False)
     raw.columns = _dedupe_columns(pd.Index(normalize_column_name(c) for c in raw.columns))
+
+    # The relative dataset renames its main indicators to per-GNI / per-capita /
+    # % measures; translate them back to the canonical headers the rest of the
+    # app (hierarchy, friendly names, higher-is-better) is keyed on.
+    if Path(path).resolve() == Path(DATA_SOURCES["Relative"]).resolve():
+        raw = raw.rename(columns=RELATIVE_TO_CANONICAL)
+        raw = raw.loc[:, ~raw.columns.isin(RELATIVE_DROP)]
+        raw.columns = _dedupe_columns(raw.columns)
 
     # Drop pandas' auto-generated "Unnamed: N" columns. They are stray cells in
     # the source sheet, not real indicators, so they must never reach the

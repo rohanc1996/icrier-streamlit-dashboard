@@ -76,7 +76,7 @@ def _short_subpillar(key: str) -> str:
     return f"{PILLAR_SHORT.get(pillar, pillar[:4])}·{sp}"
 
 
-def render(data, method=scaling.METHOD_Z) -> None:
+def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     ui.page_header(
         "🏆 CHIPS Index Explorer",
         "CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY — a transparent "

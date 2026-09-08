@@ -62,7 +62,7 @@ This app's last commit on main is deployed at: [side2027.streamlit.app](https://
 │   ├── views/                             # one module per dashboard page
 │   ├── components/                        # plotly charts, streamlit UI helpers
 │   └── tests/                             # unit tests for the CHIPS rules
-├── SIDE 2026 - Rohan - Absolute.csv       # the underlying dataset
+├── data/                               # the underlying datasets (absolute & relative CSVs)
 ├── skewed_column_scaling_analysis.ipynb   # the analysis notebook behind the app
 └── README.md
 ```

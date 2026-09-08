@@ -28,7 +28,7 @@ from core import chips, scaling  # noqa: E402
 from core import chips_hierarchy as H  # noqa: E402
 from core.loader import DATA_FILE, load_app_data  # noqa: E402
 
-PUB_FILE = ROOT / "SIDE 2026 - Rohan - AI augmented Absolute Index 2026.csv"
+PUB_FILE = ROOT / "data" / "SIDE 2026 - AI augmented Absolute Index 2026.csv"
 OUT_DIR = ROOT / "deliverables"
 
 # Published CHIPS score lives on line 96 (1-indexed) -> row index 94; rank on row 96.
@@ -85,9 +85,10 @@ def build_pub_subpillars(pub, countries) -> dict[str, dict[str, float]]:
     return out
 
 
-def main(out_dir: Path = OUT_DIR, data_file: Path | str = DATA_FILE) -> None:
+def main(out_dir: Path = OUT_DIR, data_file: Path | str = DATA_FILE,
+         pub_file: Path | str = PUB_FILE) -> None:
     out_dir.mkdir(exist_ok=True, parents=True)
-    pub = pd.read_csv(PUB_FILE, dtype=str, keep_default_na=False)
+    pub = pd.read_csv(pub_file, dtype=str, keep_default_na=False)
     countries = list(pub.columns[7:78])
 
     data = load_app_data(data_file)
@@ -188,8 +189,8 @@ reweighting the survivor) — so only genuine data/methodology gaps remain below
 
 ## Summary
 
-- Published source: `SIDE 2026 - Rohan - AI augmented Absolute Index 2026.csv` (CHIPS score line 96).
-- Dashboard source: `SIDE 2026 - Rohan - Absolute.csv` (loader `DATA_FILE`), full-range min-max.
+- Published source: `{Path(pub_file).name}` (CHIPS score line 96).
+- Dashboard source: `{Path(data_file).name}` (loader `DATA_FILE`), full-range min-max.
 - {len(rec)} countries reconciled; {rec["Abs_diff"].lt(0.1).sum()} match to within 0.1 points.
 
 | Root cause | Countries |
@@ -238,7 +239,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data-file", type=str, default=DATA_FILE,
                         help="dashboard absolute-values CSV (default: loader DATA_FILE)")
+    parser.add_argument("--pub-file", type=str, default=PUB_FILE,
+                        help="published AI-augmented index CSV (default: AI augmented Absolute Index 2026)")
     parser.add_argument("--out-dir", type=str, default=OUT_DIR,
                         help="output directory (default: deliverables)")
     args = parser.parse_args()
-    main(out_dir=Path(args.out_dir), data_file=args.data_file)
+    main(out_dir=Path(args.out_dir), data_file=args.data_file, pub_file=args.pub_file)

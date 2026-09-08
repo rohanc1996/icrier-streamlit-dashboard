@@ -6,6 +6,7 @@ scores are inverted so that 1.0 always means "best in the dataset".
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from . import scaling

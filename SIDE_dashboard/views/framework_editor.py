@@ -36,7 +36,8 @@ import streamlit as st
 
 from components import charts, ui
 from core import chips, chips_hierarchy as H, rankings, scaling
-from core.loader import load_app_data
+from core.loader import DATA_FILE, load_app_data
+from pathlib import Path
 
 DEFAULT_COUNTRY = "India"
 
@@ -57,21 +58,21 @@ AI_DEFAULT_GROUP = "Investment & commercial"
 # (published) framework has a fixed spec, so it is cached by method alone.
 # ---------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
-def _baseline_chips_table(method: str) -> pd.DataFrame:
-    data = load_app_data()
+def _baseline_chips_table(method: str, data_file: str) -> pd.DataFrame:
+    data = load_app_data(data_file)
     return chips.chips_table(data, method=method)
 
 
 @st.cache_data(show_spinner=False)
-def _baseline_score_matrix(method: str) -> pd.DataFrame:
-    data = load_app_data()
+def _baseline_score_matrix(method: str, data_file: str) -> pd.DataFrame:
+    data = load_app_data(data_file)
     pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
     return chips.score_matrix(data, pillars=pillars, method=method)
 
 
 @st.cache_data(show_spinner=False)
-def _custom_chips_table(method: str, spec_json: str, overrides_json: str) -> pd.DataFrame:
-    data = load_app_data()
+def _custom_chips_table(method: str, spec_json: str, overrides_json: str, data_file: str) -> pd.DataFrame:
+    data = load_app_data(data_file)
     spec = json.loads(spec_json)
     pillars, _ = H.resolve_hierarchy(data.numeric_df.columns, spec=spec)
     return chips.chips_table(data, pillars=pillars, method=method,
@@ -79,8 +80,8 @@ def _custom_chips_table(method: str, spec_json: str, overrides_json: str) -> pd.
 
 
 @st.cache_data(show_spinner=False)
-def _custom_score_matrix(method: str, spec_json: str, overrides_json: str) -> pd.DataFrame:
-    data = load_app_data()
+def _custom_score_matrix(method: str, spec_json: str, overrides_json: str, data_file: str) -> pd.DataFrame:
+    data = load_app_data(data_file)
     spec = json.loads(spec_json)
     pillars, _ = H.resolve_hierarchy(data.numeric_df.columns, spec=spec)
     return chips.score_matrix(data, pillars=pillars, method=method,
@@ -486,7 +487,8 @@ def _edit_weight_controls(data, spec: list[dict]) -> list[dict]:
 # Score overrides
 # ---------------------------------------------------------------------------
 
-def _score_override_editor(data, country: str, pillars, method: str, spec_json: str) -> None:
+def _score_override_editor(data, country: str, pillars, method: str, spec_json: str,
+                           data_file: str) -> None:
     """Editable table of one country's indicator scores.
 
     "Your score" replaces the computed 0-1 score for this country (blank keeps
@@ -503,7 +505,7 @@ def _score_override_editor(data, country: str, pillars, method: str, spec_json: 
     )
     st.caption("This feeds the alternative calculation only — the published CHIPS index "
                "is never changed.")
-    base = _custom_score_matrix(method, spec_json, "{}")
+    base = _custom_score_matrix(method, spec_json, "{}", data_file)
     row = base[base["Country"] == country].iloc[0]
     existing = _get_overrides().get(country, {})
     rows = []
@@ -574,7 +576,8 @@ def _default_country(data) -> str:
     return DEFAULT_COUNTRY if DEFAULT_COUNTRY in data.country_list else data.country_list[0]
 
 
-def render(data, method=scaling.METHOD_Z) -> None:
+def render(data, method=scaling.METHOD_Z, data_file: str | Path | None = None) -> None:
+    data_file = str(data_file or DATA_FILE)
     ui.page_header(
         "🎛️ Create Your Own CHIPS Framework",
         "The CHIPS index embeds a weighting judgement. Build an alternative — reweight "
@@ -699,8 +702,8 @@ def render(data, method=scaling.METHOD_Z) -> None:
     custom_pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns, spec=spec)
     spec_json = _spec_to_json(spec)
     overrides_json = _overrides_to_json(_get_overrides())
-    custom_scores = _custom_chips_table(method, spec_json, overrides_json)
-    baseline_scores = _baseline_chips_table(method)
+    custom_scores = _custom_chips_table(method, spec_json, overrides_json, data_file)
+    baseline_scores = _baseline_chips_table(method, data_file)
 
     if unresolved:
         st.warning("Some indicator names in this framework don't match a dataset column and count "
@@ -837,19 +840,19 @@ def _custom_country_drilldown(data, method, spec, custom_pillars, baseline_score
                            index=data.country_list.index(default), key="ch_fw_country")
 
     spec_json = _spec_to_json(spec)
-    _score_override_editor(data, country, custom_pillars, method, spec_json)
+    _score_override_editor(data, country, custom_pillars, method, spec_json, data_file)
 
     _alt_caption("Every metric and chart below is computed from the alternative calculation.")
 
     # Recompute with the freshest overrides (the editor above may have changed them).
     overrides_json = _overrides_to_json(_get_overrides())
-    custom_scores = _custom_chips_table(method, spec_json, overrides_json)
+    custom_scores = _custom_chips_table(method, spec_json, overrides_json, data_file)
 
     base_pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
     base_res = chips.aggregate_country(data, country, pillars=base_pillars,
-                                       score_df=_baseline_score_matrix(method))
+                                       score_df=_baseline_score_matrix(method, data_file))
     cust_res = chips.aggregate_country(data, country, pillars=custom_pillars,
-                                       score_df=_custom_score_matrix(method, spec_json, overrides_json))
+                                       score_df=_custom_score_matrix(method, spec_json, overrides_json, data_file))
 
     def _rank(df, c):
         scored = df.dropna(subset=["chips"])

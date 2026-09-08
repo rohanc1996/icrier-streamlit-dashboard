@@ -72,7 +72,7 @@ def _on_map_select() -> None:
         st.session_state["ce_section"] = "📋 Country rankings"
 
 
-def render(data, method=scaling.METHOD_Z) -> None:
+def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     ui.page_header(
         "🌍 Country Explorer",
         "Three views in one place: colour the world map by any indicator, "
