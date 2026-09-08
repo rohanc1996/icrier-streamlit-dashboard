@@ -28,9 +28,10 @@ survives, rather than dropping.
 
 The INNOVATE -> AI sub-pillar nests one extra level: its two internal groups —
 the research pair (AI Innovation - Research + AI R&D score) and the remaining
-three AI indicators — are aggregated first with the same rules.  Inside the
-3-indicator group the generic ">50% missing" rule reproduces exactly the
-spec-sheet's "1 of 3 lost -> reweight, 2 of 3 lost -> drop".
+three AI indicators — are aggregated first with the same rules, except that a
+subgroup with even a single present indicator is kept and that member is weighed
+in full (the >50% drop rule does not apply inside these two AI subgroups,
+matching the published spreadsheet).
 
 Rounding (to match the published source): each indicator's 0-1 score is rounded
 to 1 decimal place on the 0-100 scale at the leaf, sub-pillar and pillar
@@ -92,19 +93,25 @@ class CountryResult:
 # ---------------------------------------------------------------------------
 
 def _group_aggregate(
-    flags: list[bool], scores: list[float], weights: list[float]
+    flags: list[bool], scores: list[float], weights: list[float], keep_if_any: bool = False
 ) -> tuple[float | None, str | None, list[float]]:
     """Apply the missingness rules to one group of children.
 
     Returns ``(score, reason, effective_weights)``.  ``score`` is None when the
     group is dropped; ``effective_weights`` is parallel to the children.
+
+    ``keep_if_any`` relaxes the >50% drop rule for the internal subgroups of the
+    INNOVATE · AI sub-pillar: as long as a single member is present the group
+    survives and that member is weighed in full (matching the published
+    spreadsheet, which scores every subgroup from whatever indicators are
+    present).
     """
     total = len(flags)
     present_idx = [i for i, f in enumerate(flags) if f]
     n = len(present_idx)
     if n == 0:
         return None, "no components have data", [0.0] * total
-    if 2 * n < total:
+    if not keep_if_any and 2 * n < total:
         return None, ">50% of components are missing", [0.0] * total
     wsum = sum(weights[i] for i in present_idx)
     if wsum <= 0:
@@ -117,13 +124,14 @@ def _group_aggregate(
 
 
 def _aggregate_children(
-    name: str, kind: str, children: list[NodeResult], nominal_weight: float
+    name: str, kind: str, children: list[NodeResult], nominal_weight: float,
+    keep_if_any: bool = False,
 ) -> NodeResult:
     """Aggregate a set of already-computed children into a parent node."""
     flags = [c.status == "present" for c in children]
     scores = [c.score for c in children]
     weights = [c.nominal_weight for c in children]
-    score, reason, effective = _group_aggregate(flags, scores, weights)
+    score, reason, effective = _group_aggregate(flags, scores, weights, keep_if_any)
     for c, e in zip(children, effective):
         c.effective_weight = e
     return NodeResult(
@@ -171,7 +179,12 @@ def _build_subpillar_result(row: pd.Series, sp: H.SubPillar) -> NodeResult:
         group_results = []
         for g in sp.groups:
             leaves = _indicator_results(row, g.leaves)
-            group_results.append(_aggregate_children(g.name, "internal_group", leaves, g.weight))
+            # The INNOVATE · AI internal subgroups keep a lone present member
+            # instead of dropping on the generic >50% rule.
+            group_results.append(
+                _aggregate_children(g.name, "internal_group", leaves, g.weight,
+                                    keep_if_any=sp.is_ai)
+            )
         return _aggregate_children(sp.name, "sub_pillar", group_results, sp.weight)
     leaves = _indicator_results(row, sp.leaves)
     return _aggregate_children(sp.name, "sub_pillar", leaves, sp.weight)

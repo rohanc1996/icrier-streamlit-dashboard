@@ -374,8 +374,10 @@ def _methodology(pillars, unresolved) -> None:
 6. **CHIPS needs at least 3 of 5 pillars** — fewer means no composite score.
 7. **INNOVATE → AI is non-flat** — it splits into two internal groups: the **research pair**
    (AI Innovation - Research + AI R&D score, ½ each) and the **remaining three AI indicators**
-   (AI commercial, private investment, newly funded AI companies, ⅓ each). Inside each group,
-   1 missing is redistributed and (for the 3-indicator group) 2 missing drop it.
+   (AI commercial, private investment, newly funded AI companies, ⅓ each). Inside these two
+   subgroups a group with even 1 indicator present is kept and that member weighed in full;
+   1-of-2 / 1-of-3 missing is redistributed, so a subgroup is only dropped when it has no
+   data at all.
 8. **Rounding matches the published source** — indicator scores are rounded to 1 decimal
    place (0–100 scale) and the final CHIPS score to 2 decimal places before ranking.
 9. **Scoring** — every indicator is min–max scaled to 0–1 over the full observed range

@@ -1,0 +1,4 @@
+Country,Published_CHIPS,Dashboard_CHIPS,Signed_diff,Abs_diff,Published_Rank,Dashboard_Rank,Cause,First_divergence_detail
+Bangladesh,20.13,18.89,1.24,1.24,28.0,42.0,AGGREGATION / WEIGHTS,chips diff = 1.24
+Italy,19.38,20.34,-0.96,0.96,38.0,25.0,INDICATOR (data-version / minmax bound),"Fixed (broadband) internet price, USD PPP (61.1pts)"
+Switzerland,19.77,19.48,0.29,0.29,35.0,37.0,AGGREGATION / WEIGHTS,chips diff = 0.29

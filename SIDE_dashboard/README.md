@@ -63,7 +63,9 @@ are handled explicitly rather than silently ignored:
   spreadsheet, which scores each sub-pillar from whatever indicators are present;
 - the INNOVATE → AI sub-pillar has two internal groups — the research pair
   (AI Innovation - Research + AI R&D score) and the remaining three AI
-  indicators — aggregated with the same rules;
+  indicators — aggregated with the same rules, except that a subgroup with even
+  1 indicator present is kept and that member is weighed in full (the >50% drop
+  rule does not apply inside these two AI subgroups);
 - CHIPS itself requires at least 3 of the 5 pillars;
 - indicator scores are rounded to 1 decimal place and the final CHIPS score to
   2 decimal places (0–100 scale) to match the published source.

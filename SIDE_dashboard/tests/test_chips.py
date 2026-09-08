@@ -103,7 +103,7 @@ def _ai_pillar() -> H.Pillar:
                 H.Leaf("P1C1", "P1C1", 1 / 3),
                 H.Leaf("P1C2", "P1C2", 1 / 3),
             ]),
-        ]),
+        ], is_ai=True),
     ])
 
 
@@ -144,17 +144,33 @@ def test_ai_subpillar() -> None:
     check("both groups keep their nominal 1/2",
           np.allclose([g.effective_weight for g in sp.children], [0.5, 0.5]))
 
-    # Two members of the 3-indicator group missing -> the >50% rule drops the
-    # group, and the sub-pillar survives with just the research pair (the 2-of-2
-    # "drop the sub-pillar" propagation is disabled to match the published source).
+    # Two members of the 3-indicator group missing -> the subgroup is *kept*
+    # (INNOVATE · AI subgroups drop only when they have no data at all), and the
+    # lone survivor is weighed in full within the group. The sub-pillar survives
+    # with both groups at their nominal 1/2.
     data4 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
     _set_nan(data4, "D", "P1B")
     _set_nan(data4, "D", "P1C1")
     res = chips.aggregate_country(data4, "D", pillars=pillars, method=scaling.METHOD_FULL)
     sp = res.pillars[0].children[0]
-    check("2 of 3 group missing -> sub-pillar survives on research", sp.status == "present")
-    check("investment group itself dropped",
-          sp.children[1].status == "dropped" and ">50%" in (sp.children[1].reason or ""))
+    check("2 of 3 group missing -> subgroup survives on lone member", sp.status == "present")
+    check("investment group itself kept with lone member",
+          sp.children[1].status == "present")
+    check("lone survivor weighed in full inside the group",
+          np.allclose([g.effective_weight for g in sp.children[1].children], [0.0, 0.0, 1.0]))
+    check("both groups keep their nominal 1/2",
+          np.allclose([g.effective_weight for g in sp.children], [0.5, 0.5]))
+
+    # All three members of the 3-indicator group missing -> the subgroup drops
+    # (no data at all), and the sub-pillar survives on the research pair alone.
+    data5 = _fake(["P1A1", "P1A2", "P1B", "P1C1", "P1C2"])
+    for col in ["P1B", "P1C1", "P1C2"]:
+        _set_nan(data5, "D", col)
+    res = chips.aggregate_country(data5, "D", pillars=pillars, method=scaling.METHOD_FULL)
+    sp = res.pillars[0].children[0]
+    check("all 3 of group missing -> subgroup drops (no data)",
+          sp.children[1].status == "dropped" and "no components" in (sp.children[1].reason or ""))
+    check("3 of group missing -> sub-pillar survives on research", sp.status == "present")
 
 
 def test_drop_propagation() -> None:

@@ -11,8 +11,9 @@ This module is the single source of truth for the CHIPS indicator framework:
   spec sheet).
 - The INNOVATE → AI sub-pillar is **not flat**: it is made of two internal
   groups — the research pair (AI Innovation - Research + AI R&D score) and the
-  remaining three AI indicators — that follow their own missingness rules
-  (see ``core/chips.py``).
+  remaining three AI indicators.  Each internal group keeps a lone present
+  indicator (weighed in full) rather than dropping when more than half are
+  missing (see ``core/chips.py``).
 - Indicator *names* here are the friendly names from the CHIPS spec sheet.
   ``COLUMN_ALIASES`` maps them to the exact normalised dataset column headers;
   ``resolve_hierarchy`` turns the declarative spec into ready-to-use dataclasses

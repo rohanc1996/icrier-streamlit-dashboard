@@ -27,8 +27,7 @@ import streamlit as st
 
 # The dataset lives next to the project root (repository root), one level up
 # from the SIDE_dashboard package folder.
-# DATA_FILE = Path(__file__).resolve().parents[2] / "SIDE 2026 - Rohan - Absolute.csv"
-DATA_FILE = Path(__file__).resolve().parents[2] / "(Decimal cols) SIDE 2026 - Rohan - Absolute.csv"
+DATA_FILE = Path(__file__).resolve().parents[2] / "SIDE 2026 - Rohan - Absolute.csv"
 MIN_VALID_VALUES = 5
 
 # --------------------------------------------------------------------------
