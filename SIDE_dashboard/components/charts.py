@@ -537,11 +537,12 @@ def chips_choropleth(chips_df: pd.DataFrame, selected_country: str | None = None
     return fig
 
 
-def chips_treemap(rows: pd.DataFrame) -> go.Figure:
+def chips_treemap(rows: pd.DataFrame, combined: bool = False) -> go.Figure:
     """Treemap of the full CHIPS result tree for one country.
 
-    ``rows`` comes from ``chips.tree_to_frame``.  Area = share of the CHIPS
-    weight.  Colour = the pillar hue (one per pillar so the top-level blocks
+    ``rows`` comes from ``chips.tree_to_frame`` (or ``blend.blend_treemap_rows``
+    when ``combined``).  Area = share of the CHIPS weight.  Colour = the pillar
+    hue (one per pillar so the top-level blocks
     are easy to tell apart) shaded by score — darker = higher.  Missing and
     dropped cells are grey.  The frame carries a ``pillar`` column so every
     level of a pillar shares its hue.
@@ -552,12 +553,42 @@ def chips_treemap(rows: pd.DataFrame) -> go.Figure:
                       zip(rows["pillar"], rows["score"], rows["status"])]
     rows["text_color"] = [_score_cell_text(s, t) for s, t in
                            zip(rows["score"], rows["status"])]
-    custom = np.stack([
-        np.round(rows["score"].fillna(-1.0), 3),
-        np.round(rows["weight"] * 100, 2),
-        rows["status"],
-        rows["reason"].fillna(""),
-    ], axis=-1)
+    if combined:
+        def _f(s):
+            return "—" if pd.isna(s) else f"{float(s):.3f}"
+        rel_txt = rows.get("score_rel", pd.Series(np.nan, index=rows.index)).map(_f)
+        abs_txt = rows.get("score_abs", pd.Series(np.nan, index=rows.index)).map(_f)
+        blended_txt = rows["score"].map(lambda s: "—" if pd.isna(s) else f"{float(s):.3f}")
+        hover = np.stack([
+            blended_txt,
+            (rows["weight"] * 100).round(2).astype(str),
+            rows["status"],
+            rows["reason"].fillna(""),
+            rel_txt,
+            abs_txt,
+        ], axis=-1)
+        hover_template = (
+            "<b>%{label}</b><br>"
+            "weight: %{value:.1%} of CHIPS<br>"
+            "score: %{customdata[0]}<br>"
+            "status: %{customdata[2]}<br>"
+            "Relative: %{customdata[4]} · Absolute: %{customdata[5]}<br>"
+            "%{customdata[3]}<extra></extra>"
+        )
+    else:
+        hover = np.stack([
+            np.round(rows["score"].fillna(-1.0), 3),
+            np.round(rows["weight"] * 100, 2),
+            rows["status"],
+            rows["reason"].fillna(""),
+        ], axis=-1)
+        hover_template = (
+            "<b>%{label}</b><br>"
+            "weight: %{value:.1%} of CHIPS<br>"
+            "score: %{customdata[0]}<br>"
+            "status: %{customdata[2]}<br>"
+            "%{customdata[3]}<extra></extra>"
+        )
     fig = go.Figure(go.Treemap(
         ids=rows["id"],
         parents=rows["parent"],
@@ -565,16 +596,10 @@ def chips_treemap(rows: pd.DataFrame) -> go.Figure:
         values=rows["weight"],
         branchvalues="total",
         marker=dict(colors=rows["color"], line=dict(color="white", width=0.8)),
-        customdata=custom,
+        customdata=hover,
         texttemplate="%{label}<br>%{value:.1%}",
         textfont=dict(size=11, color=rows["text_color"]),
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "weight: %{value:.1%} of CHIPS<br>"
-            "score: %{customdata[0]}<br>"
-            "status: %{customdata[2]}<br>"
-            "%{customdata[3]}<extra></extra>"
-        ),
+        hovertemplate=hover_template,
     ))
     fig.update_layout(height=600, margin=dict(l=5, r=5, t=30, b=5))
     return fig

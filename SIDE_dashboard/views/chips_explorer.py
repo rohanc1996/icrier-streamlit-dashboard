@@ -13,7 +13,8 @@ import pandas as pd
 import streamlit as st
 
 from components import charts, country_names, ui
-from core import chips, chips_hierarchy as H, scaling
+from core import blend, chips, chips_hierarchy as H, scaling
+from core.loader import DATA_SOURCES, load_app_data
 
 SECTIONS = [
     "🏅 CHIPS leaderboard",
@@ -85,6 +86,29 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
     st.session_state["_chips_country_list"] = data.country_list
 
+    # "Combined" runs the index on both base datasets and blends the aggregate
+    # (sub-pillar / pillar / CHIPS) scores 50/50.  It is a page-local view; the
+    # other tabs keep using the sidebar-selected dataset.
+    combined = st.checkbox(
+        "Show 50/50 Relative × Absolute combined scores",
+        key="ch_blend",
+        help="Runs the index on both the Relative and Absolute base datasets and "
+             "averages each sub-pillar, pillar and CHIPS score. Indicators keep "
+             "the Relative run's values.",
+    )
+    if combined:
+        rel_data = load_app_data(DATA_SOURCES["Relative"])
+        abs_data = load_app_data(DATA_SOURCES["Absolute"])
+        rel_scores = chips.chips_table(rel_data, pillars=pillars, method=method)
+        abs_scores = chips.chips_table(abs_data, pillars=pillars, method=method)
+        scores = blend.blended_chips_table(rel_scores, abs_scores)
+        st.caption("ℹ️ Combined view: **sub-pillar, pillar and CHIPS scores are the "
+                   "50/50 mean of the Relative and Absolute runs**; indicators and "
+                   "coverage stay on the Relative run. Pillar values on the "
+                   "leaderboard and map use the blended scores.")
+    else:
+        scores = chips.chips_table(data, pillars=pillars, method=method)
+
     n_indicators = len(H.all_leaves(pillars))
     n_sub = sum(len(p.sub_pillars) for p in pillars)
     if unresolved:
@@ -107,9 +131,6 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
             "recorded — hover any block or cell to see it.",
         )
 
-    # One baseline computation shared by the leaderboard, map and scatter.
-    scores = chips.chips_table(data, pillars=pillars, method=method)
-
     section = st.radio(
         "Section", SECTIONS, horizontal=True, label_visibility="collapsed", key="ch_section"
     )
@@ -118,7 +139,7 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     elif section == SECTIONS[1]:
         _map_panel(data, scores)
     elif section == SECTIONS[2]:
-        _drilldown(data, scores, pillars, method)
+        _drilldown(data, scores, pillars, method, combined)
     elif section == SECTIONS[3]:
         _missingness(data, scores, pillars, method)
     else:
@@ -197,7 +218,7 @@ def _map_panel(data, scores) -> None:
     st.caption(f"{n_scored} of {len(scores)} countries in our report have a CHIPS score.")
 
 
-def _drilldown(data, scores, pillars, method) -> None:
+def _drilldown(data, scores, pillars, method, combined: bool = False) -> None:
     ui.explainer(
         "🔍",
         "Open a country to see every pillar and indicator, exactly which groups were dropped "
@@ -206,57 +227,90 @@ def _drilldown(data, scores, pillars, method) -> None:
     default = _default_country(data)
     country = st.selectbox("Country", data.country_list,
                            index=data.country_list.index(default), key="ch_country")
-    res = chips.aggregate_country(data, country, pillars=pillars, method=method)
+
+    if combined:
+        rel_data = load_app_data(DATA_SOURCES["Relative"])
+        abs_data = load_app_data(DATA_SOURCES["Absolute"])
+        res = chips.aggregate_country(rel_data, country, pillars=pillars, method=method)
+        res_abs = chips.aggregate_country(abs_data, country, pillars=pillars, method=method)
+    else:
+        res = chips.aggregate_country(data, country, pillars=pillars, method=method)
+        res_abs = None
 
     scored = scores.dropna(subset=["chips"])
     rank_row = scored[scored["Country"] == country]
     rank = int(rank_row["rank"].iloc[0]) if not rank_row.empty else None
 
+    # Coverage / indicator bookkeeping always come from the Relative run (the
+    # indicator-level source), so the drill-down reads consistently either way.
+    chips_score = (blend.blended_chips_score(res, res_abs) if combined
+                   else res.chips.score)
     m1, m2, m3, m4 = st.columns(4)
-    if res.chips.score is not None:
-        m1.metric("CHIPS score", f"{res.chips.score:.3f}")
+    if chips_score is not None:
+        m1.metric("CHIPS score", f"{chips_score:.3f}")
     else:
         m1.metric("CHIPS score", "no score",
                   help="Fewer than 3 pillars survived the missing-data rules.")
     m2.metric("Global rank", f"#{rank}" if rank else "—")
     m3.metric("Data coverage", f"{res.coverage['coverage'] * 100:.0f}%",
-              help="Share of the CHIPS weight backed by an actual value.")
+              help="Share of the CHIPS weight backed by an actual value (Relative run).")
     m4.metric("Indicators present",
               f"{res.coverage['indicators_present']} / {res.coverage['indicators_total']}")
 
     st.markdown("#### Pillar scores")
     pcols = st.columns(5)
-    for col, pr in zip(pcols, res.pillars):
-        col.metric(pr.name, f"{pr.score:.2f}" if pr.score is not None else "dropped")
+    if combined:
+        blended = blend.blended_country_scores(res, res_abs)
+        for col, pr in zip(pcols, res.pillars):
+            col.metric(pr.name, f"{blended.get(pr.name):.2f}" if blended.get(pr.name) is not None else "dropped")
+    else:
+        for col, pr in zip(pcols, res.pillars):
+            col.metric(pr.name, f"{pr.score:.2f}" if pr.score is not None else "dropped")
 
     st.markdown("#### How the score is built")
-    rows = chips.tree_to_frame(res.chips, chips.leaf_global_weights(pillars))
-    st.plotly_chart(charts.chips_treemap(rows), width="stretch")
-    st.caption("Area = share of the CHIPS weight; colour = the pillar hue (CONNECT blue, "
-               "HARNESS teal, INNOVATE orange, PROTECT red, SUSTAINABILITY green) shaded by "
-               "score — darker = higher. Grey = no data or dropped by a rule.")
+    leaf_w = chips.leaf_global_weights(pillars)
+    if combined:
+        rows = blend.blend_treemap_rows(
+            chips.tree_to_frame(res.chips, leaf_w),
+            chips.tree_to_frame(res_abs.chips, leaf_w),
+        )
+        st.plotly_chart(charts.chips_treemap(rows, combined=True), width="stretch")
+        st.caption("Area = share of the CHIPS weight; colour = the pillar hue shaded by "
+                   "**blended** score — darker = higher. Sub-pillars, pillars and CHIPS are the "
+                   "50/50 mean of the Relative and Absolute runs; indicators keep the Relative "
+                   "values. Hover to see both base scores. Grey = no data or dropped by a rule.")
+    else:
+        rows = chips.tree_to_frame(res.chips, leaf_w)
+        st.plotly_chart(charts.chips_treemap(rows), width="stretch")
+        st.caption("Area = share of the CHIPS weight; colour = the pillar hue (CONNECT blue, "
+                   "HARNESS teal, INNOVATE orange, PROTECT red, SUSTAINABILITY green) shaded by "
+                   "score — darker = higher. Grey = no data or dropped by a rule.")
 
-    _whatif_panel(data, pillars, country, res, method)
-    _movers_panel(data, pillars, country, res, method)
+    _whatif_panel(data, pillars, country, res, res_abs, method, combined)
+    _movers_panel(data, pillars, country, res, res_abs, method, combined)
 
 
-def _whatif_panel(data, pillars, country, res, method) -> None:
+def _whatif_panel(data, pillars, country, res, res_abs, method, combined: bool) -> None:
     st.markdown("#### What-if: how much does one sub-pillar matter?")
     keys = H.sub_pillar_keys(pillars)
     target = st.selectbox("Sub-pillar to simulate", ["— choose one —"] + keys, key="ch_sim_target")
     if target == "— choose one —":
         return
 
-    drop_it = st.checkbox("Drop it altogether (treat the sub-pillar as having no data)",
-                          key="ch_sim_drop")
-    if drop_it:
-        override = {target: ("absent", None)}
+    if combined:
+        blended_scores = blend.blended_country_scores(res, res_abs)
+        actual_sp = blended_scores.get(target)
     else:
         actual_sp = next(
             (sp.score for pr in res.pillars for sp in pr.children
              if f"{pr.name} · {sp.name}" == target),
             None,
         )
+    drop_it = st.checkbox("Drop it altogether (treat the sub-pillar as having no data)",
+                          key="ch_sim_drop")
+    if drop_it:
+        override = {target: ("absent", None)}
+    else:
         default = float(actual_sp) if actual_sp is not None else 0.5
         value = st.slider(
             "Assumed score for this sub-pillar", 0.0, 1.0, default, step=0.05,
@@ -272,15 +326,27 @@ def _whatif_panel(data, pillars, country, res, method) -> None:
                        "the slider gives it a hypothetical value instead.")
         override = {target: ("present", value)}
 
-    scen = chips.aggregate_country(data, country, pillars=pillars, override=override, method=method)
-    scen_scores = chips.chips_table(data, pillars=pillars, override=override, method=method)
+    if combined:
+        rel_data = load_app_data(DATA_SOURCES["Relative"])
+        abs_data = load_app_data(DATA_SOURCES["Absolute"])
+        scen_rel = chips.aggregate_country(rel_data, country, pillars=pillars,
+                                           override=override, method=method)
+        scen_abs = chips.aggregate_country(abs_data, country, pillars=pillars,
+                                           override=override, method=method)
+        new = blend.blended_chips_score(scen_rel, scen_abs)
+        rel_table = chips.chips_table(rel_data, pillars=pillars, override=override, method=method)
+        abs_table = chips.chips_table(abs_data, pillars=pillars, override=override, method=method)
+        scen_scores = blend.blended_chips_table(rel_table, abs_table)
+    else:
+        scen = chips.aggregate_country(data, country, pillars=pillars, override=override, method=method)
+        new = scen.chips.score
+        scen_scores = chips.chips_table(data, pillars=pillars, override=override, method=method)
     scen_row = scen_scores[scen_scores["Country"] == country]
     scen_rank = None
     if not scen_row.empty and pd.notna(scen_row["rank"].iloc[0]):
         scen_rank = int(scen_row["rank"].iloc[0])
 
-    actual = res.chips.score
-    new = scen.chips.score
+    actual = res.chips.score if not combined else blend.blended_chips_score(res, res_abs)
     delta = None if actual is None or new is None else new - actual
     a, b, c = st.columns(3)
     a.metric("Current CHIPS", f"{actual:.3f}" if actual is not None else "no score")
@@ -295,17 +361,27 @@ def _whatif_panel(data, pillars, country, res, method) -> None:
                    "recomputed across all countries under the same scenario.")
 
 
-def _movers_panel(data, pillars, country, res, method) -> None:
+def _movers_panel(data, pillars, country, res, res_abs, method, combined: bool) -> None:
     with st.expander("📊 Which sub-pillars move this country's score most?"):
         ui.explainer("💡", "Each row shows the CHIPS score if that one sub-pillar were removed "
                           "(treated as having no data). The most negative Δ marks the sub-pillars "
                           "the country currently leans on the hardest.")
-        actual = res.chips.score
+        actual = (blend.blended_chips_score(res, res_abs) if combined else res.chips.score)
         movers = []
         for key in H.sub_pillar_keys(pillars):
-            r = chips.aggregate_country(data, country, pillars=pillars,
-                                        override={key: ("absent", None)}, method=method)
-            new = r.chips.score
+            override = {key: ("absent", None)}
+            if combined:
+                rel_data = load_app_data(DATA_SOURCES["Relative"])
+                abs_data = load_app_data(DATA_SOURCES["Absolute"])
+                r = chips.aggregate_country(rel_data, country, pillars=pillars,
+                                            override=override, method=method)
+                ra = chips.aggregate_country(abs_data, country, pillars=pillars,
+                                             override=override, method=method)
+                new = blend.blended_chips_score(r, ra)
+            else:
+                r = chips.aggregate_country(data, country, pillars=pillars,
+                                            override=override, method=method)
+                new = r.chips.score
             movers.append({
                 "Sub-pillar": key.replace(" · ", " / "),
                 "Score now": actual,

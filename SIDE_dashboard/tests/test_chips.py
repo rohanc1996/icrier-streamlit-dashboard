@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import numpy as np
 import pandas as pd
 
-from core import chips, chips_hierarchy as H, rankings, scaling
+from core import blend, chips, chips_hierarchy as H, rankings, scaling
 
 FAILURES: list[str] = []
 PASSED = 0
@@ -171,6 +171,65 @@ def test_ai_subpillar() -> None:
     check("all 3 of group missing -> subgroup drops (no data)",
           sp.children[1].status == "dropped" and "no components" in (sp.children[1].reason or ""))
     check("3 of group missing -> sub-pillar survives on research", sp.status == "present")
+
+
+def test_blend_policy() -> None:
+    print("\nCombined (50/50 Relative × Absolute) blend")
+    check("blend_value both present = mean", abs(blend.blend_value(0.2, 0.6) - 0.4) < 1e-9)
+    check("blend_value rel only = rel", abs(blend.blend_value(0.2, None) - 0.2) < 1e-9)
+    check("blend_value abs only = abs", abs(blend.blend_value(None, 0.6) - 0.6) < 1e-9)
+    check("blend_value neither = None", blend.blend_value(None, None) is None)
+
+    # End-to-end on a synthetic hierarchy: chips_table on each "dataset", then
+    # blend.  Higher raw = better; full-range min-max over 4 countries.
+    spec = [
+        {"name": "P1", "weight": 0.5, "sub_pillars": [
+            {"name": "S1", "weight": 1.0, "indicators": [("X", None), ("Y", None)]},
+        ]},
+        {"name": "P2", "weight": 0.5, "sub_pillars": [
+            {"name": "S2", "weight": 1.0, "indicators": [("Z", None)]},
+        ]},
+    ]
+
+    def _data(vals):
+        return _FakeData(pd.DataFrame({
+            "Country": ["A", "B", "C", "D"],
+            "X": vals["X"], "Y": vals["Y"], "Z": vals["Z"],
+        }))
+
+    rel = _data({"X": [1, 2, 3, 4], "Y": [4, 3, 2, 1], "Z": [1, 2, 3, 4]})
+    abs_ = _data({"X": [1, 3, 3, 5], "Y": [5, 3, 3, 1], "Z": [2, 1, 4, 3]})
+    pillars, _ = H.resolve_hierarchy(rel.numeric_df.columns, spec=spec)
+    rt = chips.chips_table(rel, pillars=pillars, method=scaling.METHOD_FULL)
+    at = chips.chips_table(abs_, pillars=pillars, method=scaling.METHOD_FULL)
+    blended = blend.blended_chips_table(rt, at)
+
+    check("blend keeps all countries", len(blended) == 4)
+    # Country A: Z present in both -> same scaled value 0 (min 1 in rel, min 2
+    # in abs) so pillar blend is driven by P1; each side computed then averaged.
+    expected_p1 = (rt.set_index("Country").loc["A", "P1"] + at.set_index("Country").loc["A", "P1"]) / 2
+    got_p1 = blended.set_index("Country").loc["A", "P1"]
+    check("pillar blend = mean of the two runs", abs(got_p1 - expected_p1) < 1e-9)
+    # CHIPS is the mean of the two runs' CHIPS (rounded to 2dp on 0-100).
+    exp_chips = (rt.set_index("Country").loc["A", "chips"] + at.set_index("Country").loc["A", "chips"]) / 2
+    exp_chips = round(exp_chips * 100, 2) / 100
+    check("CHIPS blend = rounded mean", abs(blended.set_index("Country").loc["A", "chips"] - exp_chips) < 1e-9)
+    # Blended ranks: valid (>=1, and higher CHIPS never gets a worse rank).
+    br = blended.set_index("Country")
+    check("blend ranks are >= 1", bool(blended["rank"].dropna().ge(1).all()))
+    check("blend ranks order by blended CHIPS",
+          bool((blended.sort_values("chips", ascending=False)["rank"]
+                .is_monotonic_increasing) or len(blended) <= 1))
+
+    # One dataset missing a whole indicator -> that side still runs (its S2 drop
+    # handling) and the blend uses whichever side is present for P2's sub-pillar.
+    rel2 = _data({"X": [1, 2, 3, 4], "Y": [4, 3, 2, 1], "Z": [np.nan] * 4})
+    abs2 = _data({"X": [1, 3, 3, 5], "Y": [5, 3, 3, 1], "Z": [2, 2, 2, 2]})
+    rt2 = chips.chips_table(rel2, pillars=pillars, method=scaling.METHOD_FULL)
+    at2 = chips.chips_table(abs2, pillars=pillars, method=scaling.METHOD_FULL)
+    b2 = blend.blended_chips_table(rt2, at2)
+    p2 = b2.set_index("Country").loc["A", "P2"]
+    check("blend survives when one side drops an indicator", pd.notna(p2))
 
 
 def test_drop_propagation() -> None:
@@ -718,6 +777,7 @@ def test_real_data() -> None:
 def run_all() -> int:
     test_group_rules()
     test_ai_subpillar()
+    test_blend_policy()
     test_drop_propagation()
     test_rounding_precision()
     test_overrides_and_coverage()
