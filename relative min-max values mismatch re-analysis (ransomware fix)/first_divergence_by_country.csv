@@ -1,0 +1,7 @@
+Country,Published_CHIPS,Dashboard_CHIPS,Signed_diff,Abs_diff,Published_Rank,Dashboard_Rank,Cause,First_divergence_detail
+Italy,32.4,33.76,-1.36,1.36,33.0,32.0,INDICATOR (data-version / minmax bound),"Fixed (broadband) internet price, USD PPP (85.1pts)"
+Switzerland,39.3,38.14,1.16,1.16,17.0,21.0,AGGREGATION / WEIGHTS,chips diff = 1.16
+Uzbekistan,22.7,23.38,-0.68,0.68,62.0,64.0,AGGREGATION / WEIGHTS,chips diff = 0.68
+South Africa,24.5,24.72,-0.22,0.22,58.0,60.0,INDICATOR (data-version / minmax bound),Renewable energy share of electricity production (%) (8.3pts)
+Dominican Republic,,32.37,,,,35.0,AGGREGATION / WEIGHTS,chips diff = nan
+Kuwait,,47.33,,,,3.0,AGGREGATION / WEIGHTS,chips diff = nan

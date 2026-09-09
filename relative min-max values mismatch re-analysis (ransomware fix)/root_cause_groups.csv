@@ -1,0 +1,7 @@
+Country,Root_cause,Diverges_at,Pillar,Abs_diff
+Italy,INDICATOR (data-version / minmax bound),"Fixed (broadband) internet price, USD PPP",,1.36
+Switzerland,AGGREGATION / WEIGHTS,chips diff = 1.16,,1.16
+Uzbekistan,AGGREGATION / WEIGHTS,chips diff = 0.68,,0.68
+South Africa,INDICATOR (data-version / minmax bound),Renewable energy share of electricity production (%),,0.22
+Dominican Republic,AGGREGATION / WEIGHTS,chips diff = nan,,
+Kuwait,AGGREGATION / WEIGHTS,chips diff = nan,,

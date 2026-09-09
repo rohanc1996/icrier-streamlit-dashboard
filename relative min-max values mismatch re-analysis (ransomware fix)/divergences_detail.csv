@@ -1,0 +1,5 @@
+Country,Divergence_level,Indicator,Published_Indicator,Dashboard_Indicator,Subpillar,Published_Subpillar,Dashboard_Subpillar,Pillar,Published_Pillar,Dashboard_Pillar,Published_CHIPS,Dashboard_CHIPS,Published_Rank,Dashboard_Rank
+Italy,indicator,"Fixed (broadband) internet price, USD PPP",11.86,97.0,CONNECT · Affordability,72.5,93.78,CONNECT,48.4,53.74,32.4,33.76,33.0,32.0
+South Africa,indicator,Renewable energy share of electricity production (%),-0.2,8.1,SUSTAINABILITY · Sustainability,28.7,30.13,SUSTAINABILITY,28.7,30.13,24.5,24.72,58.0,60.0
+Switzerland,sub-pillar,,,,INNOVATE · AI,31.8,18.43,INNOVATE,30.1,25.62,39.3,38.14,17.0,21.0
+Uzbekistan,sub-pillar,,,,SUSTAINABILITY · Sustainability,32.2,37.76,SUSTAINABILITY,32.2,37.76,22.7,23.38,62.0,64.0
