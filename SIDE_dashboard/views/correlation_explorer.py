@@ -40,9 +40,11 @@ def render(data, method=scaling.METHOD_Z) -> None:
     )
     ui.explainer(
         "🧪",
-        "You choose the two indicators. For each of the two scaling methods "
-        "you get Pearson (linear) and Spearman (rank-based) correlations plus a "
-        "trend line.",
+        "You choose the two indicators.",
+        detail=(
+            "For each of the two scaling methods you get Pearson (linear) and Spearman "
+            "(rank-based) correlations plus a trend line."
+        ),
     )
 
     with st.expander("🎯 Start from one of the five themes"):

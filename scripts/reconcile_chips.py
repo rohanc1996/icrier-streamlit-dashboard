@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "SIDE_dashboard"))
 
 from core import chips, scaling  # noqa: E402
 from core import chips_hierarchy as H  # noqa: E402
-from core.loader import DATA_FILE, load_app_data  # noqa: E402
+from core.loader import DATA_FILE, load_app_data, shrink_whitespace  # noqa: E402
 
 PUB_FILE = ROOT / "data" / "SIDE 2026 - AI augmented Absolute Index 2026.csv"
 OUT_DIR = ROOT / "deliverables"
@@ -88,7 +88,7 @@ def build_pub_subpillars(pub, countries) -> dict[str, dict[str, float]]:
 def main(out_dir: Path = OUT_DIR, data_file: Path | str = DATA_FILE,
          pub_file: Path | str = PUB_FILE) -> None:
     out_dir.mkdir(exist_ok=True, parents=True)
-    pub = pd.read_csv(pub_file, dtype=str, keep_default_na=False)
+    pub = shrink_whitespace(pd.read_csv(pub_file, dtype=str, keep_default_na=False))
     countries = list(pub.columns[7:78])
 
     data = load_app_data(data_file)

@@ -18,7 +18,8 @@ SECTION_OPTIONS = ["📊 Individual indicator", "🧩 Composite CHIPS"]
 DEFAULT_SECTION = SECTION_OPTIONS[1]
 
 
-def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
+def render(data, method=scaling.METHOD_Z, data_file: str | None = None,
+           sources: dict | None = None) -> None:
     ui.page_header(
         "⚖️ Scaling comparator",
         "Raw numbers are turned into 0–1 scores in two different ways. See how "

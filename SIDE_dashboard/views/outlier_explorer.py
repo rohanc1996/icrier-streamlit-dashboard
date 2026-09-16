@@ -19,9 +19,9 @@ def render(data, method=scaling.METHOD_Z) -> None:
     )
     ui.explainer(
         "🔍",
-        "For any pair of indicators this page removes each country one at a "
-        "time and measures how much the correlation changes. A big bar means "
-        "that country strongly influences the link.",
+        "For any pair of indicators this page removes each country one at a time "
+        "and measures how much the correlation changes.",
+        detail="A big bar means that country strongly influences the link.",
     )
 
     c1, c2, c3 = st.columns([1, 1, 1])

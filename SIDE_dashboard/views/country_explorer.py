@@ -9,6 +9,8 @@ from core.themes import HIGHLIGHT_COUNTRIES
 
 DEFAULT_INDICATOR = "Median Mobile Download Speeds (Mbps)"
 
+SECTIONS = ["🗺️ World map", "📋 Country rankings", "🕸️ Compare countries"]
+
 # Indicators used for headline metrics in the profile panel.
 HEADLINE_INDICATORS = [
     "Median Mobile Download Speeds (Mbps)",
@@ -69,10 +71,11 @@ def _on_map_select() -> None:
     if clicked and clicked in st.session_state.get("_ce_country_list", []):
         st.session_state["selected_country"] = clicked
         st.session_state["ce_country"] = clicked
-        st.session_state["ce_section"] = "📋 Country rankings"
+        st.session_state["ce_section"] = SECTIONS[1]
 
 
-def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
+def render(data, method=scaling.METHOD_Z, data_file: str | None = None,
+           sources: dict | None = None) -> None:
     ui.page_header(
         "🌍 Country Explorer",
         "Three views in one place: colour the world map by any indicator, "
@@ -82,10 +85,12 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     ui.explainer(
         "🧭",
         "**🗺️ World map** — colour one indicator at a time; click a country to "
-        "jump straight to its rankings. **📋 Country rankings** — pick a country "
-        "(India by default) for headline metrics and its position on every "
-        "indicator. **🕸️ Compare countries** — put 2–5 countries on a spider "
-        "chart of scaled scores.",
+        "jump straight to its rankings.",
+        detail=(
+            "**📋 Country rankings** — pick a country (India by default) for headline "
+            "metrics and its position on every indicator. **🕸️ Compare countries** — "
+            "put 2–5 countries on a spider chart of scaled scores."
+        ),
     )
 
     # India is the default country on first load.
@@ -105,13 +110,13 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     # rankings section programmatically.
     section = st.radio(
         "Section",
-        ["🗺️ World map", "📋 Country rankings", "🕸️ Compare countries"],
+        SECTIONS,
         horizontal=True,
         label_visibility="collapsed",
         key="ce_section",
     )
 
-    if section == "🗺️ World map":
+    if section == SECTIONS[0]:
         indicator = ui.indicator_selectbox(
             data, "Colour the map by", key="ce_indicator", default=DEFAULT_INDICATOR
         )
@@ -126,7 +131,7 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
             map_fig, key="world_map", on_select=_on_map_select, selection_mode="points"
         )
 
-    elif section == "📋 Country rankings":
+    elif section == SECTIONS[1]:
         c1, c2 = st.columns([4, 1], vertical_alignment="center")
         with c1:
             st.selectbox(
@@ -208,9 +213,11 @@ def _profile_panel(data, country: str, method) -> None:
 def _comparison_panel(data, method) -> None:
     ui.explainer(
         "🕸️",
-        "Pick 2–5 countries and a few indicators. The spider chart (or parallel "
-        "coordinates) shows the scaled score — 0 to 1, higher is always better — "
-        "so you can spot patterns at a glance.",
+        "Pick 2–5 countries and a few indicators.",
+        detail=(
+            "The spider chart (or parallel coordinates) shows the scaled score — 0 to 1, "
+            "higher is always better — so you can spot patterns at a glance."
+        ),
     )
 
     c1, c2 = st.columns(2)

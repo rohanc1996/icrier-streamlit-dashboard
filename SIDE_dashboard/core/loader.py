@@ -25,17 +25,33 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from . import chips_hierarchy as H
+
 # The datasets live in the repository root's ``data/`` folder, one level up
-# from the SIDE_dashboard package folder.  The dashboard can switch between the
-# two base-score variants (relative-normalised values, the default, and the
-# raw absolute values) via the sidebar "Base scores" selector.
+# from the SIDE_dashboard package folder.  Each *year* has two base-score
+# variants (relative-normalised values and the raw absolute values); the
+# dashboard's right sidebar selects both the year and the variant.  Only 2026
+# exists today — add later years to ``DATASETS`` and they appear automatically.
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-DATA_SOURCES = {
-    # Order matters: the first entry is the dashboard's default selection.
-    "Relative": DATA_DIR / "SIDE 2026 - Relative.csv",
-    "Absolute": DATA_DIR / "SIDE 2026 - Absolute.csv",
+DATASETS = {
+    "2026": {
+        # Order matters: the first entry is the dashboard's default selection.
+        "Relative": DATA_DIR / "SIDE 2026 - Relative.csv",
+        "Absolute": DATA_DIR / "SIDE 2026 - Absolute.csv",
+    },
 }
+YEARS = list(DATASETS)
+DEFAULT_YEAR = YEARS[0]
+# Backwards-compatible aliases for scripts / tests that predate the year switch.
+DATA_SOURCES = DATASETS[DEFAULT_YEAR]
 DATA_FILE = DATA_SOURCES["Absolute"]  # headless default (scripts / tests)
+# Resolved paths of every year's "Relative" file (these need column renaming).
+_RELATIVE_PATHS = {
+    Path(p).resolve()
+    for sources in DATASETS.values()
+    for variant, p in sources.items()
+    if variant == "Relative"
+}
 MIN_VALID_VALUES = 5
 
 # --------------------------------------------------------------------------
@@ -169,79 +185,11 @@ FRIENDLY_NAMES = {
     "Responsible AI - Conference Submissions on RAI Topics (Total)": "Responsible-AI conference submissions",
     "Public trust score": "Public trust score",
 }
-# Broad subject areas used to organise the indicator lists.
-CATEGORIES = {
-    "Price of mobile data and voice basket (HC) (PPP)": "Affordability",
-    "Price of mobile data and voice basket (LC) (PPP)": "Affordability",
-    "Price of cheapest smartphone (PPP$)": "Affordability",
-    "Price of fixed broadband internet (PPP)": "Affordability",
-    "Median Mobile Download Speeds (Mbps)": "Connectivity & access",
-    "Median Fixed Broadband Download Speed (Mbps)": "Connectivity & access",
-    "Number of Internet Users (absolute numbers)": "Connectivity & access",
-    "Mobile Cellular Subscriptions in millions (absolute numbers)": "Connectivity & access",
-    "Population covered by LTE (Absolute numbers)": "Connectivity & access",
-    "Number of smartphone users (million)": "Connectivity & access",
-    "Gender gap - Number of women that need to use the internet (or stop using the internet, if negative) to achieve parity in internet penetration rate": "Digital economy",
-    "Number of internet users (16-64 years) using social media for work related activities": "Digital economy",
-    "Number of users of digital food delivery platforms (millions)": "Digital economy",
-    "Number of users of digital health applications": "Digital economy",
-    "Number of e-commerce users": "Digital economy",
-    "Consumer Spend on Mobile Apps (millions USD)": "Digital economy",
-    "Number of video on demand users": "Digital economy",
-    "Fixed-broadband Internet traffic (EB)": "Digital economy",
-    "Mobile broadband internet traffic (EB)": "Digital economy",
-    "Value of digital payment transactions (millions of dollars)": "Digital economy",
-    "Users of Digital Payments (in millions)": "Digital economy",
-    "Number of people who received public sector wages (% of public sector wage recipients, age 15 +) per 1000 adults": "Digital economy",
-    "Number of mobile money and internet banking transactions per 1000 adults": "Digital economy",
-    "Number of mobile money and internet banking transactions": "Digital economy",
-    "ICT Services Export (million USD)": "Digital economy",
-    "Total digitally delivered services (million USD)": "Digital economy",
-    "IT market Capitalisation in USD": "Digital economy",
-    "Employment: ICT sector (thousands)": "Digital economy",
-    "Employment: ICT services (thousands)": "Digital economy",
-    "Number of Start-ups": "Start-ups & innovation",
-    "Valuation of Unicorns (Millions of USD)": "Start-ups & innovation",
-    "Total funding till date of Startups having their Head Quarters or atleast one office location in India (Millions of USD)": "Start-ups & innovation",
-    "Number of energy and digital startups": "Start-ups & innovation",
-    "VC investments in AI and environmental sustainability by country (USD million)": "Start-ups & innovation",
-    "Patents filed (2000-2024) in Smart Grids": "Start-ups & innovation",
-    "Patents filed (2000-2024) in Information/Communication Technologies for Electromobility": "Start-ups & innovation",
-    "Consumer and Industrial IoT revenues (millions of USD)": "Emerging technologies",
-    "AR/ VR revenues (millions of USD)": "Emerging technologies",
-    "Metaverse revenue (millions of USD)": "Emerging technologies",
-    "DeFi revenue (millions of USD)": "Emerging technologies",
-    "Robotics revenue (millions of USD)": "Emerging technologies",
-    "Drones revenue (millions of USD)": "Emerging technologies",
-    "Crypto Index Score": "Emerging technologies",
-    "Number of AI users": "AI ecosystem",
-    "Compute capacity": "AI ecosystem",
-    "Open Data Score": "AI ecosystem",
-    "AI Infrastructure": "AI ecosystem",
-    "AI Infrastructure.1": "AI ecosystem",
-    "Compute Capacity (Rmax) in Millions": "AI ecosystem",
-    "Apps and Platforms": "AI ecosystem",
-    "Development: Open Source models score": "AI ecosystem",
-    "Relative AI Skill Penetration": "AI ecosystem",
-    "AI Talent Pillar Score": "AI ecosystem",
-    "Total AI Private Investment in Millions": "AI ecosystem",
-    "Newly Funded AI Companies": "AI ecosystem",
-    "AI commercial": "AI ecosystem",
-    "AI Innovation - Research": "AI ecosystem",
-    "AI Research and Development- score": "AI ecosystem",
-    "Safety and security": "AI ecosystem",
-    "Responsible AI - Conference Submissions on RAI Topics (Total)": "AI ecosystem",
-    "Public trust score": "AI ecosystem",
-    "Cybersecurity revenue (Mn USD)": "Security & trust",
-    "Number of Secure servers": "Security & trust",
-    "Ransomware attacks 30 day average": "Security & trust",
-    "Ransomware victims": "Security & trust",
-    "Total number of email leaks (Quarterly average) (2022 Q3 - 2025 Q3)": "Security & trust",
-    "E-waste generated (million kg)": "Sustainability & energy",
-    "Net electricity production from Renewables (Hydro, Geo, Solar, Wind, Other) (GWh)": "Sustainability & energy",
-    "Total renewable energy production (GWh)": "Sustainability & energy",
-    "AAL by Climate (Million USD) for the Telecom Sector- Existing Climate": "Sustainability & energy",
-}
+# Indicator categories are derived at load time from the CHIPS hierarchy
+# (``core/chips_hierarchy.py``): each indicator is grouped under its
+# "PILLAR · SUB-PILLAR".  Dataset indicators that are not part of the published
+# framework are labelled ``NOT_IN_FRAMEWORK_LABEL``.
+NOT_IN_FRAMEWORK_LABEL = "Other (not in framework)"
 
 # Whether a HIGHER value of the indicator is *better* for a country.
 # Price / risk / waste indicators are set to False.
@@ -266,6 +214,19 @@ def normalize_column_name(col: str) -> str:
     return col
 
 
+def shrink_whitespace(df: pd.DataFrame) -> pd.DataFrame:
+    """Collapse runs of whitespace in every cell to a single space and strip.
+
+    Source sheets carry stray tabs, newlines and non-breaking spaces that would
+    otherwise cause mismatched country names and unparsable numbers.
+    """
+    return df.apply(
+        lambda col: col.map(
+            lambda v: re.sub(r"\s+", " ", v).strip() if isinstance(v, str) else v
+        )
+    )
+
+
 def parse_numeric(series: pd.Series) -> pd.Series:
     """Convert messy cells (commas, dashes, blanks) into numbers or NaN."""
     cleaned = series.astype(str).str.strip()
@@ -283,6 +244,23 @@ def _dedupe_columns(columns: pd.Index) -> pd.Index:
         seen[col] = n + 1
         out.append(col if n == 0 else f"{col} ({n + 1})")
     return pd.Index(out)
+
+
+def _indicator_categories(columns) -> dict[str, str]:
+    """Map each dataset column to its CHIPS "PILLAR · SUB-PILLAR" group.
+
+    Columns that are not part of the published hierarchy are absent from the
+    result; the caller labels those ``NOT_IN_FRAMEWORK_LABEL``.
+    """
+    pillars, _ = H.resolve_hierarchy(columns)
+    out: dict[str, str] = {}
+    for pillar in pillars:
+        for sub in pillar.sub_pillars:
+            leaves = [leaf for g in sub.groups for leaf in g.leaves] if sub.groups else sub.leaves
+            for leaf in leaves:
+                if leaf.column:
+                    out[leaf.column] = f"{pillar.name} · {sub.name}"
+    return out
 
 
 @dataclass
@@ -305,12 +283,13 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
         raise FileNotFoundError(f"Dataset not found: {path}")
 
     raw = pd.read_csv(path, dtype=str, keep_default_na=False)
+    raw = shrink_whitespace(raw)
     raw.columns = _dedupe_columns(pd.Index(normalize_column_name(c) for c in raw.columns))
 
     # The relative dataset renames its main indicators to per-GNI / per-capita /
     # % measures; translate them back to the canonical headers the rest of the
     # app (hierarchy, friendly names, higher-is-better) is keyed on.
-    if Path(path).resolve() == Path(DATA_SOURCES["Relative"]).resolve():
+    if Path(path).resolve() in _RELATIVE_PATHS:
         raw = raw.rename(columns=RELATIVE_TO_CANONICAL)
         raw = raw.loc[:, ~raw.columns.isin(RELATIVE_DROP)]
         raw.columns = _dedupe_columns(raw.columns)
@@ -338,7 +317,10 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
     ]
 
     friendly_names = {c: FRIENDLY_NAMES.get(c, c) for c in numeric_df.columns}
-    categories = {c: CATEGORIES.get(c, "Other") for c in indicators}
+    pillar_categories = _indicator_categories(numeric_df.columns)
+    categories = {
+        c: pillar_categories.get(c, NOT_IN_FRAMEWORK_LABEL) for c in indicators
+    }
     higher_is_better = {c: HIGHER_IS_BETTER.get(c, True) for c in indicators}
 
     return AppData(

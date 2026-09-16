@@ -499,9 +499,12 @@ def _score_override_editor(data, country: str, pillars, method: str, spec_json: 
     st.markdown(f"#### ✏️ Adjust {country}'s indicator scores")
     ui.explainer(
         "✏️",
-        "Replace any indicator's computed 0–1 score with **your** judgement. Overrides "
-        "apply only to this country, feed straight into its CHIPS score and rank, and a "
-        "missing indicator can be filled with a subjective value (coverage then reflects it).",
+        "Replace any indicator's computed 0–1 score with **your** judgement.",
+        detail=(
+            "Overrides apply only to this country, feed straight into its CHIPS score and "
+            "rank, and a missing indicator can be filled with a subjective value (coverage "
+            "then reflects it)."
+        ),
     )
     st.caption("This feeds the alternative calculation only — the published CHIPS index "
                "is never changed.")
@@ -576,7 +579,8 @@ def _default_country(data) -> str:
     return DEFAULT_COUNTRY if DEFAULT_COUNTRY in data.country_list else data.country_list[0]
 
 
-def render(data, method=scaling.METHOD_Z, data_file: str | Path | None = None) -> None:
+def render(data, method=scaling.METHOD_Z, data_file: str | Path | None = None,
+           sources: dict | None = None) -> None:
     data_file = str(data_file or DATA_FILE)
     ui.page_header(
         "🎛️ Create Your Own CHIPS Framework",
@@ -588,10 +592,13 @@ def render(data, method=scaling.METHOD_Z, data_file: str | Path | None = None) -
     ui.explainer(
         "🎛️",
         "The published CHIPS framework is never altered: your custom framework is only a "
-        "thought experiment that lives in this session. Two guard-rails keep it sensible — "
-        "**every level of weights must total 100%** before results are shown, and membership "
-        "is assigned from the existing sub-pillars. It is recomputed with the same "
-        "missing-data rules as the default, so scores stay comparable.",
+        "thought experiment that lives in this session.",
+        detail=(
+            "Two guard-rails keep it sensible — **every level of weights must total 100%** "
+            "before results are shown, and membership is assigned from the existing "
+            "sub-pillars. It is recomputed with the same missing-data rules as the default, "
+            "so scores stay comparable."
+        ),
     )
 
     spec = _get_spec()
@@ -735,7 +742,7 @@ def render(data, method=scaling.METHOD_Z, data_file: str | Path | None = None) -
     if view == "📊 Leaderboard comparison":
         _custom_leaderboard(custom_pillars, custom_scores, baseline_scores)
     else:
-        _custom_country_drilldown(data, method, spec, custom_pillars, baseline_scores)
+        _custom_country_drilldown(data, method, spec, custom_pillars, baseline_scores, data_file)
 
 
 WATERMARK_TEXT = "ALTERNATIVE CALCULATION — NOT THE PUBLISHED CHIPS INDEX"
@@ -819,8 +826,8 @@ def _custom_leaderboard(custom_pillars, custom_scores, baseline_scores) -> None:
         f" overflow-y: auto !important; overflow-x: hidden !important;}}</style>",
         unsafe_allow_html=True,
     )
-    st.plotly_chart(race_fig, key="ch_fw_race", use_container_width=True)
-    st.plotly_chart(axis_fig, use_container_width=True,
+    st.plotly_chart(race_fig, key="ch_fw_race", width="stretch")
+    st.plotly_chart(axis_fig, width="stretch",
                     config={"displayModeBar": False, "staticPlot": True})
 
     st.markdown("#### World map under your framework")
@@ -834,7 +841,8 @@ def _custom_leaderboard(custom_pillars, custom_scores, baseline_scores) -> None:
                        file_name="chips_table_custom.csv", mime="text/csv")
 
 
-def _custom_country_drilldown(data, method, spec, custom_pillars, baseline_scores) -> None:
+def _custom_country_drilldown(data, method, spec, custom_pillars, baseline_scores,
+                              data_file) -> None:
     default = _default_country(data)
     country = st.selectbox("Country", data.country_list,
                            index=data.country_list.index(default), key="ch_fw_country")

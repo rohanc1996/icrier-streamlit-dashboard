@@ -1,6 +1,8 @@
 """Small UI helpers to keep the views readable and beginner-friendly."""
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -14,9 +16,18 @@ def page_header(title: str, subtitle: str) -> None:
     st.divider()
 
 
-def explainer(emoji: str, body: str) -> None:
-    """A plain-language info box shown at the top of each page."""
-    st.info(f"{emoji} {body}")
+def explainer(emoji: str, body: str, detail: str | None = None) -> None:
+    """A plain-language info box shown at the top of each page.
+
+    When ``detail`` is given, only ``body`` stays visible and the rest moves
+    into a hover "?" tooltip, so long explanations don't clutter the interface.
+    """
+    if detail is None:
+        st.info(f"{emoji} {body}")
+        return
+    key = "explainer_" + hashlib.md5(body.encode("utf-8")).hexdigest()[:10]
+    with st.container(key=key):
+        st.markdown(f"{emoji} {body}", help=detail)
 
 
 def fmt(v) -> str:

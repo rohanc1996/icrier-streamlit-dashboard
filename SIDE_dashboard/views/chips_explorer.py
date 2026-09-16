@@ -77,7 +77,8 @@ def _short_subpillar(key: str) -> str:
     return f"{PILLAR_SHORT.get(pillar, pillar[:4])}·{sp}"
 
 
-def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
+def render(data, method=scaling.METHOD_Z, data_file: str | None = None,
+           sources: dict | None = None) -> None:
     ui.page_header(
         "🏆 CHIPS Index Explorer",
         "CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY — a transparent "
@@ -85,6 +86,7 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     )
     pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
     st.session_state["_chips_country_list"] = data.country_list
+    sources = sources or DATA_SOURCES
 
     # "Combined" runs the index on both base datasets and blends the aggregate
     # (sub-pillar / pillar / CHIPS) scores 50/50.  It is a page-local view; the
@@ -97,8 +99,8 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
              "the Relative run's values.",
     )
     if combined:
-        rel_data = load_app_data(DATA_SOURCES["Relative"])
-        abs_data = load_app_data(DATA_SOURCES["Absolute"])
+        rel_data = load_app_data(sources["Relative"])
+        abs_data = load_app_data(sources["Absolute"])
         rel_scores = chips.chips_table(rel_data, pillars=pillars, method=method)
         abs_scores = chips.chips_table(abs_data, pillars=pillars, method=method)
         scores = blend.blended_chips_table(rel_scores, abs_scores)
@@ -121,14 +123,15 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None) -> None:
     else:
         ui.explainer(
             "🧮",
-            f"**{n_indicators} indicators → {n_sub} sub-pillars → 5 pillars → CHIPS (0–1).** "
-            "CONNECT, HARNESS and INNOVATE each carry **25%** of the index; PROTECT and "
-            "SUSTAINABILITY **12.5%** each. Every indicator is scaled to 0–1 with the "
-            "sidebar-selected method (z-score by default; inverted where lower "
-            "is better). Missing data is never "
-            "silently ignored: weights are "
-            "redistributed and groups that lose too many components are dropped with the reason "
-            "recorded — hover any block or cell to see it.",
+            f"**{n_indicators} indicators → {n_sub} sub-pillars → 5 pillars → CHIPS (0–1).**",
+            detail=(
+                "CONNECT, HARNESS and INNOVATE each carry **25%** of the index; "
+                "PROTECT and SUSTAINABILITY **12.5%** each. Every indicator is scaled "
+                "to 0–1 with the sidebar-selected method (z-score by default; inverted "
+                "where lower is better). Missing data is never silently ignored: weights "
+                "are redistributed and groups that lose too many components are dropped "
+                "with the reason recorded — hover any block or cell to see it."
+            ),
         )
 
     section = st.radio(
@@ -165,8 +168,8 @@ def _leaderboard(scores) -> None:
         f" overflow-y: auto !important; overflow-x: hidden !important;}}</style>",
         unsafe_allow_html=True,
     )
-    st.plotly_chart(race_fig, key="chips_race", use_container_width=True)
-    st.plotly_chart(axis_fig, use_container_width=True,
+    st.plotly_chart(race_fig, key="chips_race", width="stretch")
+    st.plotly_chart(axis_fig, width="stretch",
                     config={"displayModeBar": False, "staticPlot": True})
     st.caption(
         "Line colour mirrors the data badge — 🟢 full (≥90% of the CHIPS weight backed by "
@@ -208,8 +211,9 @@ def _leaderboard(scores) -> None:
 def _map_panel(data, scores) -> None:
     ui.explainer(
         "🗺️",
-        "Countries without a CHIPS score (fewer than 3 pillars with enough data) are left "
-        "uncoloured. Click any country to open its drill-down.",
+        "Countries without a CHIPS score (fewer than 3 pillars with enough data) are "
+        "left uncoloured.",
+        detail="Click any country to open its drill-down.",
     )
     selected = st.session_state.get("selected_country") or _default_country(data)
     fig = charts.chips_choropleth(scores, selected)
@@ -221,16 +225,19 @@ def _map_panel(data, scores) -> None:
 def _drilldown(data, scores, pillars, method, combined: bool = False) -> None:
     ui.explainer(
         "🔍",
-        "Open a country to see every pillar and indicator, exactly which groups were dropped "
-        "and why, and how far a missing sub-pillar could move the total.",
+        "Open a country to see every pillar and indicator.",
+        detail=(
+            "See exactly which groups were dropped and why, and how far a missing "
+            "sub-pillar could move the total."
+        ),
     )
     default = _default_country(data)
     country = st.selectbox("Country", data.country_list,
                            index=data.country_list.index(default), key="ch_country")
 
     if combined:
-        rel_data = load_app_data(DATA_SOURCES["Relative"])
-        abs_data = load_app_data(DATA_SOURCES["Absolute"])
+        rel_data = load_app_data(sources["Relative"])
+        abs_data = load_app_data(sources["Absolute"])
         res = chips.aggregate_country(rel_data, country, pillars=pillars, method=method)
         res_abs = chips.aggregate_country(abs_data, country, pillars=pillars, method=method)
     else:
@@ -327,8 +334,8 @@ def _whatif_panel(data, pillars, country, res, res_abs, method, combined: bool) 
         override = {target: ("present", value)}
 
     if combined:
-        rel_data = load_app_data(DATA_SOURCES["Relative"])
-        abs_data = load_app_data(DATA_SOURCES["Absolute"])
+        rel_data = load_app_data(sources["Relative"])
+        abs_data = load_app_data(sources["Absolute"])
         scen_rel = chips.aggregate_country(rel_data, country, pillars=pillars,
                                            override=override, method=method)
         scen_abs = chips.aggregate_country(abs_data, country, pillars=pillars,
@@ -363,16 +370,22 @@ def _whatif_panel(data, pillars, country, res, res_abs, method, combined: bool) 
 
 def _movers_panel(data, pillars, country, res, res_abs, method, combined: bool) -> None:
     with st.expander("📊 Which sub-pillars move this country's score most?"):
-        ui.explainer("💡", "Each row shows the CHIPS score if that one sub-pillar were removed "
-                          "(treated as having no data). The most negative Δ marks the sub-pillars "
-                          "the country currently leans on the hardest.")
+        ui.explainer(
+            "💡",
+            "Each row shows the CHIPS score if that one sub-pillar were removed "
+            "(treated as having no data).",
+            detail=(
+                "The most negative Δ marks the sub-pillars the country currently "
+                "leans on the hardest."
+            ),
+        )
         actual = (blend.blended_chips_score(res, res_abs) if combined else res.chips.score)
         movers = []
         for key in H.sub_pillar_keys(pillars):
             override = {key: ("absent", None)}
             if combined:
-                rel_data = load_app_data(DATA_SOURCES["Relative"])
-                abs_data = load_app_data(DATA_SOURCES["Absolute"])
+                rel_data = load_app_data(sources["Relative"])
+                abs_data = load_app_data(sources["Absolute"])
                 r = chips.aggregate_country(rel_data, country, pillars=pillars,
                                             override=override, method=method)
                 ra = chips.aggregate_country(abs_data, country, pillars=pillars,
@@ -395,8 +408,11 @@ def _movers_panel(data, pillars, country, res, res_abs, method, combined: bool) 
 def _missingness(data, scores, pillars, method) -> None:
     ui.explainer(
         "⚠️",
-        "How much of every country's score is backed by real data, where the gaps are, and "
-        "which rules had to redistribute or drop components to produce the score.",
+        "How much of every country's score is backed by real data.",
+        detail=(
+            "Where the gaps are, and which rules had to redistribute or drop "
+            "components to produce the score."
+        ),
     )
 
     st.markdown("#### Score vs data coverage")
@@ -427,10 +443,14 @@ def _missingness(data, scores, pillars, method) -> None:
 def _methodology(pillars, unresolved) -> None:
     ui.explainer(
         "📖",
-        "The CHIPS composite is weighted at the pillar level: **CONNECT, HARNESS and INNOVATE each "
-        "carry 25%** of the index and **PROTECT and SUSTAINABILITY 12.5% each**. Inside a group, "
-        "weights are equal unless the spec sheet gives a specific weight. Everything else is the "
-        "missing-data logic below — and every decision it makes is recorded per country.",
+        "The CHIPS composite is weighted at the pillar level: **CONNECT, HARNESS and "
+        "INNOVATE each carry 25%** of the index and **PROTECT and SUSTAINABILITY "
+        "12.5% each**.",
+        detail=(
+            "Inside a group, weights are equal unless the spec sheet gives a specific "
+            "weight. Everything else is the missing-data logic below — and every "
+            "decision it makes is recorded per country."
+        ),
     )
 
     st.markdown("#### Missing-data rules")
