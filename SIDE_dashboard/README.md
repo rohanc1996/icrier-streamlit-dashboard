@@ -13,9 +13,11 @@ ranges, quarter ranges) via `core/columns.py`.
 
 ## Getting started
 
+Requires **Python 3.10 or newer** (Streamlit 1.51 dropped Python 3.9).
+
 ```bash
 # from the repository root
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r SIDE_dashboard/requirements.txt
 

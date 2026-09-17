@@ -821,12 +821,8 @@ def _custom_leaderboard(custom_pillars, custom_scores, baseline_scores) -> None:
     race_fig, axis_fig = charts.chips_race(custom_scores)
     _watermark_fig(race_fig)
     box_h = min(charts.RACE_BOX_HEIGHT, int(race_fig.layout.height or 500))
-    st.markdown(
-        f"<style>.st-key-ch_fw_race {{height: {box_h}px !important;"
-        f" overflow-y: auto !important; overflow-x: hidden !important;}}</style>",
-        unsafe_allow_html=True,
-    )
-    st.plotly_chart(race_fig, key="ch_fw_race", width="stretch")
+    with st.container(height=box_h, border=False):
+        st.plotly_chart(race_fig, key="ch_fw_race", width="stretch")
     st.plotly_chart(axis_fig, width="stretch",
                     config={"displayModeBar": False, "staticPlot": True})
 

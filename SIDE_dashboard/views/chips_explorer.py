@@ -159,16 +159,11 @@ def _leaderboard(scores) -> None:
               help="Share of the CHIPS weight backed by actual values; see Missing-data for country-level detail.")
 
     race_fig, axis_fig = charts.chips_race(scores)
-    # The tall race figure scrolls inside a fixed-height box; the x-axis strip
-    # below it stays pinned so the scale is always visible. `key` gives the box
-    # a stable class (st-key-chips_race) so the CSS only affects this chart.
+    # The tall race figure scrolls inside a fixed-height container; the x-axis
+    # strip below it stays pinned so the scale is always visible.
     box_h = min(charts.RACE_BOX_HEIGHT, int(race_fig.layout.height or 500))
-    st.markdown(
-        f"<style>.st-key-chips_race {{height: {box_h}px !important;"
-        f" overflow-y: auto !important; overflow-x: hidden !important;}}</style>",
-        unsafe_allow_html=True,
-    )
-    st.plotly_chart(race_fig, key="chips_race", width="stretch")
+    with st.container(height=box_h, border=False):
+        st.plotly_chart(race_fig, key="chips_race", width="stretch")
     st.plotly_chart(axis_fig, width="stretch",
                     config={"displayModeBar": False, "staticPlot": True})
     st.caption(
@@ -218,8 +213,6 @@ def _map_panel(data, scores) -> None:
     selected = st.session_state.get("selected_country") or _default_country(data)
     fig = charts.chips_choropleth(scores, selected)
     st.plotly_chart(fig, key="chips_map", on_select=_on_map_select, selection_mode="points")
-    n_scored = int(scores["chips"].notna().sum())
-    st.caption(f"{n_scored} of {len(scores)} countries in our report have a CHIPS score.")
 
 
 def _drilldown(data, scores, pillars, method, combined: bool = False) -> None:
