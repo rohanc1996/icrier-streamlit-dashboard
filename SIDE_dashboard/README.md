@@ -1,8 +1,15 @@
 # SIDE Dashboard
 
-An interactive Streamlit companion to the SIDE 2026 dataset
+An interactive Streamlit companion to the SIDE digital-economy dataset
 (71 countries, 60+ indicators). It mirrors and extends the analysis in the
 companion notebook, wrapped in a point-and-click interface.
+
+The sidebar year selector is edition-aware: the years 2025, 2026 and 2027 are
+pre-registered in `core/loader.py`, and a year appears in the selector once at
+least one of its `data/SIDE <year> - {Relative,Absolute}.csv` files is present.
+The CHIPS hierarchy and its missing-data rules are shared across all years, and
+column matching tolerates edition-specific header drift (shifting patent year
+ranges, quarter ranges) via `core/columns.py`.
 
 ## Getting started
 

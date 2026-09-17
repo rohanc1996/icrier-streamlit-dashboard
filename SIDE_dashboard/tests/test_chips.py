@@ -769,6 +769,76 @@ def test_real_data() -> None:
           abs(frames.loc[frames.kind == "chips", "weight"].iloc[0] - 1.0) < 1e-9)
 
 
+# ---------------------------------------------------------------------------
+# Year registry + cross-year column drift
+# ---------------------------------------------------------------------------
+
+def test_year_registry_and_drift() -> None:
+    print("\nYear registry and cross-year column drift")
+    from core import loader
+    from core.columns import canonical_key
+
+    # canonical_key strips embedded year / quarter ranges but keeps real numbers.
+    check("canonical_key strips patent years",
+          canonical_key("Patents filed (2000-2024) in Smart Grids")
+          == "patents filed in smart grids")
+    check("canonical_key strips quarter range",
+          canonical_key("Total number of email leaks (Quarterly average) (2022 Q3 - 2025 Q3)")
+          == "total number of email leaks quarterly average")
+    check("canonical_key keeps 2-digit ranges",
+          "16 64" in canonical_key(
+              "Number of internet users (16-64 years) using social media for work related activities"))
+    check("canonical_key keeps 4-digit amounts",
+          "1000" in canonical_key(
+              "Number of mobile money and internet banking transactions per 1000 adults"))
+
+    # Registered years are pre-declared; only years with files are available.
+    check("2025/2026/2027 pre-registered",
+          set(loader.DATASET_YEARS) == {"2025", "2026", "2027"})
+    check("available years is a subset of registered years",
+          set(loader.available_years()).issubset(set(loader.DATASET_YEARS)))
+    check("2026 is available (data file present)",
+          "2026" in loader.available_years())
+    check("missing year has no sources", loader.sources_for("2027") == {})
+    check("default year is available",
+          loader.default_year() in loader.available_years())
+
+    # A relative file with shifted year ranges still maps to canonical headers.
+    shifted_rel = loader._relative_rename_map([
+        "Patents filed (2000-2024) in Smart Grids as a % of enabling tech patents",
+        "Total number of email leaks (Quarterly average) (2023 Q3 - 2026 Q3)",
+        "Brand new indicator not in the map",
+    ])
+    check("shifted relative patent maps to canonical",
+          shifted_rel.get("Patents filed (2000-2024) in Smart Grids as a % of enabling tech patents")
+          == "Patents filed (2000-2024) in Smart Grids")
+    check("shifted relative email leaks maps to canonical",
+          shifted_rel.get("Total number of email leaks (Quarterly average) (2023 Q3 - 2026 Q3)")
+          == "Total number of email leaks (Quarterly average) (2022 Q3 - 2025 Q3)")
+    check("unknown relative column left untouched",
+          "Brand new indicator not in the map" not in shifted_rel)
+
+    # An absolute file with shifted year ranges still resolves in the hierarchy.
+    drifted_cols = [
+        "Patents filed (2000-2025) in Smart Grids",
+        "Patents filed (2000-2025) in Information/Communication Technologies for Electromobility",
+        "Total number of email leaks (Quarterly average) (2023 Q3 - 2026 Q3)",
+    ]
+    pillars, _ = H.resolve_hierarchy(drifted_cols)
+    resolved = {leaf.column for leaf in H.all_leaves(pillars) if leaf.column}
+    check("drifted patent Smart Grids resolves",
+          "Patents filed (2000-2025) in Smart Grids" in resolved)
+    check("drifted email leaks resolves",
+          "Total number of email leaks (Quarterly average) (2023 Q3 - 2026 Q3)" in resolved)
+
+    # Friendly names / direction survive the same drift.
+    check("friendly name survives year drift",
+          loader.resolve_friendly_name(
+              "Patents filed (2000-2025) in Smart Grids") == "Smart-grid patents (2000-2024)")
+    check("higher-is-better survives year drift",
+          loader.resolve_higher_is_better(
+              "Total number of email leaks (Quarterly average) (2023 Q3 - 2026 Q3)") is False)
+
 
 # ---------------------------------------------------------------------------
 # Runner
@@ -793,6 +863,7 @@ def run_all() -> int:
     test_rescale_on_drop()
     test_indicator_overrides()
     test_real_data()
+    test_year_registry_and_drift()
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURE(S) of {PASSED + len(FAILURES)} checks: {FAILURES}")

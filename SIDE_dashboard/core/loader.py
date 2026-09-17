@@ -1,4 +1,4 @@
-"""Loading and cleaning the SIDE 2026 dataset.
+"""Loading and cleaning the SIDE digital-economy dataset.
 
 Mirrors the cleaning steps in ``skewed_column_scaling_analysis.ipynb``
 (cells 1-2):
@@ -26,32 +26,59 @@ import pandas as pd
 import streamlit as st
 
 from . import chips_hierarchy as H
+from .columns import canonical_key
 
 # The datasets live in the repository root's ``data/`` folder, one level up
 # from the SIDE_dashboard package folder.  Each *year* has two base-score
 # variants (relative-normalised values and the raw absolute values); the
-# dashboard's right sidebar selects both the year and the variant.  Only 2026
-# exists today — add later years to ``DATASETS`` and they appear automatically.
+# dashboard's sidebar selects both the year and the variant.
+#
+# The years below are pre-registered: the app already knows where 2025 and 2027
+# files *would* live, and only exposes a year once at least one of its files is
+# actually present (see ``available_years``).  Dropping
+# ``SIDE <year> - Relative.csv`` / ``SIDE <year> - Absolute.csv`` into ``data/``
+# is therefore all it takes for a new edition to appear in the selector.
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-DATASETS = {
-    "2026": {
-        # Order matters: the first entry is the dashboard's default selection.
-        "Relative": DATA_DIR / "SIDE 2026 - Relative.csv",
-        "Absolute": DATA_DIR / "SIDE 2026 - Absolute.csv",
-    },
-}
-YEARS = list(DATASETS)
-DEFAULT_YEAR = YEARS[0]
+DATASET_YEARS: tuple[str, ...] = ("2025", "2026", "2027")
+DEFAULT_YEAR = "2026"
+
+
+def _paths_for(year: str) -> dict[str, Path]:
+    """Expected file paths for one year's two base-score variants."""
+    return {
+        "Relative": DATA_DIR / f"SIDE {year} - Relative.csv",
+        "Absolute": DATA_DIR / f"SIDE {year} - Absolute.csv",
+    }
+
+
+DATASETS: dict[str, dict[str, Path]] = {year: _paths_for(year) for year in DATASET_YEARS}
+# Filenames of relative-normalised files (these need column renaming).  Matched
+# by pattern rather than by a fixed set so future years are handled with no code
+# change; the pattern deliberately excludes the "AI augmented ... Index" files.
+_RELATIVE_NAME_RE = re.compile(r"^SIDE\s+\d{4}\s*-\s*Relative\.csv$", re.IGNORECASE)
+
+
+def sources_for(year: str) -> dict[str, Path]:
+    """Variants of ``year`` whose files actually exist on disk."""
+    return {v: p for v, p in DATASETS.get(year, {}).items() if Path(p).exists()}
+
+
+def available_years() -> list[str]:
+    """Registered years that have at least one dataset file present."""
+    return [year for year in DATASET_YEARS if sources_for(year)]
+
+
+def default_year() -> str | None:
+    """The preferred year if present, else the newest available one."""
+    years = available_years()
+    if DEFAULT_YEAR in years:
+        return DEFAULT_YEAR
+    return years[-1] if years else None
+
+
 # Backwards-compatible aliases for scripts / tests that predate the year switch.
 DATA_SOURCES = DATASETS[DEFAULT_YEAR]
 DATA_FILE = DATA_SOURCES["Absolute"]  # headless default (scripts / tests)
-# Resolved paths of every year's "Relative" file (these need column renaming).
-_RELATIVE_PATHS = {
-    Path(p).resolve()
-    for sources in DATASETS.values()
-    for variant, p in sources.items()
-    if variant == "Relative"
-}
 MIN_VALID_VALUES = 5
 
 # --------------------------------------------------------------------------
@@ -205,6 +232,23 @@ HIGHER_IS_BETTER = {
     "E-waste generated (million kg)": False,
     "AAL by Climate (Million USD) for the Telecom Sector- Existing Climate": False,
 }
+# Canonical-key lookups so a later edition whose headers carry shifted year
+# ranges still resolves to the same friendly name / direction.  Exact keys are
+# a subset of these, so one normalised lookup replaces the exact dict lookup.
+_FRIENDLY_BY_KEY = {canonical_key(k): v for k, v in FRIENDLY_NAMES.items()}
+_HIGHER_IS_BETTER_BY_KEY = {canonical_key(k): v for k, v in HIGHER_IS_BETTER.items()}
+
+
+def resolve_friendly_name(column: str) -> str:
+    """Friendly label for a dataset column, tolerant of year-range drift."""
+    return _FRIENDLY_BY_KEY.get(canonical_key(column), column)
+
+
+def resolve_higher_is_better(column: str) -> bool:
+    """Whether a higher value is better, tolerant of year-range drift."""
+    return _HIGHER_IS_BETTER_BY_KEY.get(canonical_key(column), True)
+
+
 def normalize_column_name(col: str) -> str:
     """Collapse whitespace and strip trailing source URLs from a header."""
     col = str(col).strip()
@@ -246,6 +290,26 @@ def _dedupe_columns(columns: pd.Index) -> pd.Index:
     return pd.Index(out)
 
 
+def _relative_rename_map(columns) -> dict[str, str]:
+    """Map a relative file's headers to their canonical absolute names.
+
+    Exact names are tried first; otherwise the header is matched on its
+    canonical key so a later edition whose year ranges shifted still translates.
+    """
+    by_key: dict[str, str] = {}
+    for source, target in RELATIVE_TO_CANONICAL.items():
+        by_key.setdefault(canonical_key(source), target)
+    mapping: dict[str, str] = {}
+    for col in columns:
+        if col in RELATIVE_TO_CANONICAL:
+            mapping[col] = RELATIVE_TO_CANONICAL[col]
+        else:
+            target = by_key.get(canonical_key(col))
+            if target and target != col:
+                mapping[col] = target
+    return mapping
+
+
 def _indicator_categories(columns) -> dict[str, str]:
     """Map each dataset column to its CHIPS "PILLAR · SUB-PILLAR" group.
 
@@ -276,7 +340,7 @@ class AppData:
     higher_is_better: dict[str, bool]
 
 
-@st.cache_data(show_spinner="Loading the SIDE 2026 dataset...")
+@st.cache_data(show_spinner="Loading the SIDE dataset...")
 def load_app_data(path: Path | str = DATA_FILE) -> AppData:
     path = Path(path)
     if not path.exists():
@@ -288,9 +352,10 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
 
     # The relative dataset renames its main indicators to per-GNI / per-capita /
     # % measures; translate them back to the canonical headers the rest of the
-    # app (hierarchy, friendly names, higher-is-better) is keyed on.
-    if Path(path).resolve() in _RELATIVE_PATHS:
-        raw = raw.rename(columns=RELATIVE_TO_CANONICAL)
+    # app (hierarchy, friendly names, higher-is-better) is keyed on.  Detected by
+    # filename so future years are covered without touching this module.
+    if _RELATIVE_NAME_RE.match(path.name):
+        raw = raw.rename(columns=_relative_rename_map(raw.columns))
         raw = raw.loc[:, ~raw.columns.isin(RELATIVE_DROP)]
         raw.columns = _dedupe_columns(raw.columns)
 
@@ -316,12 +381,12 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
         if col != "Country" and int(numeric_df[col].notna().sum()) >= MIN_VALID_VALUES
     ]
 
-    friendly_names = {c: FRIENDLY_NAMES.get(c, c) for c in numeric_df.columns}
+    friendly_names = {c: resolve_friendly_name(c) for c in numeric_df.columns}
     pillar_categories = _indicator_categories(numeric_df.columns)
     categories = {
         c: pillar_categories.get(c, NOT_IN_FRAMEWORK_LABEL) for c in indicators
     }
-    higher_is_better = {c: HIGHER_IS_BETTER.get(c, True) for c in indicators}
+    higher_is_better = {c: resolve_higher_is_better(c) for c in indicators}
 
     return AppData(
         df=df,

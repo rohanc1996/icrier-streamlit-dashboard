@@ -1,4 +1,4 @@
-"""SIDE Dashboard — interactive companion to the 2026 dataset.
+"""SIDE Dashboard — interactive companion to the SIDE digital-economy dataset.
 
 Run from the repository root:
 
@@ -18,7 +18,12 @@ st.set_page_config(
 
 from components import ui  # noqa: E402
 from core import scaling  # noqa: E402
-from core.loader import DATASETS, DEFAULT_YEAR, YEARS, load_app_data  # noqa: E402
+from core.loader import (  # noqa: E402
+    available_years,
+    default_year,
+    load_app_data,
+    sources_for,
+)
 from views import (  # noqa: E402
     chips_explorer,
     country_explorer,
@@ -77,8 +82,8 @@ def _sidebar() -> tuple[str, str, str, str]:
     with st.sidebar:
         st.markdown("## 🌐 SIDE Dashboard")
         st.caption(
-            "Interactive companion to the SIDE 2026 dataset. 71 countries, "
-            "60+ indicators."
+            "Interactive companion to ICRIER's SIDE digital-economy dataset — "
+            "switch years and base scores below."
         )
         st.divider()
 
@@ -88,8 +93,18 @@ def _sidebar() -> tuple[str, str, str, str]:
 
         st.divider()
 
-        year = st.selectbox("Year", YEARS, index=YEARS.index(DEFAULT_YEAR), key="year")
-        sources = DATASETS[year]
+        years = available_years()
+        if not years:
+            st.error("No SIDE datasets found in the `data/` folder.")
+            st.stop()
+        # A year can disappear if its files are removed; drop the stale widget
+        # value so the selectbox re-seeds cleanly.
+        if st.session_state.get("year") not in years:
+            st.session_state.pop("year", None)
+        year = st.selectbox(
+            "Year", years, index=years.index(default_year()), key="year"
+        )
+        sources = sources_for(year)
 
         base_labels = list(sources)
         if "data_source" in st.session_state and st.session_state["data_source"] not in sources:
@@ -138,7 +153,7 @@ def main() -> None:
 
     choice, year, base, method = _sidebar()
 
-    sources = DATASETS[year]
+    sources = sources_for(year)
     data = load_app_data(sources[base])
     PAGES[choice].render(
         data, method=method, data_file=sources[base], sources=sources

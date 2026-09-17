@@ -26,6 +26,8 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 
+from .columns import canonical_key
+
 # ---------------------------------------------------------------------------
 # Friendly CHIPS spec names → exact (normalised) dataset column headers.
 # Only the names that differ from the headers need an entry; everything else is
@@ -349,17 +351,31 @@ def _normalise(given: list[float | None]) -> list[float]:
     return [w / total for w in weights]
 
 
-def _resolve_column(name: str, columns: set[str]) -> str | None:
-    """Exact match first, then the alias table, then a case-insensitive scan."""
+def _resolve_column(name: str, columns: set[str], by_key: dict[str, str] | None = None) -> str | None:
+    """Resolve a spec name to a dataset column.
+
+    Exact match first, then the alias table, then a canonical-key match (so a
+    later edition whose headers carry shifted year ranges still resolves), then
+    a case-insensitive scan.
+    """
     if name in columns:
         return name
     alias = COLUMN_ALIASES.get(name)
     if alias is not None and alias in columns:
         return alias
+    if by_key is None:
+        by_key = {canonical_key(c): c for c in columns}
+    key = canonical_key(name)
+    if key in by_key:
+        return by_key[key]
+    if alias is not None:
+        alias_key = canonical_key(alias)
+        if alias_key in by_key:
+            return by_key[alias_key]
     lowered = {c.lower(): c for c in columns}
     if name.lower() in lowered:
         return lowered[name.lower()]
-    alias_lower = (COLUMN_ALIASES.get(name) or "").lower()
+    alias_lower = (alias or "").lower()
     if alias_lower in lowered:
         return lowered[alias_lower]
     return None
@@ -377,6 +393,9 @@ def resolve_hierarchy(columns, spec: list | None = None) -> tuple[list[Pillar], 
     """
     spec = HIERARCHY if spec is None else spec
     columns = {str(c) for c in columns}
+    by_key: dict[str, str] = {}
+    for col in columns:
+        by_key.setdefault(canonical_key(col), col)
     pillars: list[Pillar] = []
     unresolved: list[str] = []
     seen_names: set[str] = set()
@@ -391,7 +410,7 @@ def resolve_hierarchy(columns, spec: list | None = None) -> tuple[list[Pillar], 
                     leaves = []
                     for name, w in g["indicators"]:
                         _register_leaf(name, seen_names)
-                        column = _resolve_column(name, columns)
+                        column = _resolve_column(name, columns, by_key)
                         if column is None:
                             unresolved.append(name)
                         leaves.append(Leaf(name, column, 1.0 if w is None else float(w)))
@@ -402,7 +421,7 @@ def resolve_hierarchy(columns, spec: list | None = None) -> tuple[list[Pillar], 
                 leaves = []
                 for name, w in sp["indicators"]:
                     _register_leaf(name, seen_names)
-                    column = _resolve_column(name, columns)
+                    column = _resolve_column(name, columns, by_key)
                     if column is None:
                         unresolved.append(name)
                     leaves.append(Leaf(name, column, 1.0 if w is None else float(w)))
