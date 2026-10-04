@@ -153,6 +153,24 @@ EDITION_ADJUSTMENTS: dict[str, dict[str, tuple[str, float]]] = {
         "Consumer IoT revenues (billions of USD)": ("Consumer and Industrial IoT revenues (millions of USD)", 1000.0),
     },
 }
+
+# Edition-specific country-name normalisation. Some editions spell country
+# names the World Bank way ("Egypt, Arab Rep.", "Russia", "United States")
+# rather than the canonical names the dashboard (and the ISO-3 map) key on.
+# These are renamed so a country present in the file matches its canonical
+# name, its ISO-3 code and every other edition.
+EDITION_COUNTRY_NAMES: dict[str, dict[str, str]] = {
+    "2025": {
+        "Egypt, Arab Rep.": "Egypt",
+        "Russia": "Russian Federation",
+        "South Korea": "Republic of Korea",
+        "Turkey": "Türkiye",
+        "United States": "United States of America",
+        "Iran, Islamic Rep.": "Iran",
+        "Hong Kong SAR, China": "Hong Kong SAR",
+    },
+}
+
 _EDITION_YEAR_RE = re.compile(r"^SIDE\s+(\d{4})\s*-", re.IGNORECASE)
 
 # --------------------------------------------------------------------------
@@ -385,6 +403,9 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
     edition_adjustments = (
         EDITION_ADJUSTMENTS.get(_edition_match.group(1), {}) if _edition_match else {}
     )
+    edition_country_names = (
+        EDITION_COUNTRY_NAMES.get(_edition_match.group(1), {}) if _edition_match else {}
+    )
     if edition_adjustments:
         raw = raw.rename(columns={src: dst for src, (dst, _m) in edition_adjustments.items()})
         raw.columns = _dedupe_columns(raw.columns)
@@ -398,6 +419,10 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
     country_clean = raw["Country"].astype(str).str.strip()
     real = (country_clean != "") & (country_clean != "Coefficient of variation")
     df = raw.loc[real].copy().reset_index(drop=True)
+    if edition_country_names:
+        df["Country"] = df["Country"].astype(str).str.strip().map(
+            lambda c: edition_country_names.get(c, c)
+        )
 
     numeric_df = pd.DataFrame({"Country": df["Country"].astype(str).str.strip()})
     for col in df.columns:

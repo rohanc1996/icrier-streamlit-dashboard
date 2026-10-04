@@ -79,6 +79,8 @@ COUNTRY_TO_ISO3 = {
     "United States of America": "USA",
     "Uzbekistan": "UZB",
     "Viet Nam": "VNM",
+    "Iran": "IRN",
+    "Hong Kong SAR": "HKG",
 }
 
 ISO3_TO_COUNTRY = {v: k for k, v in COUNTRY_TO_ISO3.items()}
@@ -101,7 +103,7 @@ ISO3_TO_ISO2 = {
     "SRB": "rs", "SGP": "sg", "SVK": "sk", "ZAF": "za", "ESP": "es",
     "LKA": "lk", "SWE": "se", "CHE": "ch", "THA": "th", "TUR": "tr",
     "UKR": "ua", "ARE": "ae", "GBR": "gb", "USA": "us", "UZB": "uz",
-    "VNM": "vn",
+    "VNM": "vn", "IRN": "ir", "HKG": "hk",
 }
 
 COUNTRY_TO_ISO2 = {country: ISO3_TO_ISO2[iso3] for country, iso3 in COUNTRY_TO_ISO3.items()}

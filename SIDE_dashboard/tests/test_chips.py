@@ -881,6 +881,33 @@ def test_2025_edition_adjustments() -> None:
                   abs(float(got.iloc[0]) - float(parsed.iloc[0]) * 1000.0) < 1e-6)
 
 
+def test_2025_country_names() -> None:
+    print("\n2025 country-name normalisation (World Bank names -> canonical)")
+    from components import country_names
+    from core import loader
+    try:
+        path = loader.DATA_DIR / "SIDE 2025 - Absolute.csv"
+        data = loader.load_app_data(path)
+    except (FileNotFoundError, KeyError):
+        print("  skip (2025 data file not found or malformed)")
+        return
+
+    countries = set(data.country_list)
+    # World Bank raw spellings must be replaced by canonical names.
+    for raw_name in ["Egypt, Arab Rep.", "Russia", "South Korea", "Turkey",
+                     "United States", "Iran, Islamic Rep.", "Hong Kong SAR, China"]:
+        check(f"2025 raw name '{raw_name}' normalised away", raw_name not in countries)
+    for canon in ["Egypt", "Russian Federation", "Republic of Korea", "Türkiye",
+                  "United States of America", "Iran", "Hong Kong SAR"]:
+        check(f"2025 canonical name '{canon}' present", canon in countries)
+
+    # Every country present in the data must resolve to an ISO-3 code, so none
+    # silently vanish from the world map.
+    unmapped = [c for c in data.country_list if c not in country_names.COUNTRY_TO_ISO3]
+    check("every 2025 country maps to an ISO-3 code", not unmapped,
+          f"unmapped: {unmapped}")
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -906,6 +933,7 @@ def run_all() -> int:
     test_real_data()
     test_year_registry_and_drift()
     test_2025_edition_adjustments()
+    test_2025_country_names()
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURE(S) of {PASSED + len(FAILURES)} checks: {FAILURES}")
