@@ -137,6 +137,25 @@ RELATIVE_TO_CANONICAL = {
 RELATIVE_DROP = {"BLOC"}
 
 # --------------------------------------------------------------------------
+# Edition-specific column adjustments (rename + rescale) for base files.
+# Some editions express an indicator in different units than the 2026 CHIPS
+# framework's canonical columns (billions -> millions, Bn -> Mn). These map a
+# source header to ``(canonical header, numeric multiplier)`` so the value is
+# renamed and rescaled to the canonical 2026 column before scoring. Period-only
+# drift (patent / quarter ranges) needs no entry — ``canonical_key`` already
+# tolerates it.
+# --------------------------------------------------------------------------
+EDITION_ADJUSTMENTS: dict[str, dict[str, tuple[str, float]]] = {
+    "2025": {
+        "Valuation of Unicorns (Billions of USD)": ("Valuation of Unicorns (Millions of USD)", 1000.0),
+        "Metaverse revenue (billions of USD)": ("Metaverse revenue (millions of USD)", 1000.0),
+        "Cybersecurity revenue (Bn USD)": ("Cybersecurity revenue (Mn USD)", 1000.0),
+        "Consumer IoT revenues (billions of USD)": ("Consumer and Industrial IoT revenues (millions of USD)", 1000.0),
+    },
+}
+_EDITION_YEAR_RE = re.compile(r"^SIDE\s+(\d{4})\s*-", re.IGNORECASE)
+
+# --------------------------------------------------------------------------
 # Plain-language labels and organisation (keys are *normalised* column names).
 # --------------------------------------------------------------------------
 
@@ -359,6 +378,17 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
         raw = raw.loc[:, ~raw.columns.isin(RELATIVE_DROP)]
         raw.columns = _dedupe_columns(raw.columns)
 
+    # Edition-specific column adjustments (rename + rescale) for this year's
+    # base file, e.g. 2025's "billions of USD" columns expressed in the 2026
+    # framework's "millions of USD" units.
+    _edition_match = _EDITION_YEAR_RE.match(path.name)
+    edition_adjustments = (
+        EDITION_ADJUSTMENTS.get(_edition_match.group(1), {}) if _edition_match else {}
+    )
+    if edition_adjustments:
+        raw = raw.rename(columns={src: dst for src, (dst, _m) in edition_adjustments.items()})
+        raw.columns = _dedupe_columns(raw.columns)
+
     # Drop pandas' auto-generated "Unnamed: N" columns. They are stray cells in
     # the source sheet, not real indicators, so they must never reach the
     # dashboard (indicator lists, charts, tables or CHIPS calculations).
@@ -374,6 +404,11 @@ def load_app_data(path: Path | str = DATA_FILE) -> AppData:
         if col == "Country":
             continue
         numeric_df[col] = parse_numeric(df[col])
+
+    # Rescale the adjusted columns (e.g. billions -> millions) after parsing.
+    for _src, (dst, mult) in edition_adjustments.items():
+        if dst in numeric_df.columns:
+            numeric_df[dst] = numeric_df[dst] * mult
 
     indicators = [
         col

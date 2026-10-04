@@ -840,6 +840,47 @@ def test_year_registry_and_drift() -> None:
               "Total number of email leaks (Quarterly average) (2023 Q3 - 2026 Q3)") is False)
 
 
+def test_2025_edition_adjustments() -> None:
+    print("\n2025 edition adjustments (near-match rename + rescale)")
+    from core import loader
+    try:
+        path = loader.DATA_DIR / "SIDE 2025 - Absolute.csv"
+        data = loader.load_app_data(path)
+    except (FileNotFoundError, KeyError):
+        print("  skip (2025 data file not found or malformed)")
+        return
+
+    # The 4 unit-changing near-matches are renamed to their 2026 canonical
+    # columns; the source (billions / Bn) columns no longer exist.
+    for src, dst in [
+        ("Valuation of Unicorns (Billions of USD)", "Valuation of Unicorns (Millions of USD)"),
+        ("Metaverse revenue (billions of USD)", "Metaverse revenue (millions of USD)"),
+        ("Cybersecurity revenue (Bn USD)", "Cybersecurity revenue (Mn USD)"),
+        ("Consumer IoT revenues (billions of USD)", "Consumer and Industrial IoT revenues (millions of USD)"),
+    ]:
+        check(f"2025 '{src}' renamed away", src not in data.numeric_df.columns)
+        check(f"2025 '{dst}' present", dst in data.numeric_df.columns)
+
+    pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
+    for spec_name in ["Total Unicorn Valuation in Bn $", "Consumer IOT Revenues in MN USD",
+                      "Metaverse Revenues in bn $", "Cybersecurity Revenue in billion USD"]:
+        check(f"2025 '{spec_name}' resolves", spec_name not in unresolved)
+
+    # The billions -> millions adjustment multiplies by 1000.
+    raw = pd.read_csv(path, dtype=str, keep_default_na=False)
+    raw.columns = pd.Index(loader.normalize_column_name(c) for c in raw.columns)
+    src = "Valuation of Unicorns (Billions of USD)"
+    dst = "Valuation of Unicorns (Millions of USD)"
+    if src in raw.columns and dst in data.numeric_df.columns:
+        c = data.country_list[0]
+        raw_vals = raw.loc[raw["Country"].astype(str).str.strip() == c, src]
+        parsed = loader.parse_numeric(raw_vals)
+        got = data.numeric_df.loc[data.numeric_df["Country"] == c, dst]
+        if not parsed.empty and not pd.isna(parsed.iloc[0]) and not got.empty and not pd.isna(got.iloc[0]):
+            check("2025 valuation of unicorns rescaled x1000",
+                  abs(float(got.iloc[0]) - float(parsed.iloc[0]) * 1000.0) < 1e-6)
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -864,6 +905,7 @@ def run_all() -> int:
     test_indicator_overrides()
     test_real_data()
     test_year_registry_and_drift()
+    test_2025_edition_adjustments()
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURE(S) of {PASSED + len(FAILURES)} checks: {FAILURES}")

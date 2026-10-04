@@ -14,7 +14,7 @@ import streamlit as st
 
 from components import charts, country_names, ui
 from core import blend, chips, chips_hierarchy as H, scaling
-from core.loader import DATA_SOURCES, load_app_data
+from core.loader import DATA_SOURCES, NOT_IN_FRAMEWORK_LABEL, load_app_data
 
 SECTIONS = [
     "🏅 CHIPS leaderboard",
@@ -146,7 +146,7 @@ def render(data, method=scaling.METHOD_Z, data_file: str | None = None,
     elif section == SECTIONS[3]:
         _missingness(data, scores, pillars, method)
     else:
-        _methodology(pillars, unresolved)
+        _methodology(data, pillars, unresolved)
 
 
 def _leaderboard(scores) -> None:
@@ -433,7 +433,7 @@ def _missingness(data, scores, pillars, method) -> None:
         st.caption("The 20 scored countries with the lowest weighted data coverage.")
 
 
-def _methodology(pillars, unresolved) -> None:
+def _methodology(data, pillars, unresolved) -> None:
     ui.explainer(
         "📖",
         "The CHIPS composite is weighted at the pillar level: **CONNECT, HARNESS and "
@@ -482,6 +482,20 @@ def _methodology(pillars, unresolved) -> None:
                "indicators each carry 25% of that sub-pillar). At the top, the CHI pillars carry "
                "25% of the index and the PS pillars 12.5% each. Hover any cell in the charts to "
                "see which rule applied.")
+
+    others = [c for c in data.indicators if data.categories.get(c) == NOT_IN_FRAMEWORK_LABEL]
+    with st.expander(f"🧺 Indicators not in the CHIPS framework ({len(others)})"):
+        if others:
+            rows = pd.DataFrame({
+                "Indicator": [data.friendly_names.get(c, c) for c in others],
+                "Dataset column": others,
+            }).sort_values("Indicator").reset_index(drop=True)
+            ui.show_table(rows, height=320)
+            st.caption("These indicators are in the dataset but are not part of the CHIPS "
+                       "framework, so they are excluded from the CHIPS score. They remain "
+                       "available in the Country Explorer and the framework editor.")
+        else:
+            st.caption("Every dataset indicator maps into the CHIPS framework.")
 
 
 
