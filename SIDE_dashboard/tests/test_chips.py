@@ -799,7 +799,11 @@ def test_year_registry_and_drift() -> None:
           set(loader.available_years()).issubset(set(loader.DATASET_YEARS)))
     check("2026 is available (data file present)",
           "2026" in loader.available_years())
-    check("missing year has no sources", loader.sources_for("2027") == {})
+    check("2027 is available (data files present)",
+          "2027" in loader.available_years())
+    check("2027 has both score variants",
+          set(loader.sources_for("2027")) == {"Relative", "Absolute"})
+    check("unregistered year has no sources", loader.sources_for("2028") == {})
     check("default year is available",
           loader.default_year() in loader.available_years())
 
@@ -908,6 +912,36 @@ def test_2025_country_names() -> None:
           f"unmapped: {unmapped}")
 
 
+def test_empty_edition_chips() -> None:
+    print("\nEmpty edition (no CHIPS indicators scored) still yields numeric columns")
+    from core import loader
+    try:
+        paths = loader.sources_for("2027")
+        if set(paths) != {"Relative", "Absolute"}:
+            print("  skip (2027 data files not found)")
+            return
+        data = loader.load_app_data(paths["Absolute"])
+    except (FileNotFoundError, KeyError):
+        print("  skip (2027 data file not found or malformed)")
+        return
+
+    pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
+    table = chips.chips_table(data, pillars=pillars)
+
+    # When no country scores, the column must still be float (NaN), not object
+    # full of None -- otherwise ``Series.round`` raises TypeError.
+    check("empty edition chips column is numeric", pd.api.types.is_float_dtype(table["chips"]))
+    check("empty edition has no scored countries", int(table["chips"].notna().sum()) == 0)
+    for pillar in pillars:
+        check(f"empty edition '{pillar.name}' column is numeric",
+              pd.api.types.is_float_dtype(table[pillar.name]))
+    try:
+        table["chips"].round(3)
+        check("empty edition chips column can be rounded", True)
+    except TypeError as exc:
+        check("empty edition chips column can be rounded", False, str(exc))
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -934,6 +968,7 @@ def run_all() -> int:
     test_year_registry_and_drift()
     test_2025_edition_adjustments()
     test_2025_country_names()
+    test_empty_edition_chips()
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURE(S) of {PASSED + len(FAILURES)} checks: {FAILURES}")

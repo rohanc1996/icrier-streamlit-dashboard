@@ -399,6 +399,13 @@ def chips_table(
             row[pr.name] = pr.score
         rows.append(row)
     df = pd.DataFrame(rows)
+    # Coerce score columns to numeric.  When *every* country's score is None
+    # (e.g. a new edition whose only populated indicator is outside the CHIPS
+    # framework), pandas infers object dtype full of Python None; a later
+    # ``Series.round`` would then call ``round(None)`` and raise.  Numeric
+    # coercion turns those into NaN, matching an ordinary missing-data year.
+    score_cols = ["chips", *[p.name for p in pillars]]
+    df[score_cols] = df[score_cols].apply(pd.to_numeric, errors="coerce")
     scored = df["chips"].notna()
     df["rank"] = np.nan
     df.loc[scored, "rank"] = df.loc[scored, "chips"].rank(ascending=False, method="min").astype(int)

@@ -23,12 +23,19 @@ BLEND_KINDS = {"sub_pillar", "pillar", "chips"}
 
 
 def blend_value(a: float | None, b: float | None) -> float | None:
-    """50/50 of two scores with the presence fallback described above."""
-    if a is None and b is None:
+    """50/50 of two scores with the presence fallback described above.
+
+    A side "has no score" when its value is ``None`` *or* ``NaN`` (a
+    ``chips_table`` column is float NaN when a whole aggregate is missing, e.g.
+    an edition with no CHIPS indicators).
+    """
+    a_missing = a is None or pd.isna(a)
+    b_missing = b is None or pd.isna(b)
+    if a_missing and b_missing:
         return None
-    if a is None:
+    if a_missing:
         return float(b)
-    if b is None:
+    if b_missing:
         return float(a)
     return (float(a) + float(b)) / 2.0
 
