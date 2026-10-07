@@ -151,6 +151,7 @@ EDITION_ADJUSTMENTS: dict[str, dict[str, tuple[str, float]]] = {
         "Metaverse revenue (billions of USD)": ("Metaverse revenue (millions of USD)", 1000.0),
         "Cybersecurity revenue (Bn USD)": ("Cybersecurity revenue (Mn USD)", 1000.0),
         "Consumer IoT revenues (billions of USD)": ("Consumer and Industrial IoT revenues (millions of USD)", 1000.0),
+        "Number of people who made or received a digital payment": ("Users of Digital Payments (in millions)", 1e-6),
     },
 }
 
