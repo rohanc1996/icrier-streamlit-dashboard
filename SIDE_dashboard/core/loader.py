@@ -33,13 +33,13 @@ from .columns import canonical_key
 # variants (relative-normalised values and the raw absolute values); the
 # dashboard's sidebar selects both the year and the variant.
 #
-# The years below are pre-registered: the app already knows where 2025 and 2027
+# The years below are pre-registered: the app already knows where each year's
 # files *would* live, and only exposes a year once at least one of its files is
 # actually present (see ``available_years``).  Dropping
 # ``SIDE <year> - Relative.csv`` / ``SIDE <year> - Absolute.csv`` into ``data/``
 # is therefore all it takes for a new edition to appear in the selector.
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-DATASET_YEARS: tuple[str, ...] = ("2025", "2026", "2027")
+DATASET_YEARS: tuple[str, ...] = ("2024", "2025", "2026", "2027")
 DEFAULT_YEAR = "2026"
 
 

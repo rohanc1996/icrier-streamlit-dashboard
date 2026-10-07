@@ -1,0 +1,23 @@
+Match count: 51 columns total → 30 match 2026, 21 do not.
+21 that don't match (no 2026 counterpart, or unit can't be converted):
+- Price of cheapest smartphone (USD) — 2026 uses PPP$
+- Fixed broadband price USD — 2026 uses PPP
+- Gender gap in % of population using the internet — 2026 is number of women, not % points
+- Public-sector wages into an account (absolute)
+- Private-sector wages into an account (absolute)
+- Government transfer/pension into an account (absolute)
+- Value of neo banking transactions (USD)
+- Number of mobile app downloads
+- ICT Value-added (billions of USD)
+- AI publications
+- Venture Capital Investments in AI (millions of USD)
+- Contributions to Global AI Projects (%)
+- Geography-wise cybersecurity patent count
+- % trusting the internet is effectively governed
+- % concerned about online privacy
+- % who trust the internet
+- Market Size of Green data centres
+- Patents for Electromobility ICT (2000–2024)
+- Market Size of EHS software
+- Market Size of Energy Management Software
+- Market Size of Sustainable Electronics

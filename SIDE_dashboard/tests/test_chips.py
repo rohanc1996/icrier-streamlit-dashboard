@@ -793,10 +793,12 @@ def test_year_registry_and_drift() -> None:
               "Number of mobile money and internet banking transactions per 1000 adults"))
 
     # Registered years are pre-declared; only years with files are available.
-    check("2025/2026/2027 pre-registered",
-          set(loader.DATASET_YEARS) == {"2025", "2026", "2027"})
+    check("2024/2025/2026/2027 pre-registered",
+          set(loader.DATASET_YEARS) == {"2024", "2025", "2026", "2027"})
     check("available years is a subset of registered years",
           set(loader.available_years()).issubset(set(loader.DATASET_YEARS)))
+    check("2024 is available (data file present)",
+          "2024" in loader.available_years())
     check("2026 is available (data file present)",
           "2026" in loader.available_years())
     check("2027 is available (data files present)",
