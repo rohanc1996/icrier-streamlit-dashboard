@@ -28,7 +28,7 @@ from core import chips, scaling  # noqa: E402
 from core import chips_hierarchy as H  # noqa: E402
 from core.loader import DATA_FILE, load_app_data, shrink_whitespace  # noqa: E402
 
-PUB_FILE = ROOT / "data" / "SIDE 2026 - AI augmented Absolute Index 2026.csv"
+PUB_FILE = ROOT / "data" / "reference" / "SIDE 2026 - AI augmented Absolute Index 2026.csv"
 OUT_DIR = ROOT / "deliverables"
 
 # Published CHIPS score lives on line 96 (1-indexed) -> row index 94; rank on row 96.

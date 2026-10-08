@@ -19,7 +19,7 @@ applied only to the internal groups of the non-flat AI sub-pillar (`is_ai`).
 
 ## Summary
 
-- Published source: `data/SIDE 2026 - AI augmented Absolute Index 2026.csv` (CHIPS score line 96).
+- Published source: `data/reference/SIDE 2026 - AI augmented Absolute Index 2026.csv` (CHIPS score line 96).
 - Dashboard source: `data/SIDE 2026 - Absolute.csv`, full-range min-max.
 - 71 countries reconciled; **68 match to within 0.1 points** (42 exactly, to 2 dp).
 

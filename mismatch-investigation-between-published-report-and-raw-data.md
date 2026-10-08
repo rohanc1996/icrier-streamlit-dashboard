@@ -9,7 +9,7 @@ data/rule corrections each required.
 
 ## Common methodology
 
-- Published source: `data/SIDE 2026 - AI augmented {Absolute|Relative} Index
+- Published source: `data/reference/SIDE 2026 - AI augmented {Absolute|Relative} Index
   2026.csv` (CHIPS score line 96).
 - Dashboard source: `data/SIDE 2026 - {Absolute|Relative}.csv`, full-range
   min-max, with the dataset's columns mapped onto the canonical CHIPS
