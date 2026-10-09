@@ -237,6 +237,8 @@ FRIENDLY_NAMES = {
     "AI Infrastructure": "AI infrastructure score",
     "AI Infrastructure.1": "AI infrastructure score (2)",
     "Compute Capacity (Rmax) in Millions": "Compute capacity (Rmax, millions)",
+    "Availability zones hosting high AI capability (Tier 1) GPUs": "Availability zones with high-capability (Tier 1) GPUs",
+    "% of availability zones hosting high AI capability (Tier 1) GPUs": "Share of availability zones with high-capability (Tier 1) GPUs",
     "Apps and Platforms": "Apps & platforms score",
     "Development: Open Source models score": "Open-source models score",
     "Relative AI Skill Penetration": "Relative AI skill penetration",
