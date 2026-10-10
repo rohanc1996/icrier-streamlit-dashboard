@@ -132,6 +132,7 @@ RELATIVE_TO_CANONICAL = {
     "Patents filed (2000-2023) in Information/Communication Technologies for Electromobility as a % of total patents filed": "Patents filed (2000-2024) in Information/Communication Technologies for Electromobility",
     "Renewable energy share of electricity production (%)": "Total renewable energy production (GWh)",
     "Relative AAL by Climate (% of Exposed value) for the Telecom Sector - Existing Climate": "AAL by Climate (Million USD) for the Telecom Sector- Existing Climate",
+    "% of availability zones hosting high AI capability (Tier 1) GPUs": "Availability zones hosting high AI capability (Tier 1) GPUs",
 }
 # Relative-file columns that are metadata or duplicate variants, never indicators.
 RELATIVE_DROP = {"BLOC"}
@@ -238,7 +239,6 @@ FRIENDLY_NAMES = {
     "AI Infrastructure.1": "AI infrastructure score (2)",
     "Compute Capacity (Rmax) in Millions": "Compute capacity (Rmax, millions)",
     "Availability zones hosting high AI capability (Tier 1) GPUs": "Availability zones with high-capability (Tier 1) GPUs",
-    "% of availability zones hosting high AI capability (Tier 1) GPUs": "Share of availability zones with high-capability (Tier 1) GPUs",
     "Apps and Platforms": "Apps & platforms score",
     "Development: Open Source models score": "Open-source models score",
     "Relative AI Skill Penetration": "Relative AI skill penetration",

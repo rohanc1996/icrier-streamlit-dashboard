@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
-"""Add the OECD "GPU availability by AI capability" indicators to
-``data/SIDE 2027 - Absolute.csv``.
+"""Add the OECD "GPU availability by AI capability" indicator to the 2027 SIDE
+base files.
 
 Indicator (CONNECT, not yet part of the scored CHIPS hierarchy)
 ---------------------------------------------------------------
-From the OECD/Oxford ``az_avail`` table, for each country:
+The indicator is the count of availability zones hosting high (Tier 1) AI
+capability GPUs, which the two-dataset design expresses in its two variants:
 
-  * ``Availability zones hosting high AI capability (Tier 1) GPUs``
+  * Absolute (``data/SIDE 2027 - Absolute.csv``):
+      ``Availability zones hosting high AI capability (Tier 1) GPUs``
       = ``az_has_training_gpu`` on the ``Count of AZs`` rows.
-  * ``% of availability zones hosting high AI capability (Tier 1) GPUs``
+  * Relative (``data/SIDE 2027 - Relative.csv``):
+      ``% of availability zones hosting high AI capability (Tier 1) GPUs``
       = the same field on the ``Percentage of total AZs`` rows.
 
 Tier 1 GPUs are those capable of AI training, fine-tuning and inference
-(the "high AI capability" band of the OECD chart).  Higher is better.
+(the "high AI capability" band of the OECD chart).  Higher is better.  The
+Relative file carries the *published* OECD percentage (an integer); the OECD
+computes each band by truncating, so a country's five bands can sum to 97-100.
+
+``loader.RELATIVE_TO_CANONICAL`` maps the Relative header back to the Absolute
+one, so the dashboard treats count (Absolute) and share (Relative) as the two
+variants of a single indicator.
 
 Country mapping
 ---------------
@@ -23,8 +32,8 @@ row (Bahrain, Taiwan, Hong Kong) and the ``ALL`` aggregate are dropped.  The
 remaining 33 SIDE countries are written as empty cells (the file's existing
 missing-value convention).
 
-The columns are appended (idempotently: a re-run replaces them) so no existing
-column or row is disturbed.
+The column is appended to each file (idempotently: a re-run replaces it) so no
+existing column or row is disturbed.
 
 Run:  python scripts/data_sources/oecd/build_2027_oecd_compute.py
 """
@@ -42,10 +51,10 @@ from SIDE_dashboard.components.country_names import ISO3_TO_COUNTRY  # noqa: E40
 from fetch_oecd_compute import fetch_az_avail  # noqa: E402
 
 ABS_CSV = ROOT / "data" / "SIDE 2027 - Absolute.csv"
+REL_CSV = ROOT / "data" / "SIDE 2027 - Relative.csv"
 
 COUNT_COLUMN = "Availability zones hosting high AI capability (Tier 1) GPUs"
 SHARE_COLUMN = "% of availability zones hosting high AI capability (Tier 1) GPUs"
-NEW_COLUMNS = (COUNT_COLUMN, SHARE_COLUMN)
 
 UNIT_COUNT = "Count of AZs"
 UNIT_SHARE = "Percentage of total AZs"
@@ -82,40 +91,52 @@ def _tier1_by_country(rows: list[dict]) -> tuple[dict[str, str], dict[str, str]]
     return counts, shares
 
 
-def main() -> int:
-    if not ABS_CSV.exists():
-        raise FileNotFoundError(f"Dataset not found: {ABS_CSV}")
+def _append_column(
+    path: Path,
+    column: str,
+    values: dict[str, str],
+    key_index: int,
+    drop: tuple[str, ...],
+) -> int:
+    """Append ``column`` to ``path`` keyed on the country cell at ``key_index``.
 
-    rows = list(csv.reader(ABS_CSV.open(newline="", encoding="utf-8")))
+    Any column named in ``drop`` from a previous run is removed first, so the
+    build is idempotent and an indicator never lingers in the wrong file.
+    Returns the number of data rows populated.
+    """
+    rows = list(csv.reader(path.open(newline="", encoding="utf-8")))
     header, body = rows[0], rows[1:]
-    if header and header[0] != "Country":
-        raise ValueError(f"Unexpected first column: {header[0]!r}")
 
-    # Drop the new columns and their values if a previous run added them, so
-    # the build is idempotent and column order stays deterministic.
-    existing = [i for i, col in enumerate(header) if col in NEW_COLUMNS]
+    existing = [i for i, col in enumerate(header) if col in drop]
     if existing:
         header = [col for i, col in enumerate(header) if i not in existing]
         body = [[v for i, v in enumerate(row) if i not in existing] for row in body]
 
-    counts, shares = _tier1_by_country(fetch_az_avail())
-
-    out_header = [*header, *NEW_COLUMNS]
-    out_body = [
-        [*row, counts.get(row[0], ""), shares.get(row[0], "")]
-        for row in body
-    ]
-
-    with ABS_CSV.open("w", newline="", encoding="utf-8") as fh:
+    with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh, lineterminator="\n")
-        writer.writerow(out_header)
-        writer.writerows(out_body)
+        writer.writerow([*header, column])
+        writer.writerows([*row, values.get(row[key_index], "")] for row in body)
 
-    covered = sum(1 for row in body if row[0] in counts)
-    print(
-        f"Wrote {ABS_CSV.name}: +{len(NEW_COLUMNS)} columns, "
-        f"{covered}/{len(body)} countries populated"
+    return sum(1 for row in body if row[key_index] in values)
+
+
+def main() -> int:
+    for path in (ABS_CSV, REL_CSV):
+        if not path.exists():
+            raise FileNotFoundError(f"Dataset not found: {path}")
+
+    counts, shares = _tier1_by_country(fetch_az_avail())
+    indicator_columns = (COUNT_COLUMN, SHARE_COLUMN)
+
+    covered_abs = _append_column(
+        ABS_CSV, COUNT_COLUMN, counts, key_index=0, drop=indicator_columns
     )
+    covered_rel = _append_column(
+        REL_CSV, SHARE_COLUMN, shares, key_index=1, drop=indicator_columns
+    )
+
+    print(f"Wrote {ABS_CSV.name}: {covered_abs} countries populated ({COUNT_COLUMN})")
+    print(f"Wrote {REL_CSV.name}: {covered_rel} countries populated ({SHARE_COLUMN})")
     return 0
 
 
