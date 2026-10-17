@@ -1,0 +1,59 @@
+Indicator,Pillar,US missing,China missing,US outlier (|z|>2.5),China outlier (|z|>2.5),Pearson observed,Pearson excl. US+China,d Pearson (hypothetical)
+Price of mobile data and voice basket (HC) PPP,CONNECT,False,False,False,False,0.9847,0.9853,-0.0006
+Price of mobile data and voice basket (LC) PPP,CONNECT,False,False,False,False,0.9803,0.9811,-0.0008
+Price of cheapest smartphone in USD PPP,CONNECT,False,False,False,False,0.9815,0.9823,-0.0008
+"Fixed (broadband) internet price, USD PPP",CONNECT,False,False,False,False,0.9391,0.9406,-0.0015
+Median Mobile Download Speeds (Mbps),CONNECT,False,False,False,False,0.9381,0.9396,-0.0015
+Median Fixed Broadband Download Speeds (Mbps),CONNECT,False,False,False,False,0.9941,0.9935,0.0006
+Number of internet users,CONNECT,False,False,False,False,0.9806,0.9813,-0.0007
+Mobile cellular subscriptions,CONNECT,False,False,False,False,0.852,0.8561,-0.0041
+Population covered by LTE,CONNECT,False,False,False,False,0.8595,0.8619,-0.0024
+Number of smart phone users,CONNECT,False,False,False,False,0.9826,0.9832,-0.0006
+% of population that are using AI,CONNECT,False,False,False,False,0.986,0.9864,-0.0004
+Compute capacity (Govt readiness),CONNECT,False,False,True,True,0.9742,0.9949,-0.0207
+AI Infrastructure (Tortoise),CONNECT,False,False,True,True,0.9357,0.9876,-0.0519
+Number (16-64 years) using social media for work related activities,HARNESS,False,False,False,False,0.9926,0.9927,-0.0001
+Number of users of digital food delivery platforms,HARNESS,False,False,False,False,0.9971,0.9971,-0.0
+Number of users of digital health applications,HARNESS,False,False,False,False,0.9866,0.9866,-0.0
+E-commerce users,HARNESS,False,False,False,False,0.9975,0.9974,0.0001
+Consumer Spend on Mobile Apps (millions USD),HARNESS,False,False,False,False,0.9705,0.9691,0.0014
+Video On Demand Users,HARNESS,False,False,False,False,0.9244,0.9252,-0.0008
+Total monthly fixed broadband internet traffic (TB),HARNESS,True,False,False,False,0.9733,0.9738,-0.0005
+Total monthly mobile broadband internet traffic (TB),HARNESS,False,False,False,False,0.9639,0.965,-0.0011
+Value of digital transactions in billion dollars,HARNESS,False,False,False,True,0.9883,0.9857,0.0026
+Users of Digital Payments (in millions),HARNESS,False,False,False,False,0.9972,0.9969,0.0003
+Digitally delivered services (exports),HARNESS,False,False,False,False,0.8882,0.8907,-0.0025
+ICT sector employment,HARNESS,False,True,False,False,0.9432,0.9438,-0.0006
+Open Data score,HARNESS,False,False,False,False,0.9935,0.9929,0.0006
+Development: Open Source models score (tortoise),HARNESS,False,False,True,False,0.8831,0.9042,-0.0211
+AI Skilled population (vibrancy),HARNESS,False,True,True,False,0.9771,0.9548,0.0223
+AI Talent Pillar (tortoise),HARNESS,False,False,True,False,0.9019,0.9874,-0.0855
+No. of start-ups,INNOVATE,False,False,False,False,0.8726,0.8758,-0.0032
+Total Unicorn Valuation in Bn $,INNOVATE,False,False,True,False,0.9481,0.9274,0.0207
+Total funding till date of Startups,INNOVATE,False,False,True,True,0.9649,0.934,0.0309
+Consumer IOT Revenues in MN USD,INNOVATE,False,False,True,False,0.9863,0.9891,-0.0028
+AR/VR Revenues in mn $,INNOVATE,False,False,False,False,0.994,0.9938,0.0002
+Metaverse Revenues in bn $,INNOVATE,False,False,False,False,0.9974,0.9983,-0.0009
+DeFi Revenue in mn $,INNOVATE,False,True,False,False,0.9579,0.9585,-0.0006
+Robotics revenue (millions of USD),INNOVATE,False,False,False,False,0.9496,0.9508,-0.0012
+Drones revenue (millions of USD),INNOVATE,False,False,True,False,0.9857,0.9819,0.0038
+Crypto Index Score,INNOVATE,False,False,False,False,0.9588,0.9524,0.0064
+AI Innovation - Research,INNOVATE,False,False,True,True,0.8956,0.9848,-0.0892
+AI Research and Development- score,INNOVATE,False,False,True,True,0.9795,0.9265,0.053
+Total AI Private Investment as a share of GDP,INNOVATE,False,False,False,False,0.9555,0.9471,0.0084
+Newly Funded AI Companies per LLC company,INNOVATE,False,False,False,False,0.9908,0.9916,-0.0008
+AI commercial,INNOVATE,False,False,True,True,0.8919,0.9874,-0.0955
+Cybersecurity Revenue in billion USD,PROTECT,False,False,True,False,0.9875,0.9913,-0.0038
+Number of Secure servers,PROTECT,False,False,True,False,0.8902,0.892,-0.0018
+Ransomware attacks 30 day average,PROTECT,True,False,False,False,0.9429,0.9436,-0.0007
+Ransomware victims,PROTECT,False,False,False,False,0.8864,0.8704,0.016
+Total number of email leaks,PROTECT,False,False,True,False,0.924,0.8941,0.0299
+Safety and security,PROTECT,False,False,False,False,0.9989,0.9985,0.0004
+Responsible AI - Conference Submissions on RAI Topics (Total),PROTECT,False,False,True,False,0.9545,0.9885,-0.034
+Public trust score,PROTECT,True,False,False,False,0.9958,0.9959,-0.0001
+E-waste generated (kg per capita),SUSTAINABILITY,False,False,False,False,0.9981,0.9981,0.0
+Share of energy startups that are digital,SUSTAINABILITY,False,False,False,False,0.9332,0.9346,-0.0014
+VC investments in AI and environmental sustainability by country (USD million),SUSTAINABILITY,False,False,False,False,0.9284,0.9329,-0.0045
+Patents filed (2000-2023) in Smart Grids as a % of enabling tech patents,SUSTAINABILITY,False,False,False,False,0.8626,0.8661,-0.0035
+Renewable energy share of electricity production (%),SUSTAINABILITY,False,False,False,False,0.9961,0.9963,-0.0002
+Average Annual Loss by Climate (USD million),SUSTAINABILITY,False,False,False,False,0.9523,0.9531,-0.0008

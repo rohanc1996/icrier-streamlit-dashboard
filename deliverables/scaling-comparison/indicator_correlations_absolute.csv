@@ -1,0 +1,59 @@
+Base,Pillar,Sub-pillar,Group,Indicator,Lower is better,Global weight,n,Coverage,Distinct values,Tie share,Pearson r,Pearson r (1dp round),Spearman (validation),Max |dscore|,Mean |dscore|,# |dscore|>0.2,Rank changes,Top diverging countries,Flags
+Absolute,SUSTAINABILITY,Sustainability,,Share of energy startups that are digital,False,0.02083,70,0.986,40,0.471,0.8493,0.8492,1.0,0.58,0.432,69,0,Canada (0.58); United Kingdom (0.58); Sweden (0.58),tie-heavy
+Absolute,PROTECT,Preparedness,,Cybersecurity Revenue in billion USD,False,0.02083,71,1.0,68,0.085,0.8654,0.8655,1.0,0.596,0.447,70,0,China (0.60); United Kingdom (0.57); Japan (0.55),
+Absolute,SUSTAINABILITY,Sustainability,,Renewable energy share of electricity production (%),False,0.02083,71,1.0,71,0.0,0.866,0.8662,1.0,0.585,0.436,70,0,Brazil (0.59); United States of America (0.58); Canada (0.55),
+Absolute,PROTECT,Risk of Attack,,Total number of email leaks,True,0.01389,71,1.0,71,0.0,0.8673,0.8674,1.0,0.601,0.445,70,0,France (0.60); India (0.60); Germany (0.56),
+Absolute,HARNESS,Fintech,,Users of Digital Payments (in millions),False,0.025,67,0.944,67,0.0,0.8789,0.8787,1.0,0.582,0.435,66,0,United States of America (0.58); India (0.57); Brazil (0.53),
+Absolute,HARNESS,Apps and platform,,E-commerce users,False,0.00833,71,1.0,68,0.085,0.881,0.8808,1.0,0.58,0.434,70,0,United States of America (0.58); India (0.56); Brazil (0.55),
+Absolute,HARNESS,AI,,Development: Open Source models score (tortoise),False,0.0125,64,0.901,24,0.734,0.8831,0.8831,1.0,0.568,0.433,63,0,China (0.57); Singapore (0.55); France (0.53),tie-heavy
+Absolute,HARNESS,Apps and platform,,Number of users of digital food delivery platforms,False,0.00833,71,1.0,60,0.254,0.8893,0.889,1.0,0.587,0.437,70,0,United States of America (0.59); India (0.54); Indonesia (0.52),tie-heavy
+Absolute,INNOVATE,AI,Investment & commercial,AI commercial,False,0.01389,64,0.901,24,0.828,0.8919,0.8917,1.0,0.508,0.386,63,0,Israel (0.51); Singapore (0.50); United Kingdom (0.50),tie-heavy
+Absolute,HARNESS,Apps and platform,,Consumer Spend on Mobile Apps (millions USD),False,0.00833,55,0.775,55,0.0,0.8952,0.8956,1.0,0.555,0.428,54,0,China (0.55); Japan (0.54); Republic of Korea (0.52),
+Absolute,INNOVATE,AI,Research,AI Innovation - Research,False,0.02083,64,0.901,21,0.875,0.8956,0.8953,1.0,0.521,0.401,63,0,Singapore (0.52); United Kingdom (0.52); France (0.49),tie-heavy
+Absolute,HARNESS,Apps and platform,,Video On Demand Users,False,0.00833,71,1.0,67,0.113,0.8956,0.8956,1.0,0.566,0.426,70,0,United States of America (0.57); Indonesia (0.53); Brazil (0.53),
+Absolute,HARNESS,AI,,AI Talent Pillar (tortoise),False,0.0125,64,0.901,26,0.812,0.9019,0.9022,1.0,0.48,0.365,63,0,Germany (0.48); United Kingdom (0.48); Singapore (0.48),tie-heavy
+Absolute,SUSTAINABILITY,Sustainability,,E-waste generated (kg per capita),True,0.02083,71,1.0,67,0.113,0.903,0.9031,1.0,0.532,0.41,70,0,India (0.53); Japan (0.53); Brazil (0.52),
+Absolute,PROTECT,Risk of Attack,,Ransomware victims,True,0.01389,71,1.0,42,0.606,0.907,0.9071,1.0,0.553,0.45,70,0,Canada (0.55); Germany (0.55); United Kingdom (0.52),tie-heavy
+Absolute,INNOVATE,Other Emerging Technology,,DeFi Revenue in mn $,False,0.0119,65,0.915,64,0.031,0.9095,0.9097,1.0,0.506,0.392,64,0,Indonesia (0.51); Brazil (0.49); Russian Federation (0.48),
+Absolute,HARNESS,Fintech,,Value of digital transactions in billion dollars,False,0.025,67,0.944,67,0.0,0.9116,0.9115,1.0,0.567,0.44,66,0,India (0.57); United States of America (0.51); Japan (0.50),
+Absolute,CONNECT,Access,,Mobile cellular subscriptions,False,0.01562,66,0.93,63,0.091,0.9147,0.9146,1.0,0.534,0.418,65,0,United States of America (0.53); Indonesia (0.52); Russian Federation (0.50),
+Absolute,CONNECT,Access,,Number of internet users,False,0.01562,71,1.0,70,0.028,0.9147,0.9147,1.0,0.553,0.421,70,0,United States of America (0.55); Indonesia (0.52); Brazil (0.51),
+Absolute,SUSTAINABILITY,Sustainability,,Patents filed (2000-2023) in Smart Grids as a % of enabling tech patents,False,0.02083,71,1.0,62,0.225,0.9157,0.9156,1.0,0.578,0.441,70,0,Japan (0.58); Republic of Korea (0.55); Germany (0.50),tie-heavy
+Absolute,PROTECT,Preparedness,,Number of Secure servers,False,0.02083,71,1.0,71,0.0,0.9183,0.9184,1.0,0.581,0.458,70,0,China (0.58); India (0.57); Germany (0.51),
+Absolute,CONNECT,Access,,Number of smart phone users,False,0.01562,71,1.0,71,0.0,0.9194,0.9196,1.0,0.548,0.419,70,0,United States of America (0.55); Indonesia (0.52); Brazil (0.50),
+Absolute,HARNESS,Data Intensity,,Total monthly fixed broadband internet traffic (TB),False,0.025,61,0.859,60,0.033,0.9276,0.9277,1.0,0.514,0.444,60,0,United Kingdom (0.51); Japan (0.50); Russian Federation (0.50),
+Absolute,HARNESS,Data Intensity,,Total monthly mobile broadband internet traffic (TB),False,0.025,70,0.986,54,0.414,0.9287,0.9288,1.0,0.535,0.425,69,0,United States of America (0.53); Russian Federation (0.51); Indonesia (0.50),tie-heavy
+Absolute,INNOVATE,Other Emerging Technology,,Robotics revenue (millions of USD),False,0.0119,71,1.0,70,0.028,0.9313,0.9313,1.0,0.502,0.407,69,0,Japan (0.50); United Kingdom (0.49); France (0.49),
+Absolute,INNOVATE,Investments and Startups,,Total Unicorn Valuation in Bn $,False,0.02778,46,0.648,39,0.261,0.9337,0.9339,1.0,0.56,0.44,45,0,China (0.56); United Kingdom (0.49); India (0.48),tie-heavy
+Absolute,CONNECT,Access,,Population covered by LTE,False,0.01562,71,1.0,71,0.0,0.9341,0.9341,1.0,0.506,0.412,69,0,United States of America (0.51); Indonesia (0.50); Pakistan (0.48),
+Absolute,HARNESS,Apps and platform,,Number (16-64 years) using social media for work related activities,False,0.00833,51,0.718,51,0.0,0.9343,0.9344,1.0,0.499,0.418,50,0,Brazil (0.50); United States of America (0.49); Indonesia (0.49),
+Absolute,CONNECT,AI,,AI Infrastructure (Tortoise),False,0.02083,64,0.901,29,0.797,0.9357,0.9356,1.0,0.374,0.259,56,0,Japan (0.37); Republic of Korea (0.37); Singapore (0.37),tie-heavy
+Absolute,PROTECT,Risk of Attack,,Ransomware attacks 30 day average,True,0.01389,70,0.986,60,0.257,0.9364,0.9365,1.0,0.512,0.412,69,0,Saudi Arabia (0.51); China (0.50); Italy (0.49),tie-heavy
+Absolute,CONNECT,AI,,% of population that are using AI,False,0.02083,71,1.0,71,0.0,0.9377,0.9378,1.0,0.471,0.406,69,0,Brazil (0.47); Indonesia (0.47); United States of America (0.47),
+Absolute,CONNECT,Quality,,Median Mobile Download Speeds (Mbps),False,0.03125,71,1.0,58,0.338,0.9381,0.9381,1.0,0.404,0.311,69,0,Bulgaria (0.40); Brazil (0.40); Republic of Korea (0.40),tie-heavy
+Absolute,SUSTAINABILITY,Sustainability,,Average Annual Loss by Climate (USD million),True,0.02083,71,1.0,71,0.0,0.9399,0.9398,1.0,0.532,0.427,69,0,China (0.53); Republic of Korea (0.53); Germany (0.50),
+Absolute,INNOVATE,Other Emerging Technology,,AR/VR Revenues in mn $,False,0.0119,57,0.803,57,0.0,0.9405,0.9405,1.0,0.504,0.411,56,0,Japan (0.50); Germany (0.49); United Kingdom (0.47),
+Absolute,HARNESS,Real Economy,,Digitally delivered services (exports),False,0.025,71,1.0,71,0.0,0.9429,0.9428,1.0,0.48,0.391,70,0,China (0.48); Singapore (0.48); Netherlands (0.48),
+Absolute,INNOVATE,Other Emerging Technology,,Metaverse Revenues in bn $,False,0.0119,57,0.803,57,0.0,0.944,0.9442,1.0,0.507,0.419,56,0,Japan (0.51); United Kingdom (0.49); Germany (0.49),
+Absolute,HARNESS,Real Economy,,ICT sector employment,False,0.025,61,0.859,61,0.0,0.9482,0.9481,1.0,0.442,0.373,59,0,Brazil (0.44); Germany (0.44); United Kingdom (0.44),
+Absolute,INNOVATE,Investments and Startups,,No. of start-ups,False,0.02778,71,1.0,70,0.028,0.954,0.9539,1.0,0.484,0.416,69,0,Canada (0.48); Australia (0.46); Germany (0.46),
+Absolute,PROTECT,AI,,Responsible AI - Conference Submissions on RAI Topics (Total),False,0.01389,28,0.394,19,0.536,0.9545,0.9547,1.0,0.442,0.396,27,0,China (0.44); Germany (0.43); United Kingdom (0.43),tie-heavy
+Absolute,HARNESS,Apps and platform,,Number of users of digital health applications,False,0.00833,71,1.0,58,0.324,0.9551,0.955,1.0,0.479,0.404,70,0,Indonesia (0.48); Germany (0.47); Japan (0.46),tie-heavy
+Absolute,INNOVATE,Other Emerging Technology,,Crypto Index Score,False,0.0119,71,1.0,55,0.408,0.9588,0.9588,1.0,0.431,0.359,70,0,Russian Federation (0.43); Philippines (0.43); Pakistan (0.43),tie-heavy
+Absolute,INNOVATE,Other Emerging Technology,,Consumer IOT Revenues in MN USD,False,0.0119,71,1.0,71,0.0,0.9598,0.9597,1.0,0.501,0.436,70,0,Germany (0.50); Japan (0.49); India (0.49),
+Absolute,CONNECT,Affordability,,"Fixed (broadband) internet price, USD PPP",True,0.01562,71,1.0,49,0.521,0.9609,0.9609,1.0,0.308,0.233,54,0,Singapore (0.31); Rwanda (0.31); Kenya (0.31),tie-heavy
+Absolute,INNOVATE,Investments and Startups,,Total funding till date of Startups,False,0.02778,71,1.0,70,0.028,0.9621,0.9621,1.0,0.533,0.458,70,0,China (0.53); United Kingdom (0.52); India (0.50),
+Absolute,INNOVATE,AI,Investment & commercial,Newly Funded AI Companies per LLC company,False,0.01389,33,0.465,28,0.242,0.9713,0.9715,1.0,0.471,0.419,32,0,United Kingdom (0.47); China (0.46); India (0.45),tie-heavy
+Absolute,SUSTAINABILITY,Sustainability,,VC investments in AI and environmental sustainability by country (USD million),False,0.02083,46,0.648,30,0.5,0.9741,0.9741,1.0,0.45,0.408,44,0,United Arab Emirates (0.45); China (0.44); France (0.44),tie-heavy
+Absolute,CONNECT,AI,,Compute capacity (Govt readiness),False,0.02083,71,1.0,61,0.254,0.9742,0.9742,1.0,0.313,0.27,69,0,Brazil (0.31); Netherlands (0.31); Italy (0.31),tie-heavy
+Absolute,INNOVATE,Other Emerging Technology,,Drones revenue (millions of USD),False,0.0119,71,1.0,69,0.056,0.9756,0.9756,1.0,0.503,0.436,69,0,France (0.50); Germany (0.49); United Kingdom (0.49),
+Absolute,HARNESS,AI,,AI Skilled population (vibrancy),False,0.0125,30,0.423,23,0.4,0.9771,0.9769,1.0,0.241,0.213,28,0,United Kingdom (0.24); Canada (0.24); Germany (0.24),tie-heavy
+Absolute,INNOVATE,AI,Research,AI Research and Development- score,False,0.02083,34,0.479,34,0.0,0.9795,0.9796,1.0,0.406,0.375,32,0,United Kingdom (0.41); Germany (0.40); India (0.40),
+Absolute,CONNECT,Affordability,,Price of mobile data and voice basket (LC) PPP,True,0.01562,71,1.0,30,0.831,0.9853,0.9853,1.0,0.218,0.173,21,0,Switzerland (0.22); Australia (0.22); Iraq (0.22),tie-heavy
+Absolute,CONNECT,Affordability,,Price of mobile data and voice basket (HC) PPP,True,0.01562,71,1.0,37,0.732,0.9874,0.9874,1.0,0.214,0.178,15,0,United Arab Emirates (0.21); Finland (0.21); Japan (0.21),tie-heavy
+Absolute,INNOVATE,AI,Investment & commercial,Total AI Private Investment as a share of GDP,False,0.01389,32,0.451,32,0.0,0.9879,0.988,1.0,0.476,0.43,31,0,China (0.48); United Kingdom (0.46); Sweden (0.46),
+Absolute,CONNECT,Affordability,,Price of cheapest smartphone in USD PPP,True,0.01562,64,0.901,58,0.188,0.9895,0.9895,1.0,0.186,0.162,0,0,New Zealand (0.19); Ukraine (0.18); Thailand (0.18),
+Absolute,HARNESS,AI,,Open Data score,False,0.0125,71,1.0,39,0.69,0.9935,0.9935,1.0,0.159,0.129,0,0,Malaysia (0.16); Singapore (0.16); Poland (0.15),tie-heavy
+Absolute,CONNECT,Quality,,Median Fixed Broadband Download Speeds (Mbps),False,0.03125,71,1.0,59,0.296,0.9941,0.9942,1.0,0.181,0.13,0,0,Ethiopia (0.18); Kenya (0.18); Pakistan (0.18),tie-heavy
+Absolute,PROTECT,AI,,Public trust score,False,0.01389,63,0.887,30,0.73,0.9958,0.9958,1.0,0.142,0.067,0,0,France (0.14); Belgium (0.12); Canada (0.12),tie-heavy
+Absolute,PROTECT,AI,,Safety and security,False,0.01389,71,1.0,15,0.887,0.9989,0.9989,1.0,0.171,0.076,0,0,Mexico (0.17); Kenya (0.17); China (0.17),tie-heavy
