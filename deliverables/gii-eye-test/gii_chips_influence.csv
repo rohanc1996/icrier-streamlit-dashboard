@@ -1,0 +1,73 @@
+Base,Method,Column,Pillar,Shadow sub-pillar,Shadow global weight,max |dPillar|,max |dCHIPS|,max |dRank|,#|dRank|>=3,Top CHIPS mover,Indicator top1-top2,Indicator median score,Share below 0.25
+Absolute,full,market_cap_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.246,0.062,41,44,South Africa (+0.062),0.184,0.129,0.694
+Absolute,z,market_cap_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.135,0.034,21,36,South Africa (+0.034),0.034,0.401,0.0
+Relative,full,market_cap_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.231,0.065,14,18,Kuwait (-0.065),0.184,0.129,0.694
+Relative,z,market_cap_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.145,0.036,7,20,South Africa (+0.036),0.034,0.401,0.0
+Absolute,full,mht_manufacturing_pct,HARNESS,Real Economy,0.0417,0.148,0.037,26,37,Qatar (+0.037),0.086,0.416,0.229
+Absolute,z,mht_manufacturing_pct,HARNESS,Real Economy,0.0417,0.087,0.022,20,32,Qatar (+0.022),0.031,0.481,0.171
+Relative,full,mht_manufacturing_pct,HARNESS,Real Economy,0.0417,0.101,0.025,8,15,Qatar (+0.025),0.086,0.416,0.229
+Relative,z,mht_manufacturing_pct,HARNESS,Real Economy,0.0417,0.068,0.017,7,14,Qatar (+0.017),0.031,0.481,0.171
+Absolute,full,fdi_net_inflows_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.236,0.059,31,27,Singapore (+0.059),0.292,0.549,0.014
+Absolute,z,fdi_net_inflows_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.134,0.033,19,31,United States of America (-0.033),0.151,0.489,0.028
+Relative,full,fdi_net_inflows_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.205,0.051,13,8,Rwanda (+0.051),0.292,0.549,0.014
+Relative,z,fdi_net_inflows_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.12,0.036,14,18,Kuwait (-0.036),0.151,0.489,0.028
+Absolute,full,gerd_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.239,0.06,21,37,Israel (+0.060),0.221,0.16,0.687
+Absolute,z,gerd_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.126,0.031,15,33,Israel (+0.031),0.038,0.424,0.015
+Relative,full,gerd_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.185,0.105,21,13,Kuwait (-0.105),0.221,0.16,0.687
+Relative,z,gerd_pct_gdp,INNOVATE,Investments and Startups,0.0625,0.096,0.056,15,14,Kuwait (-0.056),0.038,0.424,0.015
+Absolute,full,patent_apps_residents,INNOVATE,Investments and Startups,0.0625,0.202,0.051,3,2,United States of America (-0.051),0.838,0.0,0.986
+Absolute,z,patent_apps_residents,INNOVATE,Investments and Startups,0.0625,0.058,0.014,4,5,United States of America (-0.014),0.238,0.456,0.0
+Relative,full,patent_apps_residents,INNOVATE,Investments and Startups,0.0625,0.154,0.107,18,6,Kuwait (-0.107),0.838,0.0,0.986
+Relative,z,patent_apps_residents,INNOVATE,Investments and Startups,0.0625,0.082,0.031,10,4,Kuwait (-0.031),0.238,0.456,0.0
+Absolute,full,sci_tech_articles_wdi,INNOVATE,AI,0.0625,0.143,0.036,3,2,China (+0.036),0.538,0.014,0.972
+Absolute,z,sci_tech_articles_wdi,INNOVATE,AI,0.0625,0.051,0.013,5,6,China (+0.013),0.039,0.438,0.0
+Relative,full,sci_tech_articles_wdi,INNOVATE,AI,0.0625,0.154,0.107,18,8,Kuwait (-0.107),0.538,0.014,0.972
+Relative,z,sci_tech_articles_wdi,INNOVATE,AI,0.0625,0.082,0.037,12,9,Kuwait (-0.037),0.039,0.438,0.0
+Absolute,full,low_carbon_share_primary_energy_pct,SUSTAINABILITY,Sustainability,0.0625,0.31,0.039,40,48,Sweden (+0.039),0.073,0.227,0.581
+Absolute,z,low_carbon_share_primary_energy_pct,SUSTAINABILITY,Sustainability,0.0625,0.221,0.027,20,37,Finland (+0.027),0.016,0.443,0.113
+Relative,full,low_carbon_share_primary_energy_pct,SUSTAINABILITY,Sustainability,0.0625,0.325,0.041,11,31,Sweden (+0.041),0.073,0.227,0.581
+Relative,z,low_carbon_share_primary_energy_pct,SUSTAINABILITY,Sustainability,0.0625,0.25,0.031,6,27,France (+0.031),0.016,0.443,0.113
+Absolute,full,gdp_per_unit_energy_use,SUSTAINABILITY,Sustainability,0.0625,0.329,0.041,23,50,Ireland (+0.041),0.316,0.229,0.563
+Absolute,z,gdp_per_unit_energy_use,SUSTAINABILITY,Sustainability,0.0625,0.245,0.031,19,45,Ireland (+0.031),0.068,0.446,0.099
+Relative,full,gdp_per_unit_energy_use,SUSTAINABILITY,Sustainability,0.0625,0.327,0.041,7,30,Ireland (+0.041),0.316,0.229,0.563
+Relative,z,gdp_per_unit_energy_use,SUSTAINABILITY,Sustainability,0.0625,0.231,0.034,11,35,Dominican Republic (+0.034),0.068,0.446,0.099
+Absolute,full,github_git_pushes_2025,HARNESS,Apps and platform,0.0417,0.104,0.026,4,9,China (-0.026),0.157,0.028,0.958
+Absolute,z,github_git_pushes_2025,HARNESS,Apps and platform,0.0417,0.065,0.016,5,6,China (-0.016),0.005,0.421,0.0
+Relative,full,github_git_pushes_2025,HARNESS,Apps and platform,0.0417,0.091,0.026,9,4,Kuwait (-0.026),0.157,0.028,0.958
+Relative,z,github_git_pushes_2025,HARNESS,Apps and platform,0.0417,0.081,0.02,7,14,India (+0.020),0.005,0.421,0.0
+Absolute,full,openalex_articles_2024,INNOVATE,AI,0.0625,0.143,0.036,9,7,China (+0.036),0.3,0.028,0.944
+Absolute,z,openalex_articles_2024,INNOVATE,AI,0.0625,0.116,0.029,8,8,Indonesia (+0.029),0.017,0.413,0.0
+Relative,full,openalex_articles_2024,INNOVATE,AI,0.0625,0.154,0.106,19,12,Kuwait (-0.106),0.3,0.028,0.944
+Relative,z,openalex_articles_2024,INNOVATE,AI,0.0625,0.129,0.041,13,13,Kuwait (-0.041),0.017,0.413,0.0
+Absolute,full,openalex_company_articles_2024,INNOVATE,AI,0.0625,0.122,0.03,6,8,China (+0.030),0.085,0.013,0.93
+Absolute,z,openalex_company_articles_2024,INNOVATE,AI,0.0625,0.071,0.018,5,4,Japan (+0.018),0.003,0.414,0.0
+Relative,full,openalex_company_articles_2024,INNOVATE,AI,0.0625,0.133,0.106,19,8,Kuwait (-0.106),0.085,0.013,0.93
+Relative,z,openalex_company_articles_2024,INNOVATE,AI,0.0625,0.081,0.039,12,8,Kuwait (-0.039),0.003,0.414,0.0
+Absolute,full,ict_service_exports_usd,HARNESS,Real Economy,0.0417,0.148,0.037,22,6,Ireland (+0.037),0.442,0.013,0.957
+Absolute,z,ict_service_exports_usd,HARNESS,Real Economy,0.0417,0.085,0.021,9,3,Ireland (+0.021),0.026,0.426,0.0
+Relative,full,ict_service_exports_usd,HARNESS,Real Economy,0.0417,0.084,0.025,5,5,Kuwait (-0.025),0.442,0.013,0.957
+Relative,z,ict_service_exports_usd,HARNESS,Real Economy,0.0417,0.078,0.019,6,5,India (+0.019),0.026,0.426,0.0
+Absolute,full,ip_receipts_usd,INNOVATE,Investments and Startups,0.0625,0.09,0.023,13,7,China (-0.023),0.655,0.002,0.925
+Absolute,z,ip_receipts_usd,INNOVATE,Investments and Startups,0.0625,0.106,0.027,8,6,Netherlands (+0.027),0.102,0.418,0.0
+Relative,full,ip_receipts_usd,INNOVATE,Investments and Startups,0.0625,0.09,0.063,18,4,Dominican Republic (-0.063),0.655,0.002,0.925
+Relative,z,ip_receipts_usd,INNOVATE,Investments and Startups,0.0625,0.084,0.021,7,7,Netherlands (+0.021),0.102,0.418,0.0
+Absolute,full,patents_per_bn_ppp_gdp,INNOVATE,Investments and Startups,0.0625,0.236,0.059,9,5,Republic of Korea (+0.059),0.325,0.013,0.958
+Absolute,z,patents_per_bn_ppp_gdp,INNOVATE,Investments and Startups,0.0625,0.126,0.031,5,5,Republic of Korea (+0.031),0.015,0.438,0.0
+Relative,full,patents_per_bn_ppp_gdp,INNOVATE,Investments and Startups,0.0625,0.192,0.107,18,7,Kuwait (-0.107),0.325,0.013,0.958
+Relative,z,patents_per_bn_ppp_gdp,INNOVATE,Investments and Startups,0.0625,0.109,0.036,11,7,Kuwait (-0.036),0.015,0.438,0.0
+Absolute,full,sci_articles_wdi_per_bn_ppp_gdp,INNOVATE,AI,0.0625,0.247,0.062,27,53,Portugal (+0.062),0.017,0.426,0.268
+Absolute,z,sci_articles_wdi_per_bn_ppp_gdp,INNOVATE,AI,0.0625,0.13,0.032,20,47,United States of America (-0.032),0.007,0.465,0.169
+Relative,full,sci_articles_wdi_per_bn_ppp_gdp,INNOVATE,AI,0.0625,0.248,0.088,24,40,Kuwait (-0.088),0.017,0.426,0.268
+Relative,z,sci_articles_wdi_per_bn_ppp_gdp,INNOVATE,AI,0.0625,0.139,0.059,18,33,Kuwait (-0.059),0.007,0.465,0.169
+Absolute,full,github_git_pushes_per_mn_pop_2025,HARNESS,Apps and platform,0.0417,0.147,0.037,16,33,Singapore (+0.037),0.562,0.105,0.831
+Absolute,z,github_git_pushes_per_mn_pop_2025,HARNESS,Apps and platform,0.0417,0.097,0.024,15,31,China (-0.024),0.13,0.432,0.0
+Relative,full,github_git_pushes_per_mn_pop_2025,HARNESS,Apps and platform,0.0417,0.086,0.024,3,4,Kuwait (-0.024),0.562,0.105,0.831
+Relative,z,github_git_pushes_per_mn_pop_2025,HARNESS,Apps and platform,0.0417,0.053,0.016,5,5,Kuwait (-0.016),0.13,0.432,0.0
+Absolute,full,openalex_articles_per_bn_ppp_gdp_2024,INNOVATE,AI,0.0625,0.243,0.061,38,42,Ukraine (+0.061),0.056,0.243,0.521
+Absolute,z,openalex_articles_per_bn_ppp_gdp_2024,INNOVATE,AI,0.0625,0.161,0.04,28,44,United States of America (-0.040),0.007,0.44,0.07
+Relative,full,openalex_articles_per_bn_ppp_gdp_2024,INNOVATE,AI,0.0625,0.313,0.091,24,25,Kuwait (-0.091),0.056,0.243,0.521
+Relative,z,openalex_articles_per_bn_ppp_gdp_2024,INNOVATE,AI,0.0625,0.203,0.052,14,31,Kuwait (-0.052),0.007,0.44,0.07
+Absolute,full,openalex_company_share_pct_2024,INNOVATE,AI,0.0625,0.244,0.061,37,43,Greece (+0.061),0.098,0.154,0.62
+Absolute,z,openalex_company_share_pct_2024,INNOVATE,AI,0.0625,0.124,0.031,23,40,Greece (+0.031),0.026,0.386,0.0
+Relative,full,openalex_company_share_pct_2024,INNOVATE,AI,0.0625,0.219,0.086,19,24,Kuwait (-0.086),0.098,0.154,0.62
+Relative,z,openalex_company_share_pct_2024,INNOVATE,AI,0.0625,0.118,0.039,13,12,Kuwait (-0.039),0.026,0.386,0.0

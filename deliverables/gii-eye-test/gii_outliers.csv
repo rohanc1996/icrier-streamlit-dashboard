@@ -1,0 +1,138 @@
+Column,Country,Value,MAD z,Tukey
+market_cap_pct_gdp,United States,224.044649,4.68,True
+market_cap_pct_gdp,India,266.921199,5.78,True
+market_cap_pct_gdp,United Arab Emirates,190.859093,3.82,False
+market_cap_pct_gdp,Canada,199.199604,4.04,False
+market_cap_pct_gdp,Switzerland,240.942563,5.11,True
+market_cap_pct_gdp,Saudi Arabia,184.708354,3.66,False
+market_cap_pct_gdp,South Africa,327.242669,7.33,True
+fdi_net_inflows_pct_gdp,Singapore,26.344725,13.24,True
+fdi_net_inflows_pct_gdp,United Arab Emirates,8.261773,3.54,True
+fdi_net_inflows_pct_gdp,Ireland,10.392071,4.68,True
+fdi_net_inflows_pct_gdp,Belgium,-3.968359,-3.02,True
+fdi_net_inflows_pct_gdp,Hungary,-28.37364,-16.12,True
+fdi_net_inflows_pct_gdp,Iraq,-2.994961,-2.5,True
+gerd_pct_gdp,"Korea, Rep.",4.94352,3.64,True
+gerd_pct_gdp,Israel,6.34589,4.94,True
+patent_apps_residents,United States,270295.0,301.01,True
+patent_apps_residents,China,1672001.0,1866.33,True
+patent_apps_residents,United Kingdom,11105.0,11.57,True
+patent_apps_residents,India,63217.0,69.77,True
+patent_apps_residents,France,12751.0,13.41,True
+patent_apps_residents,Germany,40085.0,43.93,True
+patent_apps_residents,"Korea, Rep.",195786.0,217.81,True
+patent_apps_residents,Canada,4304.0,3.98,True
+patent_apps_residents,Japan,237169.0,264.02,True
+patent_apps_residents,Brazil,5752.0,5.59,True
+patent_apps_residents,Italy,9120.0,9.35,True
+patent_apps_residents,Russian Federation,21502.0,23.18,True
+patent_apps_residents,Turkiye,10004.0,10.34,True
+sci_tech_articles_wdi,United States,430843.27,32.91,True
+sci_tech_articles_wdi,China,932711.93,72.48,True
+sci_tech_articles_wdi,United Kingdom,97535.98,6.62,True
+sci_tech_articles_wdi,India,228174.31,16.93,True
+sci_tech_articles_wdi,France,62180.46,3.83,True
+sci_tech_articles_wdi,Germany,108782.34,7.51,True
+sci_tech_articles_wdi,"Korea, Rep.",71724.33,4.59,True
+sci_tech_articles_wdi,Canada,63719.9,3.96,True
+sci_tech_articles_wdi,Japan,96543.44,6.54,True
+sci_tech_articles_wdi,Brazil,58292.04,3.53,False
+sci_tech_articles_wdi,Spain,60303.76,3.69,False
+sci_tech_articles_wdi,Italy,82770.89,5.46,True
+sci_tech_articles_wdi,Russian Federation,85558.11,5.68,True
+low_carbon_share_primary_energy_pct,France,55.3809,3.7,True
+low_carbon_share_primary_energy_pct,Sweden,63.0695,4.4,True
+low_carbon_share_primary_energy_pct,Norway,53.0898,3.5,True
+low_carbon_share_primary_energy_pct,Finland,58.4662,3.98,True
+low_carbon_share_primary_energy_pct,New Zealand,50.4634,3.26,True
+gdp_per_unit_energy_use,Ireland,48.118673,4.8,True
+gdp_per_unit_energy_use,Switzerland,34.413582,2.83,True
+github_git_pushes_2025,United States,139823295.0,28.68,True
+github_git_pushes_2025,United Kingdom,27966900.0,5.04,True
+github_git_pushes_2025,India,117912156.0,24.05,True
+github_git_pushes_2025,France,25601646.0,4.54,True
+github_git_pushes_2025,Germany,31282365.0,5.75,True
+github_git_pushes_2025,"Korea, Rep.",27797586.0,5.01,True
+github_git_pushes_2025,Canada,21847263.0,3.75,True
+github_git_pushes_2025,Japan,23585619.0,4.12,True
+github_git_pushes_2025,Brazil,40799505.0,7.76,True
+openalex_articles_2024,United States,668922.0,22.94,True
+openalex_articles_2024,China,955206.0,33.18,True
+openalex_articles_2024,United Kingdom,212384.0,6.62,True
+openalex_articles_2024,India,305660.0,9.96,True
+openalex_articles_2024,France,127829.0,3.6,False
+openalex_articles_2024,Germany,169757.0,5.1,True
+openalex_articles_2024,Japan,143609.0,4.16,False
+openalex_articles_2024,Brazil,213186.0,6.65,True
+openalex_articles_2024,Spain,125466.0,3.51,False
+openalex_articles_2024,Indonesia,554200.0,18.84,True
+openalex_articles_2024,Italy,131647.0,3.74,False
+openalex_articles_2024,Russian Federation,147794.0,4.31,False
+openalex_company_articles_2024,United States,43613.0,55.7,True
+openalex_company_articles_2024,China,39907.0,50.91,True
+openalex_company_articles_2024,United Kingdom,13940.0,17.29,True
+openalex_company_articles_2024,India,3946.0,4.35,False
+openalex_company_articles_2024,France,8478.0,10.22,True
+openalex_company_articles_2024,Germany,12972.0,16.04,True
+openalex_company_articles_2024,"Korea, Rep.",4755.0,5.4,False
+openalex_company_articles_2024,Canada,8096.0,9.72,True
+openalex_company_articles_2024,Japan,13606.0,16.86,True
+openalex_company_articles_2024,Sweden,3523.0,3.8,False
+openalex_company_articles_2024,Netherlands,6316.0,7.42,False
+openalex_company_articles_2024,Australia,3790.0,4.15,False
+openalex_company_articles_2024,Spain,5478.0,6.33,False
+openalex_company_articles_2024,Switzerland,5321.0,6.13,False
+openalex_company_articles_2024,Belgium,3691.0,4.02,False
+openalex_company_articles_2024,Italy,6109.0,7.15,False
+ict_service_exports_usd,United States,101734000000.0,15.71,True
+ict_service_exports_usd,China,73608543370.33,11.15,True
+ict_service_exports_usd,Singapore,33599143370.6834,4.66,False
+ict_service_exports_usd,United Kingdom,65748437185.6887,9.88,True
+ict_service_exports_usd,India,200343788282.554,31.69,True
+ict_service_exports_usd,France,28760387844.6542,3.88,False
+ict_service_exports_usd,Germany,59436995901.9274,8.85,True
+ict_service_exports_usd,Sweden,27166931343.1973,3.62,False
+ict_service_exports_usd,Ireland,358760665966.966,57.37,True
+ict_service_exports_usd,Netherlands,31758628767.3105,4.37,False
+ict_service_exports_usd,Israel,58633600000.0,8.72,True
+ict_service_exports_usd,Spain,26673905421.8836,3.54,False
+ip_receipts_usd,United States,195270000000.0,384.45,True
+ip_receipts_usd,China,13069938163.36,25.09,False
+ip_receipts_usd,Singapore,15680446671.0008,30.24,True
+ip_receipts_usd,United Kingdom,54639771170.8053,107.08,True
+ip_receipts_usd,United Arab Emirates,3605173587.47447,6.42,False
+ip_receipts_usd,France,22060062442.2071,42.82,True
+ip_receipts_usd,Germany,50227662041.689,98.38,True
+ip_receipts_usd,"Korea, Rep.",9984400000.0,19.0,False
+ip_receipts_usd,Canada,7805806336.33314,14.7,False
+ip_receipts_usd,Japan,54528374130.3257,106.86,True
+ip_receipts_usd,Sweden,12072740953.6677,23.12,False
+ip_receipts_usd,Denmark,9811005778.67799,18.66,False
+ip_receipts_usd,Ireland,17772981428.6939,34.36,True
+ip_receipts_usd,Netherlands,67410721999.8814,132.27,True
+ip_receipts_usd,Israel,4337500000.0,7.86,False
+ip_receipts_usd,Australia,7415235237.00549,13.93,False
+ip_receipts_usd,Spain,8129479014.57168,15.34,False
+ip_receipts_usd,Switzerland,35179724383.3853,68.7,True
+ip_receipts_usd,Finland,4682517184.80626,8.54,False
+ip_receipts_usd,Austria,2307922931.17255,3.86,False
+ip_receipts_usd,Belgium,5420038402.18198,10.0,False
+ip_receipts_usd,Italy,6047404060.62232,11.24,False
+patents_per_bn_ppp_gdp,United States,8.784454,10.73,True
+patents_per_bn_ppp_gdp,China,40.523707,53.27,True
+patents_per_bn_ppp_gdp,India,3.675969,3.89,True
+patents_per_bn_ppp_gdp,Germany,6.366944,7.49,True
+patents_per_bn_ppp_gdp,"Korea, Rep.",60.009495,79.39,True
+patents_per_bn_ppp_gdp,Japan,34.687948,45.45,True
+patents_per_bn_ppp_gdp,Finland,4.757904,5.34,True
+github_git_pushes_per_mn_pop_2025,Singapore,1599785.64,8.14,True
+openalex_articles_per_bn_ppp_gdp_2024,Indonesia,109.834408,4.72,True
+openalex_articles_per_bn_ppp_gdp_2024,Ukraine,116.221979,5.09,True
+openalex_company_share_pct_2024,Japan,9.474,4.06,False
+openalex_company_share_pct_2024,Denmark,8.661,3.62,False
+openalex_company_share_pct_2024,Netherlands,9.872,4.27,False
+openalex_company_share_pct_2024,Israel,8.649,3.61,False
+openalex_company_share_pct_2024,Switzerland,10.516,4.62,False
+openalex_company_share_pct_2024,Austria,9.932,4.3,False
+openalex_company_share_pct_2024,Belgium,9.916,4.29,False
+openalex_company_share_pct_2024,Greece,11.647,5.22,False

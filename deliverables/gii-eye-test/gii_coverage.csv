@@ -1,0 +1,19 @@
+Column,Indicator,Kind,n,Coverage,Year (mode),Year min,Stale (>2y),Missing countries,Stale countries
+market_cap_pct_gdp,"Market capitalisation, % GDP",fetched,62,0.873,2025,2014,13,Sweden; Denmark; Finland; Serbia; Guatemala; Dominican Republic; Ecuador; Ethiopia; Iraq,United Kingdom; France; Ireland; Netherlands; Norway; Portugal; Belgium; Italy; Costa Rica; Argentina; Slovak Republic; Ukraine; Algeria
+mht_manufacturing_pct,"Medium/high-tech manufacturing, % MVA",fetched,70,0.986,2024,2024,0,Dominican Republic,
+fdi_net_inflows_pct_gdp,"FDI net inflows, % GDP",fetched,71,1.0,2025,2024,0,,
+gerd_pct_gdp,"Gross R&D expenditure, % GDP",fetched,67,0.944,2023,2014,16,Morocco; Ghana; Bangladesh; Dominican Republic,Singapore; India; United Arab Emirates; Australia; Chile; Qatar; Malaysia; Indonesia; Colombia; Philippines; Nigeria; South Africa; Ecuador; Ethiopia; Iraq; Sri Lanka
+patent_apps_residents,Resident patent applications (count),fetched,71,1.0,2024,2020,1,,Nigeria
+sci_tech_articles_wdi,Scientific & technical articles (count),fetched,71,1.0,2023,2023,0,,
+low_carbon_share_primary_energy_pct,"Low-carbon share of primary energy, %",fetched,62,0.873,2025,2025,0,Costa Rica; Serbia; Nigeria; Kenya; Ghana; Guatemala; Dominican Republic; Ethiopia; Rwanda,
+gdp_per_unit_energy_use,GDP per unit of energy use,fetched,71,1.0,2024,2024,0,,
+github_git_pushes_2025,GitHub git pushes 2025 (count),fetched,71,1.0,2025,2025,0,,
+openalex_articles_2024,OpenAlex articles 2024 (count),fetched,71,1.0,2024,2024,0,,
+openalex_company_articles_2024,OpenAlex company-authored articles 2024,fetched,71,1.0,2024,2024,0,,
+ict_service_exports_usd,"ICT service exports, USD",fetched,70,0.986,2025,2024,0,Viet Nam,
+ip_receipts_usd,"IP receipts, USD",fetched,67,0.944,2025,2022,1,Qatar; Kuwait; Viet Nam; Nigeria,Dominican Republic
+patents_per_bn_ppp_gdp,Resident patents per bn PPP$ GDP,derived,71,1.0,2024,2020,1,,Nigeria
+sci_articles_wdi_per_bn_ppp_gdp,Articles per bn PPP$ GDP,derived,71,1.0,2023,2023,0,,
+github_git_pushes_per_mn_pop_2025,GitHub pushes per mn population,derived,71,1.0,2025,2025,0,,
+openalex_articles_per_bn_ppp_gdp_2024,OpenAlex articles per bn PPP$ GDP,derived,71,1.0,2024,2024,0,,
+openalex_company_share_pct_2024,"Company-authored article share, %",derived,71,1.0,2024,2024,0,,

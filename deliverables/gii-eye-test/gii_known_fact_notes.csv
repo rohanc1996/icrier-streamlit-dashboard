@@ -1,0 +1,14 @@
+Indicator,Country,Value,Note
+market_cap_pct_gdp,India,266.9212,2025=266.9 vs 2024=136.4 (provenance) — implausible jump
+market_cap_pct_gdp,South Africa,327.2427,327% GDP — unusually high; verify
+gerd_pct_gdp,Guatemala,0.0061,0.006% GDP — implausibly low
+gerd_pct_gdp,India,0.6456,latest year 2020 — stale
+fdi_net_inflows_pct_gdp,Hungary,-28.3736,−28% GDP — disinvestment one-off; verify
+github_git_pushes_2025,China,8536391.0,GitHub understated (firewall); per-capita 6k vs Singapore 1.6m
+github_git_pushes_per_mn_pop_2025,China,6068.88,Understated denominator issue + firewall
+openalex_articles_2024,Indonesia,554200.0,554k > India 306k — OpenAlex universe inflation
+openalex_articles_2024,China,955206.0,OpenAlex universe differs from WIPO/Clarivate
+ict_service_exports_usd,Ireland,358760665966.966,~358bn — multinational transfer-pricing effect; real but extreme
+ip_receipts_usd,Netherlands,67410721999.8814,Tax-domicile effect; real but extreme
+gdp_per_unit_energy_use,Ireland,48.1187,GDP inflated by multinationals; efficiency overstated
+sci_tech_articles_wdi,India,228174.31,228k (WDI 2023) — plausible; source universe differs from OpenAlex
