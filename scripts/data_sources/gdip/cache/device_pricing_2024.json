@@ -1,0 +1,1199 @@
+{
+  "ABW": {
+    "affordability_pct": 5.2,
+    "brand": "Samsung",
+    "model": "Galaxy A03 CORE",
+    "price_usd": 144.69,
+    "year": 2024
+  },
+  "AGO": {
+    "affordability_pct": 16.520000000000003,
+    "brand": "Afriphone",
+    "model": "S10",
+    "price_usd": 29.33,
+    "year": 2024
+  },
+  "AIA": {
+    "affordability_pct": null,
+    "brand": "Alcatel",
+    "model": "30SE",
+    "price_usd": 203.33,
+    "year": 2024
+  },
+  "ALB": {
+    "affordability_pct": 17.19,
+    "brand": "TCL",
+    "model": "403 2",
+    "price_usd": 108.42,
+    "year": 2024
+  },
+  "ARE": {
+    "affordability_pct": 2.1399999999999997,
+    "brand": "Nokia",
+    "model": "C3",
+    "price_usd": 95.02,
+    "year": 2024
+  },
+  "ARG": {
+    "affordability_pct": 14.719999999999999,
+    "brand": "ZTE",
+    "model": "Blade A33 Plus",
+    "price_usd": 153.62,
+    "year": 2024
+  },
+  "ARM": {
+    "affordability_pct": 14.799999999999999,
+    "brand": "Samsung",
+    "model": "A05",
+    "price_usd": 90.41,
+    "year": 2024
+  },
+  "ASM": {
+    "affordability_pct": null,
+    "brand": "Samsung",
+    "model": "Galaxay A04",
+    "price_usd": 199.0,
+    "year": 2024
+  },
+  "ATG": {
+    "affordability_pct": 6.76,
+    "brand": "Digicel",
+    "model": "DL4",
+    "price_usd": 112.59,
+    "year": 2024
+  },
+  "AUS": {
+    "affordability_pct": 2.9000000000000004,
+    "brand": "Motorola",
+    "model": "Moto G34",
+    "price_usd": 152.56,
+    "year": 2024
+  },
+  "BEL": {
+    "affordability_pct": 4.25,
+    "brand": "Samsung",
+    "model": "Galaxy A14",
+    "price_usd": 192.92,
+    "year": 2024
+  },
+  "BEN": {
+    "affordability_pct": 54.48,
+    "brand": "Logicom",
+    "model": "Onyx",
+    "price_usd": 65.38,
+    "year": 2024
+  },
+  "BFA": {
+    "affordability_pct": 131.29,
+    "brand": "Open",
+    "model": "Generation",
+    "price_usd": 93.0,
+    "year": 2024
+  },
+  "BGD": {
+    "affordability_pct": 26.889999999999997,
+    "brand": "Walton",
+    "model": "Primo GH11",
+    "price_usd": 64.09,
+    "year": 2024
+  },
+  "BGR": {
+    "affordability_pct": 8.19,
+    "brand": "Xiaomi",
+    "model": "Redmin A3",
+    "price_usd": 98.68,
+    "year": 2024
+  },
+  "BHR": {
+    "affordability_pct": 4.46,
+    "brand": "Nokia",
+    "model": "C01 Plus",
+    "price_usd": 105.04,
+    "year": 2024
+  },
+  "BHS": {
+    "affordability_pct": 5.59,
+    "brand": "TCL",
+    "model": "403/431 32GB",
+    "price_usd": 149.0,
+    "year": 2024
+  },
+  "BIH": {
+    "affordability_pct": 12.73,
+    "brand": "ZTE",
+    "model": "Blade A31",
+    "price_usd": 86.6,
+    "year": 2024
+  },
+  "BLR": {
+    "affordability_pct": 10.95,
+    "brand": "Xiaomi",
+    "model": "Redmi A3 3/64GB",
+    "price_usd": 70.99,
+    "year": 2024
+  },
+  "BLZ": {
+    "affordability_pct": 9.93,
+    "brand": "Alcatel",
+    "model": "5033E",
+    "price_usd": 59.5,
+    "year": 2024
+  },
+  "BMU": {
+    "affordability_pct": 2.6599999999999997,
+    "brand": "Samsung",
+    "model": "Galaxy A24",
+    "price_usd": 299.0,
+    "year": 2024
+  },
+  "BRA": {
+    "affordability_pct": 7.17,
+    "brand": "TCL",
+    "model": "L5",
+    "price_usd": 54.21,
+    "year": 2024
+  },
+  "BRB": {
+    "affordability_pct": 7.02,
+    "brand": "TCL",
+    "model": "403",
+    "price_usd": 124.5,
+    "year": 2024
+  },
+  "BRN": {
+    "affordability_pct": 12.26,
+    "brand": "Xiaomi",
+    "model": "Redmi Note 13 Pro",
+    "price_usd": 357.41,
+    "year": 2024
+  },
+  "BTN": {
+    "affordability_pct": 30.8,
+    "brand": "Vivo",
+    "model": "Y01",
+    "price_usd": 92.14,
+    "year": 2024
+  },
+  "BWA": {
+    "affordability_pct": 7.86,
+    "brand": "Orange",
+    "model": "Rise 55",
+    "price_usd": 49.91,
+    "year": 2024
+  },
+  "CAF": {
+    "affordability_pct": 120.6,
+    "brand": "Orange",
+    "model": "Sanza Touch",
+    "price_usd": 47.23,
+    "year": 2024
+  },
+  "CAN": {
+    "affordability_pct": 1.71,
+    "brand": "ZTE",
+    "model": "Blade A3+",
+    "price_usd": 76.75,
+    "year": 2024
+  },
+  "CHE": {
+    "affordability_pct": 2.2399999999999998,
+    "brand": "Nokia",
+    "model": "C22",
+    "price_usd": 177.26,
+    "year": 2024
+  },
+  "CHL": {
+    "affordability_pct": 8.02,
+    "brand": "Samsung",
+    "model": "Galaxy A05",
+    "price_usd": 105.7,
+    "year": 2024
+  },
+  "CHN": {
+    "affordability_pct": 16.009999999999998,
+    "brand": "Honor",
+    "model": "Play 30 Plus",
+    "price_usd": 178.75,
+    "year": 2024
+  },
+  "CIV": {
+    "affordability_pct": 14.62,
+    "brand": "MTN",
+    "model": "Rio 3G",
+    "price_usd": 32.52,
+    "year": 2024
+  },
+  "CMR": {
+    "affordability_pct": 56.940000000000005,
+    "brand": "ZTE",
+    "model": "Blade 1 Lite 32Go",
+    "price_usd": 78.29,
+    "year": 2024
+  },
+  "COD": {
+    "affordability_pct": 45.45,
+    "brand": "Orange",
+    "model": "Sanza Touch",
+    "price_usd": 25.0,
+    "year": 2024
+  },
+  "COG": {
+    "affordability_pct": 18.26,
+    "brand": "Logicom",
+    "model": "Fit",
+    "price_usd": 37.59,
+    "year": 2024
+  },
+  "COK": {
+    "affordability_pct": null,
+    "brand": "Xiaomi",
+    "model": "Redmi A2",
+    "price_usd": 176.33,
+    "year": 2024
+  },
+  "COL": {
+    "affordability_pct": 13.55,
+    "brand": "ZTE",
+    "model": "Blade A31 Lite",
+    "price_usd": 77.55,
+    "year": 2024
+  },
+  "COM": {
+    "affordability_pct": 48.870000000000005,
+    "brand": "One",
+    "model": "1",
+    "price_usd": 65.16,
+    "year": 2024
+  },
+  "CRI": {
+    "affordability_pct": 5.319999999999999,
+    "brand": "Blu",
+    "model": "G52L",
+    "price_usd": 61.38,
+    "year": 2024
+  },
+  "CUW": {
+    "affordability_pct": 14.29,
+    "brand": "Samsung",
+    "model": "A14",
+    "price_usd": 245.25,
+    "year": 2024
+  },
+  "CYM": {
+    "affordability_pct": 3.7199999999999998,
+    "brand": "Samsung",
+    "model": "A14",
+    "price_usd": 213.41,
+    "year": 2024
+  },
+  "CYP": {
+    "affordability_pct": 4.109999999999999,
+    "brand": "Xiaomi",
+    "model": "Redmi A2",
+    "price_usd": 106.11,
+    "year": 2024
+  },
+  "CZE": {
+    "affordability_pct": 3.0,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 67.8,
+    "year": 2024
+  },
+  "DEU": {
+    "affordability_pct": 5.24,
+    "brand": "Xiaomi",
+    "model": "Redmi 12 5G",
+    "price_usd": 235.69,
+    "year": 2024
+  },
+  "DMA": {
+    "affordability_pct": 14.899999999999999,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 110.74,
+    "year": 2024
+  },
+  "DNK": {
+    "affordability_pct": 3.66,
+    "brand": "Motorola",
+    "model": "Moto G54",
+    "price_usd": 223.52,
+    "year": 2024
+  },
+  "DOM": {
+    "affordability_pct": 7.85,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 63.47,
+    "year": 2024
+  },
+  "DZA": {
+    "affordability_pct": 21.45,
+    "brand": "D-Tech",
+    "model": "D6 Mini",
+    "price_usd": 88.65,
+    "year": 2024
+  },
+  "ECU": {
+    "affordability_pct": 29.13,
+    "brand": "Samsung",
+    "model": "A04E",
+    "price_usd": 158.01,
+    "year": 2024
+  },
+  "EGY": {
+    "affordability_pct": 22.439999999999998,
+    "brand": "Samsung",
+    "model": "A03 Core",
+    "price_usd": 72.95,
+    "year": 2024
+  },
+  "ESP": {
+    "affordability_pct": 4.52,
+    "brand": "TCL",
+    "model": "40SE",
+    "price_usd": 121.11,
+    "year": 2024
+  },
+  "EST": {
+    "affordability_pct": 5.1499999999999995,
+    "brand": "Xiaomi",
+    "model": "Redmi A3",
+    "price_usd": 116.83,
+    "year": 2024
+  },
+  "FIN": {
+    "affordability_pct": 1.66,
+    "brand": "Honor",
+    "model": "X7a",
+    "price_usd": 73.95,
+    "year": 2024
+  },
+  "FJI": {
+    "affordability_pct": 10.459999999999999,
+    "brand": "Alcatel",
+    "model": "5033",
+    "price_usd": 48.66,
+    "year": 2024
+  },
+  "FLK": {
+    "affordability_pct": null,
+    "brand": "TCL",
+    "model": "406",
+    "price_usd": 158.86,
+    "year": 2024
+  },
+  "FRA": {
+    "affordability_pct": 1.4000000000000001,
+    "brand": "Altice",
+    "model": "S34 2023",
+    "price_usd": 52.52,
+    "year": 2024
+  },
+  "FRO": {
+    "affordability_pct": 4.17,
+    "brand": "Samsung",
+    "model": "Galaxy A15",
+    "price_usd": 258.59,
+    "year": 2024
+  },
+  "FSM": {
+    "affordability_pct": 27.18,
+    "brand": "Realme",
+    "model": "C30",
+    "price_usd": 94.0,
+    "year": 2024
+  },
+  "GBR": {
+    "affordability_pct": 2.5100000000000002,
+    "brand": "Xiaomi",
+    "model": "Redmi A3",
+    "price_usd": 100.0,
+    "year": 2024
+  },
+  "GEO": {
+    "affordability_pct": 11.48,
+    "brand": "Xiaomi",
+    "model": "Redmi A1+",
+    "price_usd": 63.93,
+    "year": 2024
+  },
+  "GIB": {
+    "affordability_pct": null,
+    "brand": "Xiaomi",
+    "model": "13T Pro",
+    "price_usd": 696.2,
+    "year": 2024
+  },
+  "GMB": {
+    "affordability_pct": 42.68,
+    "brand": "Africell",
+    "model": "3G Smartphone",
+    "price_usd": 29.52,
+    "year": 2024
+  },
+  "GNB": {
+    "affordability_pct": 1939.5,
+    "brand": "Apple",
+    "model": "iPhone 14+",
+    "price_usd": 1454.62,
+    "year": 2024
+  },
+  "GRC": {
+    "affordability_pct": 4.5,
+    "brand": "TCL",
+    "model": "403",
+    "price_usd": 84.67,
+    "year": 2024
+  },
+  "GTM": {
+    "affordability_pct": 6.23,
+    "brand": "Logic",
+    "model": "L4T",
+    "price_usd": 28.96,
+    "year": 2024
+  },
+  "GUF": {
+    "affordability_pct": null,
+    "brand": "Xiaomi",
+    "model": "Redmi 13c",
+    "price_usd": 170.42,
+    "year": 2024
+  },
+  "GUM": {
+    "affordability_pct": null,
+    "brand": "BLU",
+    "model": "C5L Max",
+    "price_usd": 95.0,
+    "year": 2024
+  },
+  "GUY": {
+    "affordability_pct": 5.11,
+    "brand": "Logic",
+    "model": "L55B",
+    "price_usd": 86.62,
+    "year": 2024
+  },
+  "HKG": {
+    "affordability_pct": 2.78,
+    "brand": "ZTE",
+    "model": "Blade A73",
+    "price_usd": 127.93,
+    "year": 2024
+  },
+  "HND": {
+    "affordability_pct": 20.169999999999998,
+    "brand": "PCD",
+    "model": "P50",
+    "price_usd": 48.75,
+    "year": 2024
+  },
+  "HRV": {
+    "affordability_pct": 4.109999999999999,
+    "brand": "Alcatel",
+    "model": "1+",
+    "price_usd": 70.74,
+    "year": 2024
+  },
+  "HTI": {
+    "affordability_pct": 25.03,
+    "brand": "Natcom",
+    "model": "HF522",
+    "price_usd": 36.3,
+    "year": 2024
+  },
+  "HUN": {
+    "affordability_pct": 5.56,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 91.86,
+    "year": 2024
+  },
+  "IND": {
+    "affordability_pct": 32.26,
+    "brand": "I Kall",
+    "model": "K401",
+    "price_usd": 68.28,
+    "year": 2024
+  },
+  "IRL": {
+    "affordability_pct": 1.44,
+    "brand": "TCL",
+    "model": "406",
+    "price_usd": 96.45,
+    "year": 2024
+  },
+  "IRQ": {
+    "affordability_pct": 14.84,
+    "brand": "Tecno",
+    "model": "POP7",
+    "price_usd": 69.27,
+    "year": 2024
+  },
+  "ISL": {
+    "affordability_pct": 1.95,
+    "brand": "Xiaomi",
+    "model": "Redmi A2",
+    "price_usd": 129.62,
+    "year": 2024
+  },
+  "ISR": {
+    "affordability_pct": 2.7199999999999998,
+    "brand": "Xiaomi",
+    "model": "Redmi A3",
+    "price_usd": 124.93,
+    "year": 2024
+  },
+  "ITA": {
+    "affordability_pct": 3.36,
+    "brand": "ZTE",
+    "model": "Blade A33s",
+    "price_usd": 107.07,
+    "year": 2024
+  },
+  "JAM": {
+    "affordability_pct": 34.86,
+    "brand": "Samsung",
+    "model": "Galaxy A05",
+    "price_usd": 178.67,
+    "year": 2024
+  },
+  "JOR": {
+    "affordability_pct": 20.9,
+    "brand": "Moto",
+    "model": "E13",
+    "price_usd": 77.68,
+    "year": 2024
+  },
+  "JPN": {
+    "affordability_pct": 4.21,
+    "brand": "Samsung",
+    "model": "A23",
+    "price_usd": 137.06,
+    "year": 2024
+  },
+  "KAZ": {
+    "affordability_pct": 10.12,
+    "brand": "Xiaomi",
+    "model": "Redmin A2+",
+    "price_usd": 92.3,
+    "year": 2024
+  },
+  "KEN": {
+    "affordability_pct": 33.12,
+    "brand": "Neon",
+    "model": "Smarta",
+    "price_usd": 58.24,
+    "year": 2024
+  },
+  "KGZ": {
+    "affordability_pct": 37.65,
+    "brand": "Itel",
+    "model": "A25",
+    "price_usd": 53.34,
+    "year": 2024
+  },
+  "KHM": {
+    "affordability_pct": 87.14,
+    "brand": "Oppo",
+    "model": "A18",
+    "price_usd": 131.44,
+    "year": 2024
+  },
+  "KNA": {
+    "affordability_pct": 5.2,
+    "brand": "Digicel",
+    "model": "DL4s",
+    "price_usd": 92.59,
+    "year": 2024
+  },
+  "KOR": {
+    "affordability_pct": 7.3,
+    "brand": "Xiaomi",
+    "model": "Redmi Note 12",
+    "price_usd": 215.93,
+    "year": 2024
+  },
+  "KWT": {
+    "affordability_pct": 2.62,
+    "brand": "Samsung",
+    "model": "Galaxy A05",
+    "price_usd": 100.65,
+    "year": 2024
+  },
+  "LBR": {
+    "affordability_pct": 80.55,
+    "brand": "Orange",
+    "model": "Sanza Touch",
+    "price_usd": 49.0,
+    "year": 2024
+  },
+  "LCA": {
+    "affordability_pct": 10.72,
+    "brand": "Digicel",
+    "model": "DL4",
+    "price_usd": 110.74,
+    "year": 2024
+  },
+  "LKA": {
+    "affordability_pct": 40.69,
+    "brand": "Honor",
+    "model": "X5",
+    "price_usd": 120.03,
+    "year": 2024
+  },
+  "LSO": {
+    "affordability_pct": 191.23000000000002,
+    "brand": "Samsung",
+    "model": "Galaxy A14",
+    "price_usd": 184.86,
+    "year": 2024
+  },
+  "LTU": {
+    "affordability_pct": 4.09,
+    "brand": "Xiaomi",
+    "model": "Redmi A2",
+    "price_usd": 84.67,
+    "year": 2024
+  },
+  "LUX": {
+    "affordability_pct": 3.3300000000000005,
+    "brand": "Samsung",
+    "model": "Galaxy A15",
+    "price_usd": 245.44,
+    "year": 2024
+  },
+  "LVA": {
+    "affordability_pct": 5.21,
+    "brand": "Xiaomi",
+    "model": "Redmi A2",
+    "price_usd": 95.39,
+    "year": 2024
+  },
+  "MAC": {
+    "affordability_pct": 4.62,
+    "brand": "Samsung",
+    "model": "Galaxy A15",
+    "price_usd": 169.09,
+    "year": 2024
+  },
+  "MAR": {
+    "affordability_pct": 16.3,
+    "brand": "Nokia",
+    "model": "C01 Plus",
+    "price_usd": 50.27,
+    "year": 2024
+  },
+  "MDA": {
+    "affordability_pct": 15.440000000000001,
+    "brand": "Xiaomi",
+    "model": "Redmi A1",
+    "price_usd": 78.61,
+    "year": 2024
+  },
+  "MDG": {
+    "affordability_pct": 60.370000000000005,
+    "brand": "Telma",
+    "model": "Feel'in",
+    "price_usd": 26.66,
+    "year": 2024
+  },
+  "MDV": {
+    "affordability_pct": 227.80999999999997,
+    "brand": "Samsung",
+    "model": "Galaxy Z Fold5",
+    "price_usd": 2093.93,
+    "year": 2024
+  },
+  "MEX": {
+    "affordability_pct": 4.859999999999999,
+    "brand": "Bmobile",
+    "model": "BL52",
+    "price_usd": 48.97,
+    "year": 2024
+  },
+  "MKD": {
+    "affordability_pct": 19.1,
+    "brand": "Xiaomi",
+    "model": "Redmi A3",
+    "price_usd": 121.95,
+    "year": 2024
+  },
+  "MLI": {
+    "affordability_pct": 41.05,
+    "brand": "Orange",
+    "model": "Sanza Touch",
+    "price_usd": 29.42,
+    "year": 2024
+  },
+  "MLT": {
+    "affordability_pct": 4.88,
+    "brand": "Xiaomi",
+    "model": "Redmi 12C",
+    "price_usd": 139.12,
+    "year": 2024
+  },
+  "MMR": {
+    "affordability_pct": 83.96000000000001,
+    "brand": "Realme",
+    "model": "Note 50",
+    "price_usd": 84.66,
+    "year": 2024
+  },
+  "MNE": {
+    "affordability_pct": 16.78,
+    "brand": "Motorola",
+    "model": "Moto G04",
+    "price_usd": 160.77,
+    "year": 2024
+  },
+  "MNG": {
+    "affordability_pct": 34.44,
+    "brand": "Huawei",
+    "model": "Nova Y61",
+    "price_usd": 142.05,
+    "year": 2024
+  },
+  "MNP": {
+    "affordability_pct": null,
+    "brand": "BLU",
+    "model": "C5L Max",
+    "price_usd": 95.0,
+    "year": 2024
+  },
+  "MOZ": {
+    "affordability_pct": 53.66,
+    "brand": "Movitel",
+    "model": "M8423",
+    "price_usd": 23.7,
+    "year": 2024
+  },
+  "MUS": {
+    "affordability_pct": 12.709999999999999,
+    "brand": "Oppo",
+    "model": "A17",
+    "price_usd": 122.13,
+    "year": 2024
+  },
+  "NAM": {
+    "affordability_pct": 24.04,
+    "brand": "Xiaomi",
+    "model": "Redmi A2",
+    "price_usd": 97.55,
+    "year": 2024
+  },
+  "NIC": {
+    "affordability_pct": 23.25,
+    "brand": "Bmobile",
+    "model": "BL53",
+    "price_usd": 43.99,
+    "year": 2024
+  },
+  "NIU": {
+    "affordability_pct": null,
+    "brand": "Oppo",
+    "model": "A38",
+    "price_usd": 203.78,
+    "year": 2024
+  },
+  "NLD": {
+    "affordability_pct": 4.21,
+    "brand": "Oppo",
+    "model": "A58",
+    "price_usd": 212.66,
+    "year": 2024
+  },
+  "NOR": {
+    "affordability_pct": 1.8599999999999999,
+    "brand": "Samsung",
+    "model": "A15",
+    "price_usd": 158.85,
+    "year": 2024
+  },
+  "NRU": {
+    "affordability_pct": 7.199999999999999,
+    "brand": "Samsung",
+    "model": "A05",
+    "price_usd": 132.58,
+    "year": 2024
+  },
+  "NZL": {
+    "affordability_pct": 1.34,
+    "brand": "Mobiwire",
+    "model": "Smart Green",
+    "price_usd": 54.3,
+    "year": 2024
+  },
+  "OMN": {
+    "affordability_pct": 26.39,
+    "brand": "Oukitel",
+    "model": "WP10",
+    "price_usd": 473.73,
+    "year": 2024
+  },
+  "PAN": {
+    "affordability_pct": 3.3300000000000005,
+    "brand": "ZTE",
+    "model": "A33 Core",
+    "price_usd": 49.95,
+    "year": 2024
+  },
+  "PER": {
+    "affordability_pct": 13.459999999999999,
+    "brand": "ZTE",
+    "model": "Blade A34",
+    "price_usd": 78.4,
+    "year": 2024
+  },
+  "PHL": {
+    "affordability_pct": 26.090000000000003,
+    "brand": "Realme",
+    "model": "C30s",
+    "price_usd": 91.96,
+    "year": 2024
+  },
+  "PNG": {
+    "affordability_pct": 10.9,
+    "brand": "WoWi",
+    "model": "4G LTE Extreme",
+    "price_usd": 25.8,
+    "year": 2024
+  },
+  "POL": {
+    "affordability_pct": 3.7600000000000002,
+    "brand": "Xiaomi",
+    "model": "Redmi A1",
+    "price_usd": 61.86,
+    "year": 2024
+  },
+  "PRI": {
+    "affordability_pct": 21.39,
+    "brand": "Samsung",
+    "model": "Galaxy A54",
+    "price_usd": 449.99,
+    "year": 2024
+  },
+  "PRT": {
+    "affordability_pct": 3.42,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 74.92,
+    "year": 2024
+  },
+  "PRY": {
+    "affordability_pct": 10.280000000000001,
+    "brand": "Bmobile",
+    "model": "BLU G52L",
+    "price_usd": 53.11,
+    "year": 2024
+  },
+  "PSE": {
+    "affordability_pct": 33.1,
+    "brand": "Samsung",
+    "model": "Galaxy A04e",
+    "price_usd": 116.41,
+    "year": 2024
+  },
+  "PYF": {
+    "affordability_pct": null,
+    "brand": "Energizer",
+    "model": "U505S",
+    "price_usd": 88.94,
+    "year": 2024
+  },
+  "QAT": {
+    "affordability_pct": 1.69,
+    "brand": "Samsung",
+    "model": "Galaxy A04e",
+    "price_usd": 98.49,
+    "year": 2024
+  },
+  "ROU": {
+    "affordability_pct": 10.549999999999999,
+    "brand": "Nokia",
+    "model": "C32",
+    "price_usd": 146.62,
+    "year": 2024
+  },
+  "RUS": {
+    "affordability_pct": 4.88,
+    "brand": "Itel",
+    "model": "A25",
+    "price_usd": 58.01,
+    "year": 2024
+  },
+  "RWA": {
+    "affordability_pct": 35.82,
+    "brand": "Tecno",
+    "model": "Y3+",
+    "price_usd": 29.26,
+    "year": 2024
+  },
+  "SAU": {
+    "affordability_pct": 8.53,
+    "brand": "Samsung",
+    "model": "A13",
+    "price_usd": 203.95,
+    "year": 2024
+  },
+  "SEN": {
+    "affordability_pct": 27.060000000000002,
+    "brand": "Orange",
+    "model": "Sanza Touch 2",
+    "price_usd": 37.43,
+    "year": 2024
+  },
+  "SGP": {
+    "affordability_pct": 1.9900000000000002,
+    "brand": "Oppo",
+    "model": "A18 Lite",
+    "price_usd": 117.17,
+    "year": 2024
+  },
+  "SHN": {
+    "affordability_pct": null,
+    "brand": "TCL",
+    "model": "406",
+    "price_usd": 124.05,
+    "year": 2024
+  },
+  "SLB": {
+    "affordability_pct": 22.88,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 43.27,
+    "year": 2024
+  },
+  "SLE": {
+    "affordability_pct": 78.46,
+    "brand": "Orange",
+    "model": "Sanza Touch 2",
+    "price_usd": 36.62,
+    "year": 2024
+  },
+  "SLV": {
+    "affordability_pct": 9.76,
+    "brand": "Bmobile",
+    "model": "BL53",
+    "price_usd": 40.0,
+    "year": 2024
+  },
+  "SOM": {
+    "affordability_pct": 1180.33,
+    "brand": "Apple",
+    "model": "iPhone SE",
+    "price_usd": 600.0,
+    "year": 2024
+  },
+  "SRB": {
+    "affordability_pct": 8.21,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 68.63,
+    "year": 2024
+  },
+  "STP": {
+    "affordability_pct": 37.89,
+    "brand": "Alcatel",
+    "model": "1",
+    "price_usd": 78.31,
+    "year": 2024
+  },
+  "SUR": {
+    "affordability_pct": 22.81,
+    "brand": "Digicel",
+    "model": "DL4",
+    "price_usd": 101.88,
+    "year": 2024
+  },
+  "SVK": {
+    "affordability_pct": 4.74,
+    "brand": "Infinix",
+    "model": "Smart 8",
+    "price_usd": 90.03,
+    "year": 2024
+  },
+  "SVN": {
+    "affordability_pct": 5.0,
+    "brand": "Xiaomi",
+    "model": "Redmi A3",
+    "price_usd": 127.55,
+    "year": 2024
+  },
+  "SWE": {
+    "affordability_pct": 3.9699999999999998,
+    "brand": "Samsung",
+    "model": "Galaxy A14",
+    "price_usd": 204.02,
+    "year": 2024
+  },
+  "SWZ": {
+    "affordability_pct": 20.21,
+    "brand": "Hisense",
+    "model": "U60 Lite",
+    "price_usd": 65.02,
+    "year": 2024
+  },
+  "SYC": {
+    "affordability_pct": 23.580000000000002,
+    "brand": "TCL",
+    "model": "SE",
+    "price_usd": 332.83,
+    "year": 2024
+  },
+  "TCA": {
+    "affordability_pct": 4.29,
+    "brand": "Digicel",
+    "model": "DL4",
+    "price_usd": 94.99,
+    "year": 2024
+  },
+  "TGO": {
+    "affordability_pct": 47.589999999999996,
+    "brand": "Togocom",
+    "model": "One 4G",
+    "price_usd": 40.84,
+    "year": 2024
+  },
+  "THA": {
+    "affordability_pct": 12.26,
+    "brand": "Xiaomi",
+    "model": "Redmi A3",
+    "price_usd": 73.36,
+    "year": 2024
+  },
+  "TLS": {
+    "affordability_pct": 30.84,
+    "brand": "Telemor",
+    "model": "Hs 4G",
+    "price_usd": 55.0,
+    "year": 2024
+  },
+  "TON": {
+    "affordability_pct": 9.049999999999999,
+    "brand": "Nokia",
+    "model": "C2",
+    "price_usd": 37.69,
+    "year": 2024
+  },
+  "TTO": {
+    "affordability_pct": 5.93,
+    "brand": "Digicel",
+    "model": "DL4s",
+    "price_usd": 88.65,
+    "year": 2024
+  },
+  "TUN": {
+    "affordability_pct": 19.81,
+    "brand": "Logicom",
+    "model": "Flow",
+    "price_usd": 62.22,
+    "year": 2024
+  },
+  "TUR": {
+    "affordability_pct": 8.75,
+    "brand": "Reeder",
+    "model": "S19",
+    "price_usd": 84.94,
+    "year": 2024
+  },
+  "TUV": {
+    "affordability_pct": 34.410000000000004,
+    "brand": "Tecno",
+    "model": "Spark 8C",
+    "price_usd": 216.52,
+    "year": 2024
+  },
+  "TZA": {
+    "affordability_pct": 64.32,
+    "brand": "Nokia",
+    "model": "C1",
+    "price_usd": 64.85,
+    "year": 2024
+  },
+  "UKR": {
+    "affordability_pct": 19.82,
+    "brand": "Tecno",
+    "model": "Pop 7",
+    "price_usd": 83.72,
+    "year": 2024
+  },
+  "URY": {
+    "affordability_pct": 7.489999999999999,
+    "brand": "Motorola",
+    "model": "Motorola E13",
+    "price_usd": 121.86,
+    "year": 2024
+  },
+  "USA": {
+    "affordability_pct": 2.6599999999999997,
+    "brand": "Motorola",
+    "model": "Moto G",
+    "price_usd": 178.08,
+    "year": 2024
+  },
+  "UZB": {
+    "affordability_pct": 47.17,
+    "brand": "Tecno",
+    "model": "Pop 7",
+    "price_usd": 92.77,
+    "year": 2024
+  },
+  "VCT": {
+    "affordability_pct": 10.99,
+    "brand": "ZTE",
+    "model": "Blade A31",
+    "price_usd": 92.22,
+    "year": 2024
+  },
+  "VIR": {
+    "affordability_pct": null,
+    "brand": "Motorola",
+    "model": "Moto G",
+    "price_usd": 160.0,
+    "year": 2024
+  },
+  "VNM": {
+    "affordability_pct": 16.8,
+    "brand": "ZTE",
+    "model": "Blade A33S",
+    "price_usd": 58.53,
+    "year": 2024
+  },
+  "VUT": {
+    "affordability_pct": 15.590000000000002,
+    "brand": "Alcatel",
+    "model": "1E",
+    "price_usd": 47.54,
+    "year": 2024
+  },
+  "WSM": {
+    "affordability_pct": 21.94,
+    "brand": "Digicel",
+    "model": "DL4",
+    "price_usd": 73.49,
+    "year": 2024
+  },
+  "XKX": {
+    "affordability_pct": 15.040000000000001,
+    "brand": "UleFone",
+    "model": "Note 8",
+    "price_usd": 74.97,
+    "year": 2024
+  },
+  "ZAF": {
+    "affordability_pct": 4.81,
+    "brand": "Mobiwire",
+    "model": "Vibe",
+    "price_usd": 27.06,
+    "year": 2024
+  },
+  "ZWE": {
+    "affordability_pct": 110.33999999999999,
+    "brand": "Samsung",
+    "model": "Galaxy M11",
+    "price_usd": 160.0,
+    "year": 2024
+  }
+}
