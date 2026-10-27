@@ -42,6 +42,8 @@ and the two investigation `findings.md` files.
   number of AI users and any indicator or score built on that count.
   *Sources: 'eye-test' during the data collection for 2027 and comparison with the previous year.*
 
+- **Number of mobile subscriptions - UAE value is 84 million, clearly wrong**
+
 ## 2. Methodology and coverage disclosures
 
 - **Switzerland — INNOVATE · AI sub-pillar weighting:** the published report uses
