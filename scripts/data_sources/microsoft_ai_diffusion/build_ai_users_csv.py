@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Build the transposed Q2 2026 AI-users CSV for the SIDE 2027 Connect pillar.
 
-Absolute AI users are computed as the Q2 2026 AI user share multiplied by UN
-DESA total population for 2026, matching the approach used for the SIDE 2026
-column. Note that the Microsoft share is defined over the working-age
-population (15-64), so this absolute count is not a direct headcount of unique
-AI users.
+Absolute AI users are computed two ways: the Q2 2026 AI user share multiplied
+by UN DESA total population for 2026 (matching the SIDE 2026 column), and the
+share multiplied by the World Bank working-age population (15-64, 2025), which
+matches the denominator used by Microsoft's AI diffusion share.
 
 Output: data/2027 individual indicators/ai-users-transposed.csv
 
@@ -24,6 +23,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "itu"))
 from fetch_ai_diffusion import fetch as fetch_ai  # noqa: E402
 from fetch_undes import ISO3, fetch as fetch_population  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "world_bank"))
+from fetch_working_age import fetch as fetch_working_age  # noqa: E402
+
 COUNTRY_REF = ROOT / "data" / "SIDE 2027 - Absolute.csv"
 OUT = ROOT / "data" / "2027 individual indicators" / "ai-users-transposed.csv"
 YEAR = "2026"
@@ -31,8 +33,21 @@ YEAR = "2026"
 SHARE = "AI user share (% of working-age population, Q2 2026)"
 AI_USERS = "Number of AI users (absolute numbers, share × total population)"
 POPULATION = "UN DESA total population (2026)"
+WORKING_AGE = "World Bank working-age population (15-64, 2025)"
+AI_USERS_WORKING_AGE = (
+    "Number of AI users (absolute numbers, share × World Bank working-age population)"
+)
+WORKING_AGE_YEAR = "World Bank working-age population year"
 PERIOD = "Data period"
-ROWS = [SHARE, AI_USERS, POPULATION, PERIOD]
+ROWS = [
+    SHARE,
+    AI_USERS,
+    POPULATION,
+    WORKING_AGE,
+    AI_USERS_WORKING_AGE,
+    PERIOD,
+    WORKING_AGE_YEAR,
+]
 
 ALIASES = {
     "Czechia": "Czech Republic",
@@ -74,6 +89,7 @@ def fmt_count(value: float | None) -> str:
 def main() -> int:
     ai = fetch_ai(use_cache=True)
     population = fetch_population(use_cache=True)
+    working_age = fetch_working_age(use_cache=True)
     shares = ai["shares"]
     countries = side_countries()
 
@@ -84,17 +100,28 @@ def main() -> int:
         share = shares.get(report_name)
         iso = ISO3[country]
         pop = population.get(iso, {}).get(YEAR)
+        working_age_pop = working_age["values"].get(iso)
 
         ai_users = (
             share / 100 * pop
             if share is not None and pop is not None
             else None
         )
+        ai_users_working_age = (
+            share / 100 * working_age_pop
+            if share is not None and working_age_pop is not None
+            else None
+        )
 
         columns[SHARE].append(fmt_share(share))
         columns[AI_USERS].append(fmt_count(ai_users))
         columns[POPULATION].append(fmt_count(pop))
+        columns[WORKING_AGE].append(fmt_count(working_age_pop))
+        columns[AI_USERS_WORKING_AGE].append(fmt_count(ai_users_working_age))
         columns[PERIOD].append(ai["period"] if share is not None else "-")
+        columns[WORKING_AGE_YEAR].append(
+            working_age["year"] if working_age_pop is not None else "-"
+        )
 
     missing = [c for c, v in zip(countries, columns[SHARE]) if v == "-"]
     if missing:

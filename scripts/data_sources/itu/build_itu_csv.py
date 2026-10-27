@@ -2,7 +2,9 @@
 """Build the transposed ITU CSV for the SIDE 2027 Connect pillar.
 
 Combines ITU penetration rates with UN DESA WPP 2024 total population to derive
-absolute numbers.
+absolute numbers. Internet users are also reported as the literal average of
+the latest ITU rate and the 2024 Global Findex rate (age 15+), with ITU used as
+the fallback where Findex does not survey a country.
 
 Output: data/2027 individual indicators/itu-transposed.csv
 
@@ -23,6 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fetch_itu import fetch as fetch_itu  # noqa: E402
 from fetch_undes import ISO3, fetch as fetch_undes  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "world_bank"))
+from fetch_findex import fetch as fetch_findex  # noqa: E402
+
 COUNTRY_REF = ROOT / "data" / "SIDE 2027 - Absolute.csv"
 SIDE_2026 = ROOT / "data" / "SIDE 2026 - Absolute.csv"
 OUT = ROOT / "data" / "2027 individual indicators" / "itu-transposed.csv"
@@ -31,6 +36,10 @@ MOBILE_PER_100 = "Mobile Cellular Subscriptions per 100 population (ITU)"
 MOBILE_ABS = "Mobile Cellular Subscriptions (absolute numbers)"
 INTERNET_PCT = "% of population using the internet (ITU)"
 INTERNET_ABS = "Number of Internet Users (absolute numbers)"
+FINDEX_PCT = "% of population using the internet (Findex, age 15+)"
+INTERNET_AVG_PCT = "% of population using the internet (ITU-Findex average)"
+INTERNET_AVG_ABS = "Number of Internet Users (ITU-Findex average, absolute numbers)"
+FINDEX_YEAR = "Findex data year"
 POP_MOBILE = "UN DESA total population (mobile year)"
 POP_INTERNET = "UN DESA total population (internet year)"
 MOBILE_YEAR = "Mobile data year"
@@ -50,10 +59,14 @@ ROWS = [
     MOBILE_ABS,
     INTERNET_PCT,
     INTERNET_ABS,
+    FINDEX_PCT,
+    INTERNET_AVG_PCT,
+    INTERNET_AVG_ABS,
     POP_MOBILE,
     POP_INTERNET,
     MOBILE_YEAR,
     INTERNET_YEAR,
+    FINDEX_YEAR,
     LTE_PCT,
     LTE_ABS,
     POP_LTE,
@@ -107,6 +120,7 @@ def fmt_year(value: int | None) -> str:
 def main() -> int:
     itu = fetch_itu(use_cache=True)
     population = fetch_undes(use_cache=True)
+    findex = fetch_findex(use_cache=True)
     smartphone = side2026_smartphone()
 
     countries = side_countries()
@@ -125,6 +139,12 @@ def main() -> int:
         mobile_year = mobile["year"] if mobile else None
         internet_rate = internet["value"] if internet else None
         internet_year = internet["year"] if internet else None
+        findex_rate = findex["values"].get(iso)
+        internet_avg_rate = (
+            (internet_rate + findex_rate) / 2
+            if internet_rate is not None and findex_rate is not None
+            else internet_rate
+        )
         lte_rate = lte["value"] if lte else None
         lte_year = lte["year"] if lte else None
 
@@ -142,6 +162,11 @@ def main() -> int:
             if internet_rate is not None and internet_pop is not None
             else None
         )
+        internet_avg_abs = (
+            internet_avg_rate / 100 * internet_pop
+            if internet_avg_rate is not None and internet_pop is not None
+            else None
+        )
         lte_abs = (
             lte_rate / 100 * lte_pop
             if lte_rate is not None and lte_pop is not None
@@ -154,10 +179,16 @@ def main() -> int:
         columns[MOBILE_ABS].append(fmt_count(mobile_abs))
         columns[INTERNET_PCT].append(fmt_rate(internet_rate))
         columns[INTERNET_ABS].append(fmt_count(internet_abs))
+        columns[FINDEX_PCT].append(fmt_rate(findex_rate))
+        columns[INTERNET_AVG_PCT].append(fmt_rate(internet_avg_rate))
+        columns[INTERNET_AVG_ABS].append(fmt_count(internet_avg_abs))
         columns[POP_MOBILE].append(fmt_count(mobile_pop))
         columns[POP_INTERNET].append(fmt_count(internet_pop))
         columns[MOBILE_YEAR].append(fmt_year(mobile_year))
         columns[INTERNET_YEAR].append(fmt_year(internet_year))
+        columns[FINDEX_YEAR].append(
+            fmt_year(int(findex["year"])) if findex_rate is not None else "-"
+        )
         columns[LTE_PCT].append(fmt_rate(lte_rate))
         columns[LTE_ABS].append(fmt_count(lte_abs))
         columns[POP_LTE].append(fmt_count(lte_pop))
@@ -186,10 +217,12 @@ def main() -> int:
             year = itu["internet_pct"][iso]["year"]
             internet_years[year] = internet_years.get(year, 0) + 1
 
+    findex_missing = [c for c in countries if ISO3[c] not in findex["values"]]
     print(
         f"Wrote {OUT} ({len(countries)} countries; "
         f"mobile years {dict(sorted(mobile_years.items()))}; "
-        f"internet years {dict(sorted(internet_years.items()))})"
+        f"internet years {dict(sorted(internet_years.items()))}; "
+        f"Findex {findex['year']} missing {', '.join(findex_missing) or 'none'})"
     )
     return 0
 
