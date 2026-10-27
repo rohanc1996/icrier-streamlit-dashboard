@@ -31,8 +31,7 @@ and the two investigation `findings.md` files.
 
 - **Uzbekistan — "VC investments in AI and environmental sustainability by country (USD million)" (SUSTAINABILITY):** 
   the published cell (**4.80**) was a linking error and should be blank. The repo's reference copy has since been
-  blanked; confirm whether the printed report carried the erroneous value before
-  finalising the wording of the disclosure.
+  blanked. I couldn't find the incorrect value printed anywhere; if that's the case, then we probably don't need to disclose.
   *Sources: `relative min-max values mismatch re-analysis (ransomware fix)/findings_old.md:25-26,102`;
   `mismatch-investigation-between-published-report-and-raw-data.md:154-155,222-223`.*
 
