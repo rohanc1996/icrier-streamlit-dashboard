@@ -1,0 +1,19 @@
+Column,Indicator,Treatment,n,Min,Median,Max,Skew,Kurt,Max/Median,Median normalised,Share < 0.25,Bounds issues,Size r(GDP),Size r(Pop)
+market_cap_pct_gdp,"Market capitalisation, % GDP",winsor_top_2,62,0.1909,42.5147,240.9426,1.31,0.8,5.67,0.176,0.581,,0.41,0.09
+mht_manufacturing_pct,"Medium/high-tech manufacturing, % MVA",none,70,2.6933,33.7991,77.5553,0.14,-0.5,2.29,0.416,0.229,,0.35,-0.11
+fdi_net_inflows_pct_gdp,"FDI net inflows, % GDP",winsor_bottom_1,71,-3.9684,1.6675,26.3447,4.03,25.4,15.8,0.186,0.789,,-0.18,-0.18
+gerd_pct_gdp,"Gross R&D expenditure, % GDP",none,67,0.0061,1.0176,6.3459,1.46,2.6,6.24,0.16,0.687,,0.25,-0.19
+patent_apps_residents,Resident patent applications (count),log,71,0.0,6.6039,14.3295,0.24,1.3,2.17,0.461,0.099,,0.82,0.48
+sci_tech_articles_wdi,Scientific & technical articles (count),log,71,0.0,9.5067,13.7459,-2.05,8.5,1.45,0.692,0.028,,0.85,0.51
+low_carbon_share_primary_energy_pct,"Low-carbon share of primary energy, %",none,62,0.0193,14.3448,63.0695,1.27,1.2,4.4,0.227,0.581,,-0.12,-0.22
+gdp_per_unit_energy_use,GDP per unit of energy use,none,71,4.7168,14.6659,48.1187,1.38,3.3,3.28,0.229,0.563,,0.02,-0.15
+github_git_pushes_2025,GitHub git pushes 2025 (count),log,71,0.0,15.1751,18.7559,-4.0,24.6,1.24,0.809,0.014,,0.84,0.65
+openalex_articles_2024,OpenAlex articles 2024 (count),log,71,0.0,10.1857,13.7697,-2.35,11.6,1.35,0.74,0.014,,0.88,0.63
+openalex_company_articles_2024,OpenAlex company-authored articles 2024,log,71,0.0,6.3666,10.6831,-0.29,0.6,1.68,0.596,0.028,,0.69,0.22
+ict_service_exports_usd,"ICT service exports, USD",log,70,0.0,22.2891,26.6059,-3.95,23.9,1.19,0.838,0.014,,0.48,0.01
+ip_receipts_usd,"IP receipts, USD",log,67,0.0,19.6745,25.9976,-1.99,9.0,1.32,0.757,0.015,,0.51,-0.04
+patents_per_bn_ppp_gdp,Resident patents per bn PPP$ GDP,log,71,0.0,0.5563,4.0945,2.45,7.1,7.36,0.136,0.761,,0.48,0.17
+sci_articles_wdi_per_bn_ppp_gdp,Articles per bn PPP$ GDP,none,71,0.3159,13.7126,31.7385,0.26,-1.0,2.31,0.426,0.268,,-0.01,-0.27
+github_git_pushes_per_mn_pop_2025,GitHub pushes per mn population,winsor_top_1,71,6068.88,172973.43,704728.85,1.04,0.1,4.07,0.239,0.507,,0.03,-0.43
+openalex_articles_per_bn_ppp_gdp_2024,OpenAlex articles per bn PPP$ GDP,none,71,1.9282,29.6507,116.222,1.59,4.2,3.92,0.243,0.521,,-0.1,-0.22
+openalex_company_share_pct_2024,"Company-authored article share, %",none,71,0.151,1.922,11.647,1.06,-0.1,6.06,0.154,0.62,,0.08,-0.4

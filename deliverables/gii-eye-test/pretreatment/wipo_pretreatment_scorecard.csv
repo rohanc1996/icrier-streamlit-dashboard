@@ -1,0 +1,19 @@
+Column,Indicator,GII mapping / rule,Treatment,n,raw median normalised,post median normalised,raw share below 0.25,post share below 0.25,raw top1-top2,post top1-top2,Skew,Kurt,Max/Median,Bounds issues,Size r(GDP),Size r(Pop),max_dCHIPS,max_dRank,top_mover,Construct r (Abs)
+market_cap_pct_gdp,"Market capitalisation, % GDP",4.2.1: winsor top (2),winsor_top_2,62,0.129,0.176,0.694,0.581,0.1844,0.0,1.31,0.8,5.67,,0.41,0.09,0.062,38,South Africa (+0.062),0.607
+mht_manufacturing_pct,"Medium/high-tech manufacturing, % MVA",6.2.4: none,none,70,0.416,0.416,0.229,0.229,0.0861,0.0861,0.14,-0.5,2.29,,0.35,-0.11,0.037,26,Qatar (+0.037),0.69
+fdi_net_inflows_pct_gdp,"FDI net inflows, % GDP",5.3.4: winsor bottom (1),winsor_bottom_1,71,0.549,0.186,0.014,0.789,0.2915,0.5263,4.03,25.4,15.8,,-0.18,-0.18,0.089,20,Singapore (+0.059),-0.092
+gerd_pct_gdp,"Gross R&D expenditure, % GDP",2.3.2: none,none,67,0.16,0.16,0.687,0.687,0.2212,0.2212,1.46,2.6,6.24,,0.25,-0.19,0.105,21,Israel (+0.060),0.623
+patent_apps_residents,Resident patent applications (count),"generic rule (skew=7.76, kurt=62.9, 13 Tukey out)",log,71,0.0,0.461,0.986,0.099,0.8383,0.1272,0.24,1.3,2.17,,0.82,0.48,0.079,22,Republic of Korea (+0.050),0.814
+sci_tech_articles_wdi,Scientific & technical articles (count),"generic rule (skew=6.10, kurt=41.5, 11 Tukey out)",log,71,0.014,0.692,0.972,0.028,0.5381,0.0562,-2.05,8.5,1.45,,0.85,0.51,0.063,30,Uzbekistan (+0.050),0.806
+low_carbon_share_primary_energy_pct,"Low-carbon share of primary energy, %",3.3.2: none,none,62,0.227,0.227,0.581,0.581,0.073,0.073,1.27,1.2,4.4,,-0.12,-0.22,0.041,40,Sweden (+0.039),0.272
+gdp_per_unit_energy_use,GDP per unit of energy use,3.3.1: none,none,71,0.229,0.229,0.563,0.563,0.3158,0.3158,1.38,3.3,3.28,,0.02,-0.15,0.041,23,Ireland (+0.041),-0.042
+github_git_pushes_2025,GitHub git pushes 2025 (count),"generic rule (skew=4.69, kurt=24.1, 9 Tukey out)",log,71,0.028,0.809,0.958,0.014,0.1569,0.0091,-4.0,24.6,1.24,,0.84,0.65,0.039,23,Ukraine (+0.039),0.749
+openalex_articles_2024,OpenAlex articles 2024 (count),"generic rule (skew=4.09, kurt=18.7, 7 Tukey out)",log,71,0.028,0.74,0.944,0.014,0.2999,0.0259,-2.35,11.6,1.35,,0.88,0.63,0.063,31,Uzbekistan (+0.061),0.767
+openalex_company_articles_2024,OpenAlex company-authored articles 2024,"generic rule (skew=4.43, kurt=21.4, 7 Tukey out)",log,71,0.013,0.596,0.93,0.028,0.085,0.0083,-0.29,0.6,1.68,,0.69,0.22,0.063,29,Japan (+0.051),0.845
+ict_service_exports_usd,"ICT service exports, USD","generic rule (skew=5.22, kurt=31.3, 7 Tukey out)",log,70,0.013,0.838,0.957,0.014,0.4416,0.0219,-3.95,23.9,1.19,,0.48,0.01,0.042,25,Kuwait (+0.042),0.82
+ip_receipts_usd,"IP receipts, USD","generic rule (skew=5.39, kurt=34.3, 9 Tukey out)",log,67,0.002,0.757,0.925,0.015,0.6548,0.0409,-1.99,9.0,1.32,,0.51,-0.04,0.057,33,Netherlands (+0.057),0.801
+patents_per_bn_ppp_gdp,Resident patents per bn PPP$ GDP,6.1.1: log,log,71,0.013,0.136,0.958,0.761,0.3248,0.094,2.45,7.1,7.36,,0.48,0.17,0.104,20,Republic of Korea (+0.059),0.648
+sci_articles_wdi_per_bn_ppp_gdp,Articles per bn PPP$ GDP,6.1.4: none,none,71,0.426,0.426,0.268,0.268,0.0171,0.0171,0.26,-1.0,2.31,,-0.01,-0.27,0.088,27,Portugal (+0.062),0.349
+github_git_pushes_per_mn_pop_2025,GitHub pushes per mn population,7.3.2: winsor top (1),winsor_top_1,71,0.105,0.239,0.831,0.507,0.5616,0.0,1.04,0.1,4.07,,0.03,-0.43,0.038,31,Switzerland (+0.038),0.419
+openalex_articles_per_bn_ppp_gdp_2024,OpenAlex articles per bn PPP$ GDP,"generic rule (skew=1.59, kurt=4.2, 2 Tukey out)",none,71,0.243,0.243,0.521,0.521,0.0559,0.0559,1.59,4.2,3.92,,-0.1,-0.22,0.091,38,Ukraine (+0.061),0.159
+openalex_company_share_pct_2024,"Company-authored article share, %","generic rule (skew=1.06, kurt=-0.1, 0 Tukey out)",none,71,0.154,0.154,0.62,0.62,0.0984,0.0984,1.06,-0.1,6.06,,0.08,-0.4,0.086,37,Greece (+0.061),0.523

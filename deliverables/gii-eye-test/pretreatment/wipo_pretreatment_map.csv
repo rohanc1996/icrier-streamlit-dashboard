@@ -1,0 +1,19 @@
+Column,Indicator,GII mapping / rule,Treatment,n,raw median normalised,post median normalised,raw share below 0.25,post share below 0.25,raw top1-top2,post top1-top2
+market_cap_pct_gdp,"Market capitalisation, % GDP",4.2.1: winsor top (2),winsor_top_2,62,0.129,0.176,0.694,0.581,0.1844,0.0
+mht_manufacturing_pct,"Medium/high-tech manufacturing, % MVA",6.2.4: none,none,70,0.416,0.416,0.229,0.229,0.0861,0.0861
+fdi_net_inflows_pct_gdp,"FDI net inflows, % GDP",5.3.4: winsor bottom (1),winsor_bottom_1,71,0.549,0.186,0.014,0.789,0.2915,0.5263
+gerd_pct_gdp,"Gross R&D expenditure, % GDP",2.3.2: none,none,67,0.16,0.16,0.687,0.687,0.2212,0.2212
+patent_apps_residents,Resident patent applications (count),"generic rule (skew=7.76, kurt=62.9, 13 Tukey out)",log,71,0.0,0.461,0.986,0.099,0.8383,0.1272
+sci_tech_articles_wdi,Scientific & technical articles (count),"generic rule (skew=6.10, kurt=41.5, 11 Tukey out)",log,71,0.014,0.692,0.972,0.028,0.5381,0.0562
+low_carbon_share_primary_energy_pct,"Low-carbon share of primary energy, %",3.3.2: none,none,62,0.227,0.227,0.581,0.581,0.073,0.073
+gdp_per_unit_energy_use,GDP per unit of energy use,3.3.1: none,none,71,0.229,0.229,0.563,0.563,0.3158,0.3158
+github_git_pushes_2025,GitHub git pushes 2025 (count),"generic rule (skew=4.69, kurt=24.1, 9 Tukey out)",log,71,0.028,0.809,0.958,0.014,0.1569,0.0091
+openalex_articles_2024,OpenAlex articles 2024 (count),"generic rule (skew=4.09, kurt=18.7, 7 Tukey out)",log,71,0.028,0.74,0.944,0.014,0.2999,0.0259
+openalex_company_articles_2024,OpenAlex company-authored articles 2024,"generic rule (skew=4.43, kurt=21.4, 7 Tukey out)",log,71,0.013,0.596,0.93,0.028,0.085,0.0083
+ict_service_exports_usd,"ICT service exports, USD","generic rule (skew=5.22, kurt=31.3, 7 Tukey out)",log,70,0.013,0.838,0.957,0.014,0.4416,0.0219
+ip_receipts_usd,"IP receipts, USD","generic rule (skew=5.39, kurt=34.3, 9 Tukey out)",log,67,0.002,0.757,0.925,0.015,0.6548,0.0409
+patents_per_bn_ppp_gdp,Resident patents per bn PPP$ GDP,6.1.1: log,log,71,0.013,0.136,0.958,0.761,0.3248,0.094
+sci_articles_wdi_per_bn_ppp_gdp,Articles per bn PPP$ GDP,6.1.4: none,none,71,0.426,0.426,0.268,0.268,0.0171,0.0171
+github_git_pushes_per_mn_pop_2025,GitHub pushes per mn population,7.3.2: winsor top (1),winsor_top_1,71,0.105,0.239,0.831,0.507,0.5616,0.0
+openalex_articles_per_bn_ppp_gdp_2024,OpenAlex articles per bn PPP$ GDP,"generic rule (skew=1.59, kurt=4.2, 2 Tukey out)",none,71,0.243,0.243,0.521,0.521,0.0559,0.0559
+openalex_company_share_pct_2024,"Company-authored article share, %","generic rule (skew=1.06, kurt=-0.1, 0 Tukey out)",none,71,0.154,0.154,0.62,0.62,0.0984,0.0984

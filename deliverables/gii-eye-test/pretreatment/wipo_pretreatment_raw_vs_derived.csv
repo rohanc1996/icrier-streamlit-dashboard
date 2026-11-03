@@ -1,0 +1,6 @@
+Raw,Derived,"Spearman(raw, derived)",Size r(GDP) raw,Size r(GDP) derived
+patent_apps_residents,patents_per_bn_ppp_gdp,0.863,0.82,0.48
+sci_tech_articles_wdi,sci_articles_wdi_per_bn_ppp_gdp,0.477,0.85,-0.01
+github_git_pushes_2025,github_git_pushes_per_mn_pop_2025,0.349,0.84,0.03
+openalex_articles_2024,openalex_articles_per_bn_ppp_gdp_2024,0.318,0.88,-0.1
+openalex_articles_2024,openalex_company_share_pct_2024,0.182,0.88,0.08
