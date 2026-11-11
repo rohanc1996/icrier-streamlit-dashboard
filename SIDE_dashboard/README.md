@@ -55,7 +55,11 @@ Your browser opens at `http://localhost:8501`.
 ## The CHIPS composite index
 
 The CHIPS Index Explorer aggregates **58 indicators** into **5 pillars**
-(CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY). The three CHI pillars
+(CONNECT · HARNESS · INNOVATE · PROTECT · SUSTAINABILITY). The 2027 edition
+adds four more indicators (NCSI under PROTECT · Preparedness; digitally
+delivered services imports, AI Human Capital and AI tech-cycle trade exposure
+under HARNESS), applied only when the 2027 dataset is loaded, for **62
+indicators**. The three CHI pillars
 (CONNECT, HARNESS, INNOVATE) each carry **25%** of the index and the two PS
 pillars (PROTECT, SUSTAINABILITY) **12.5%** each; inside a pillar, sub-pillars
 and indicators are weighted per the spec. The spec lives in

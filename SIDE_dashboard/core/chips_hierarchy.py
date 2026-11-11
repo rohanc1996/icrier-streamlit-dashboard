@@ -22,6 +22,7 @@ This module is the single source of truth for the CHIPS indicator framework:
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -288,6 +289,76 @@ HIERARCHY = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Edition-specific extensions
+# ---------------------------------------------------------------------------
+# The published framework above is the edition-neutral baseline.  A later
+# edition may add indicators that did not exist (or were not collected) in
+# earlier editions.  These are declared here and only applied when the dataset
+# actually carries the corresponding columns, so earlier editions keep exactly
+# the baseline framework and scores.
+#
+# 2027 adds (all with the default equal weights inside their group):
+#   - PROTECT · Preparedness  -> NCSI Index Score (Preparedness becomes equal)
+#   - HARNESS · Real Economy  -> digitally delivered services (imports)
+#   - HARNESS · AI            -> AI Human Capital + AI tech-cycle trade exposure
+EDITION_2027_SENTINELS = {
+    "NCSI Index Score",
+    "Digitally delivered services (imports)",
+    "AI Human Capital",
+    "AI tech cycle trade exposure (% of GDP)",
+}
+
+
+def _find_sub_pillar(spec: list[dict], pillar_name: str, sub_name: str) -> dict:
+    for pillar in spec:
+        if pillar["name"] != pillar_name:
+            continue
+        for sub in pillar["sub_pillars"]:
+            if sub["name"] == sub_name:
+                return sub
+    raise KeyError(f"sub-pillar not found: {pillar_name} · {sub_name}")
+
+
+def _extend_2027(spec: list[dict]) -> list[dict]:
+    """Return a copy of ``spec`` with the 2027-only indicators appended.
+
+    Existing indicators in the affected groups are set to ``None`` so the
+    group defaults to equal weights once the new members are added.
+    """
+    out = copy.deepcopy(spec)
+
+    preparedness = _find_sub_pillar(out, "PROTECT", "Preparedness")
+    preparedness["indicators"] = [(name, None) for name, _ in preparedness["indicators"]]
+    preparedness["indicators"].append(("NCSI Index Score", None))
+
+    real_economy = _find_sub_pillar(out, "HARNESS", "Real Economy")
+    real_economy["indicators"] = [(name, None) for name, _ in real_economy["indicators"]]
+    real_economy["indicators"].append(("Digitally delivered services (imports)", None))
+
+    harness_ai = _find_sub_pillar(out, "HARNESS", "AI")
+    harness_ai["indicators"] = [(name, None) for name, _ in harness_ai["indicators"]]
+    harness_ai["indicators"].extend(
+        [
+            ("AI Human Capital", None),
+            ("AI tech cycle trade exposure (% of GDP)", None),
+        ]
+    )
+    return out
+
+
+def spec_for_columns(columns) -> list[dict]:
+    """Baseline spec, extended when the dataset is the 2027 edition.
+
+    Detection is column-based so the same file-level wiring works regardless of
+    whether the caller passes a year.  Earlier editions lack every sentinel
+    column and therefore resolve against the untouched baseline.
+    """
+    present = {str(column) for column in columns}
+    if present & EDITION_2027_SENTINELS:
+        return _extend_2027(HIERARCHY)
+    return HIERARCHY
+
 
 # ---------------------------------------------------------------------------
 # Resolved structures
@@ -388,10 +459,12 @@ def resolve_hierarchy(columns, spec: list | None = None) -> tuple[list[Pillar], 
     Returns ``(pillars, unresolved)`` where ``unresolved`` lists any spec
     indicator names that could not be matched to a column.  Weights are
     normalised so every group sums to 1 and equal-weight is applied wherever no
-    weight was specified.  ``spec`` defaults to the module-level ``HIERARCHY``
-    and only exists so tests can exercise the resolver with malformed specs.
+    weight was specified.  When ``spec`` is omitted it is derived from the
+    dataset ``columns`` via :func:`spec_for_columns` (baseline, or the 2027
+    extension when the 2027-only columns are present); ``spec`` only exists so
+    tests can exercise the resolver with custom/malformed specs.
     """
-    spec = HIERARCHY if spec is None else spec
+    spec = spec_for_columns(columns) if spec is None else spec
     columns = {str(c) for c in columns}
     by_key: dict[str, str] = {}
     for col in columns:

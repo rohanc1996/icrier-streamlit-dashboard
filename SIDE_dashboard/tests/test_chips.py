@@ -412,9 +412,11 @@ def test_zscore_scaling() -> None:
 def test_composite_scaling_comparison() -> None:
     print("\nComposite scaling comparison (full min-max vs z-score)")
     try:
-        from core.loader import load_app_data
-        data = load_app_data()
-    except FileNotFoundError:
+        from core import loader
+        # Regression guards below describe the published SIDE 2026 edition, so
+        # pin the dataset rather than following the dashboard default year.
+        data = loader.load_app_data(loader.sources_for("2026")["Absolute"])
+    except (FileNotFoundError, KeyError):
         print("  skip (data file not found)")
         return
 
@@ -568,9 +570,9 @@ def test_rank_delta_table() -> None:
 def test_added_indicator_changes_scores() -> None:
     print("\nAdding a dataset indicator changes scores (real data)")
     try:
-        from core.loader import load_app_data
-        data = load_app_data()
-    except FileNotFoundError:
+        from core import loader
+        data = loader.load_app_data(loader.sources_for("2026")["Absolute"])
+    except (FileNotFoundError, KeyError):
         print("  skip (data file not found)")
         return
     spec = _default_spec = copy.deepcopy(H.HIERARCHY)
@@ -730,9 +732,10 @@ def _used_cols(data) -> set[str]:
 def test_real_data() -> None:
     print("\nReal dataset integration")
     try:
-        from core.loader import load_app_data
-        data = load_app_data()
-    except FileNotFoundError:
+        from core import loader
+        # The treemap node count is a SIDE 2026 regression guard; pin it.
+        data = loader.load_app_data(loader.sources_for("2026")["Absolute"])
+    except (FileNotFoundError, KeyError):
         print("  skip (data file not found)")
         return
 
@@ -806,6 +809,7 @@ def test_year_registry_and_drift() -> None:
     check("2027 has both score variants",
           set(loader.sources_for("2027")) == {"Relative", "Absolute"})
     check("unregistered year has no sources", loader.sources_for("2028") == {})
+    check("default year is 2027", loader.default_year() == "2027")
     check("default year is available",
           loader.default_year() in loader.available_years())
 
@@ -914,6 +918,56 @@ def test_2025_country_names() -> None:
           f"unmapped: {unmapped}")
 
 
+def test_2027_extension() -> None:
+    print("\n2027 edition extension (NCSI + new Harness indicators)")
+    from core import loader
+    try:
+        data = loader.load_app_data(loader.sources_for("2027")["Absolute"])
+    except (FileNotFoundError, KeyError):
+        print("  skip (2027 data file not found or malformed)")
+        return
+
+    pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
+    check("2027 spec has no unresolved names", not unresolved)
+    check("2027 spec adds 4 indicators to the baseline (62 leaves)",
+          len(H.all_leaves(pillars)) == 62)
+
+    def sub(pillar_name, sub_name):
+        for pillar in pillars:
+            if pillar.name == pillar_name:
+                for sp in pillar.sub_pillars:
+                    if sp.name == sub_name:
+                        return sp
+        return None
+
+    prep = sub("PROTECT", "Preparedness")
+    names = [leaf.name for leaf in prep.leaves]
+    check("NCSI is in PROTECT · Preparedness", "NCSI Index Score" in names)
+    check("Preparedness has equal weights",
+          np.allclose([leaf.weight for leaf in prep.leaves], 1 / 3))
+
+    real = sub("HARNESS", "Real Economy")
+    check("digitally delivered imports is in Real Economy",
+          "Digitally delivered services (imports)" in [leaf.name for leaf in real.leaves])
+    check("Real Economy has equal weights",
+          np.allclose([leaf.weight for leaf in real.leaves], 1 / 3))
+
+    ai = sub("HARNESS", "AI")
+    ai_names = [leaf.name for leaf in ai.leaves]
+    check("AI Human Capital is in HARNESS · AI", "AI Human Capital" in ai_names)
+    check("AI tech-cycle exposure is in HARNESS · AI",
+          "AI tech cycle trade exposure (% of GDP)" in ai_names)
+    check("HARNESS · AI has equal weights",
+          np.allclose([leaf.weight for leaf in ai.leaves], 1 / 6))
+
+    # Earlier editions must keep the baseline (58 leaves) and no NCSI.
+    baseline, _ = H.resolve_hierarchy(["Price of mobile data and voice basket (HC) PPP"])
+    check("non-2027 columns keep the 58-leaf baseline",
+          len(H.all_leaves(baseline)) == 58)
+    check("baseline has no NCSI",
+          "NCSI Index Score" not in [leaf.name for leaf in H.all_leaves(baseline)])
+
+
 def test_empty_edition_chips() -> None:
     print("\nEmpty edition (no CHIPS indicators scored) still yields numeric columns")
     from core import loader
@@ -922,10 +976,16 @@ def test_empty_edition_chips() -> None:
         if set(paths) != {"Relative", "Absolute"}:
             print("  skip (2027 data files not found)")
             return
-        data = loader.load_app_data(paths["Absolute"])
+        data = copy.deepcopy(loader.load_app_data(paths["Absolute"]))
     except (FileNotFoundError, KeyError):
         print("  skip (2027 data file not found or malformed)")
         return
+
+    # Blank every indicator value so the edition behaves like an empty sheet,
+    # while keeping the columns (and therefore the resolved hierarchy).
+    for column in data.numeric_df.columns:
+        if column != "Country":
+            data.numeric_df[column] = np.nan
 
     pillars, _ = H.resolve_hierarchy(data.numeric_df.columns)
     table = chips.chips_table(data, pillars=pillars)
@@ -970,6 +1030,7 @@ def run_all() -> int:
     test_year_registry_and_drift()
     test_2025_edition_adjustments()
     test_2025_country_names()
+    test_2027_extension()
     test_empty_edition_chips()
     print()
     if FAILURES:

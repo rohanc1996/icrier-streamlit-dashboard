@@ -112,7 +112,7 @@ def _sidebar() -> tuple[str, str, str, str]:
         base = st.radio(
             "Base scores",
             base_labels,
-            index=0,
+            index=base_labels.index("Absolute") if "Absolute" in base_labels else 0,
             key="data_source",
             horizontal=True,
             help="Which dataset feeds the scores. Relative values are per-GNI, "

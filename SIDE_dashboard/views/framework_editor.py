@@ -117,14 +117,16 @@ def _normalize_weights(weights: list[float | None]) -> list[float | None]:
     return [float(w) / s for w in weights]
 
 
-def _default_spec() -> list[dict]:
+def _default_spec(columns=None) -> list[dict]:
     """The published framework, with every group scaled to sum to 100%.
 
     The committed spec stores rounded weights (0.17, 0.33, …), so normalising
     here makes the editor open in a valid state while preserving the effective
-    (normalised) weights exactly.
+    (normalised) weights exactly.  ``columns`` selects the edition's spec
+    (baseline, or the 2027 extension when its columns are present).
     """
-    return _scale_spec_to_100(copy.deepcopy(H.HIERARCHY))
+    spec = H.spec_for_columns(columns) if columns is not None else H.HIERARCHY
+    return _scale_spec_to_100(copy.deepcopy(spec))
 
 
 def _scale_spec_to_100(spec: list[dict]) -> list[dict]:
@@ -146,9 +148,9 @@ def _scale_spec_to_100(spec: list[dict]) -> list[dict]:
     return out
 
 
-def _get_spec() -> list[dict]:
+def _get_spec(columns=None) -> list[dict]:
     if "ch_fw_spec" not in st.session_state:
-        st.session_state["ch_fw_spec"] = _default_spec()
+        st.session_state["ch_fw_spec"] = _default_spec(columns)
     return st.session_state["ch_fw_spec"]
 
 
@@ -601,7 +603,7 @@ def render(data, method=scaling.METHOD_Z, data_file: str | Path | None = None,
         ),
     )
 
-    spec = _get_spec()
+    spec = _get_spec(data.numeric_df.columns)
 
     with st.expander("⚖️ Pillar & sub-pillar weights", expanded=True):
         spec = _edit_weight_controls(data, spec)
@@ -663,7 +665,7 @@ def render(data, method=scaling.METHOD_Z, data_file: str | Path | None = None,
                            file_name="chips_framework.json", mime="application/json")
     with reset_col:
         if st.button("↺ Reset to default framework", type="secondary"):
-            st.session_state["ch_fw_spec"] = _default_spec()
+            st.session_state["ch_fw_spec"] = _default_spec(data.numeric_df.columns)
             _clear_framework_widgets()
             st.rerun()
 

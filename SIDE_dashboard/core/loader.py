@@ -40,7 +40,7 @@ from .columns import canonical_key
 # is therefore all it takes for a new edition to appear in the selector.
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 DATASET_YEARS: tuple[str, ...] = ("2024", "2025", "2026", "2027")
-DEFAULT_YEAR = "2026"
+DEFAULT_YEAR = "2027"
 
 
 def _paths_for(year: str) -> dict[str, Path]:
@@ -251,6 +251,11 @@ FRIENDLY_NAMES = {
     "Safety and security": "AI safety & security score",
     "Responsible AI - Conference Submissions on RAI Topics (Total)": "Responsible-AI conference submissions",
     "Public trust score": "Public trust score",
+    "NCSI Index Score": "National Cyber Security Index (NCSI)",
+    "Digitally delivered services (imports)": "Digitally delivered services imports (USD millions)",
+    "Digitally delivered services (exports)": "Digitally delivered services exports (USD millions)",
+    "AI Human Capital": "AI human capital score",
+    "AI tech cycle trade exposure (% of GDP)": "AI tech-cycle trade exposure (% of GDP)",
 }
 # Indicator categories are derived at load time from the CHIPS hierarchy
 # (``core/chips_hierarchy.py``): each indicator is grouped under its
