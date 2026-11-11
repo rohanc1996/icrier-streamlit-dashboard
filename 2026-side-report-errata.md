@@ -43,6 +43,8 @@ and the two investigation `findings.md` files.
 
 - **Number of mobile subscriptions - UAE value is 84 million, clearly wrong**
 
+- **HC Mobile Price: data has 7 HC<LC inversions- Bulgaria, Chile, Ecuador, Indonesia, Malaysia, Thailand and Vietnam.**
+
 ## 2. Methodology and coverage disclosures
 
 - **Switzerland — INNOVATE · AI sub-pillar weighting:** the published report uses
