@@ -1,5 +1,4 @@
 # The Vintage Problem in Innovation Rankings
-
 *Why the year behind an indicator matters as much as the number itself — and what index producers should do about it.*
 
 Innovation rankings shape budget speeches, investment pitches and ministry talking points. But a composite index is a chain of choices: what to measure, how to normalize it, which year to use, and how much weight to give each indicator. We recently ran an indicator-level test on 18 indicators from the World Intellectual Property Organization's (WIPO) Global Innovation Index (GII) across 71 economies. The exercise was a quality-control check before we used the numbers ourselves. The most persistent problem was not an outlier or a scaling quirk. It was age.
@@ -16,7 +15,7 @@ None of this is necessarily the fault of the people who build the index. I under
 
 That is where the current approach stops short. We checked WIPO's methodology and found that, for each economy, the GII uses only the most recent yearly data available, going back to 2014. Missing values are not estimated; they are marked "n/a" and left out of the aggregation, which does redistribute weight across the remaining indicators. This is fine, but a stale observation is not treated as missing. It stays in the mix at full weight, as if it were current.
 
-WIPO's only leverage on weights is a scaling coefficient of 0.5 or 1.0, used to limit multicollinearity when indicators correlate above 0.95. There is no vintage adjustment. In practice, a 2014 value and a 2025 value carry the same weight in the same sub-pillar. In ICRIER's SIDE index, we take a different approach: when an indicator's data is stale, we reduce its weight. An old observation should inform the score, not dominate it. The same logic should apply here.
+WIPO's only leverage on weights is a scaling coefficient of 0.5 or 1.0, used to limit multicollinearity when indicators correlate above 0.95. There is no vintage adjustment. In practice, a 2014 value and a 2025 value carry the same weight in the same sub-pillar. In ICRIER's State of India's Digital Economy (SIDE) report, we take a different approach: when an indicator's data is stale, we reduce its weight. An old observation should inform the score, not dominate it. The same logic should apply here.
 
 The GII remains useful. The issue is not that composite indices like it are worthless, but that they should be read as structured arguments rather than direct measurements. Three practical steps would help. It could begin by publishing the vintage of every country-indicator observation, not just the indicator's modal year or the final score. It could reduce the weight of stale observations, so an old value cannot count as much as a current one. And it could report sensitivity to indicator choice, vintage and weighting — ideally as a rank range rather than a single number.
 
