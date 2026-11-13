@@ -1,0 +1,420 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import {
+  defaultData,
+  fullCoverageCount,
+  indicatorCount,
+  meta,
+  methodComparison,
+  pillars,
+  scaleIds,
+  scales,
+  subPillarCount,
+} from '../lib/data';
+import { formatComposite, formatScore, formatPercent } from '../lib/format';
+import { methodLabel } from '../lib/scale';
+
+const toc = [
+  { id: 'what-chips-is', label: 'What CHIPS is' },
+  { id: 'five-areas', label: 'The five areas' },
+  { id: 'indicators', label: `The ${meta.leaves} indicators` },
+  { id: 'values-to-100', label: 'From values to 0–100' },
+  { id: 'missing-data', label: 'Missing data' },
+  { id: 'comparing-editions', label: 'Comparing editions' },
+  { id: 'download-cite', label: 'Download & cite' },
+];
+
+const totalCells = meta.countries * subPillarCount;
+const missingCells = defaultData.scores.reduce(
+  (total, row) =>
+    total + Object.values(row.subPillars).filter((item) => item.status !== 'present').length,
+  0,
+);
+const fullCoverage = fullCoverageCount(defaultData);
+
+type DroppedExample = {
+  iso3: string;
+  country: string;
+  key: string;
+  pillar: string;
+  subPillar: string;
+  reason: string | null;
+  indicators: typeof defaultData.indicators;
+  present: number;
+};
+
+let droppedExample: DroppedExample | undefined;
+let droppedFallback: DroppedExample | undefined;
+
+// Prefer a dropped sub-pillar that still reports something: it shows the
+// half-way rule doing work, not an entirely empty column.
+for (const row of defaultData.scores) {
+  const found = Object.entries(row.subPillars).find(([, item]) => item.status !== 'present');
+  if (!found) continue;
+  const [key, item] = found;
+  const [pillar, subPillar] = key.split(' · ');
+  const indicators = defaultData.indicators
+    .filter(
+      (indicator) =>
+        indicator.iso3 === row.iso3 &&
+        indicator.pillar === pillar &&
+        indicator.subPillar === subPillar,
+    )
+    .sort((a, b) => a.label.localeCompare(b.label, 'en'));
+  const candidate: DroppedExample = {
+    iso3: row.iso3,
+    country: row.shortName || row.country,
+    key,
+    pillar,
+    subPillar,
+    reason: item.reason,
+    indicators,
+    present: indicators.filter((indicator) => indicator.status === 'present').length,
+  };
+  if (candidate.present > 0) {
+    droppedExample = candidate;
+    break;
+  }
+  droppedFallback ??= candidate;
+}
+
+droppedExample ??= droppedFallback;
+
+const ranges = scaleIds.map((id) => ({
+  id,
+  min: formatComposite(scales[id].min),
+  max: formatComposite(scales[id].max),
+}));
+---
+
+<BaseLayout
+  title={`How the index works · SIDE CHIPS ${meta.edition}`}
+  description={`How the SIDE ${meta.edition} CHIPS index is built: ${meta.leaves} indicators, five areas, two scaling methods, and how missing data is handled.`}
+>
+  <div class="container page">
+    <header class="page-head">
+      <div class="page-head__main">
+        <h1 class="display-l">How the index works</h1>
+        <p class="body-l lede">
+          What CHIPS measures, how raw values become scores from 0 to 100, and what
+          happens when a country does not report an indicator.
+        </p>
+      </div>
+      <p class="body-s page-head__meta">Edition {meta.edition}</p>
+    </header>
+
+    <div class="method-layout">
+      <nav class="method-toc" aria-label="On this page">
+        <p class="method-toc__title">On this page</p>
+        <ol>
+          {toc.map((item) => (
+            <li>
+              <a href={`#${item.id}`}>{item.label}</a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
+      <div>
+        <section id="what-chips-is" class="method-section">
+          <h2 class="display-m">What CHIPS is</h2>
+          <p>
+            CHIPS combines {meta.leaves} indicators into five areas — CONNECT, HARNESS,
+            INNOVATE, PROTECT and SUSTAINABILITY — and combines those five into one
+            number. It is a summary, not a verdict: two countries can land on the same
+            score for opposite reasons.
+          </p>
+          <p>
+            The {meta.edition} edition covers {meta.countries} countries, and every one
+            of them receives a CHIPS score. The scores describe national conditions, not
+            government performance, and they do not measure policy quality. A high score
+            can come from private investment, from geography, or from a single large
+            market.
+          </p>
+          <p>
+            This is a prototype of data that is not yet signed off. The numbers are
+            drawn from the repo's own engine and may change before publication.
+          </p>
+        </section>
+
+        <section id="five-areas" class="method-section">
+          <h2 class="display-m">The five areas</h2>
+          <p>
+            Each pillar carries a fixed share of the index. Inside a pillar, its
+            sub-pillars split that share; each sub-pillar then splits its share across
+            its indicators. Expand a row to see the sub-pillars and their indicator
+            counts.
+          </p>
+          {pillars.map((pillar) => (
+            <details class="pillar-details" data-pillar={pillar.id}>
+              <summary>
+                <span class="pillar-code">{pillar.id.slice(0, 2)}</span>
+                <span class="pillar-name">{pillar.id}</span>
+                <span class="pillar-weight">{formatPercent(pillar.weight, 1)}</span>
+                <span class="pillar-count">{indicatorCount(pillar)} indicators</span>
+              </summary>
+              <ul class="subpillar-list">
+                {pillar.subPillars.map((sub) => (
+                  <li>
+                    <span>{sub.name}</span>
+                    <span class="count">
+                      {sub.leaves.length} {sub.leaves.length === 1 ? 'indicator' : 'indicators'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+          <p class="example-note">
+            Five pillars, {subPillarCount} sub-pillars and {meta.leaves} indicators in the
+            {meta.edition} framework.
+          </p>
+        </section>
+
+        <section id="indicators" class="method-section">
+          <h2 class="display-m">The {meta.leaves} indicators</h2>
+          <p>
+            This is the full membership list, grouped by pillar, so a reader can check
+            what is and is not in the index. Indicator names are the framework's own;
+            the raw dataset has {meta.indicatorsLoadable} usable numeric columns, and
+            the columns outside the framework are listed below.
+          </p>
+          {pillars.map((pillar) => (
+            <details class="pillar-details" data-pillar={pillar.id}>
+              <summary>
+                <span class="pillar-code">{pillar.id.slice(0, 2)}</span>
+                <span class="pillar-name">{pillar.id}</span>
+                <span class="pillar-weight">{formatPercent(pillar.weight, 1)}</span>
+                <span class="pillar-count">{indicatorCount(pillar)} indicators</span>
+              </summary>
+              <ul class="leaf-list">
+                {pillar.subPillars.flatMap((sub) =>
+                  sub.leaves.map((leaf) => <li>{leaf.label}</li>),
+                )}
+              </ul>
+            </details>
+          ))}
+
+          {meta.excludedFromIndex.length > 0 && (
+            <details class="pillar-details">
+              <summary>
+                <span class="pillar-name">
+                  {meta.excludedFromIndex.length} columns outside the index
+                </span>
+                <span class="pillar-count">excluded</span>
+              </summary>
+              <ul class="excluded-list">
+                {meta.excludedFromIndex.map((item) => (
+                  <li>
+                    <span class="excluded-name">{item.column}</span>
+                    <span class="excluded-reason">{item.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </section>
+
+        <section id="values-to-100" class="method-section">
+          <h2 class="display-m">From values to 0–100</h2>
+          <p>
+            Raw indicators arrive in different units — dollars, megabits per second,
+            patents, survey scores. Each one is put on a common 0–100 scale before the
+            pillar weights are applied. This prototype offers two ways of doing that,
+            switchable on the rankings page.
+          </p>
+
+          <h3>Min–max</h3>
+          <p>
+            Every indicator's lowest observed value becomes 0 and its highest becomes
+            100, with the countries in between spread evenly across that range. The
+            scale is set by the {meta.countries} countries in this edition, so 0 and 100
+            are facts about the group rather than absolute thresholds. A country's
+            composite is the weighted average of its indicator scores. On this method,
+            the {meta.edition} composite scores run from{' '}
+            {ranges.find((range) => range.id === 'full_minmax')?.min ?? '—'} to{' '}
+            {ranges.find((range) => range.id === 'full_minmax')?.max ?? '—'}.
+          </p>
+
+          <h3>Z-score</h3>
+          <p>
+            Every indicator is standardized against the average and spread of the{' '}
+            {meta.countries} countries, then passed through a logistic curve so the
+            result stays between 0 and 100. A score of 50 is the average country on that
+            indicator; higher is above average. On this method, the {meta.edition}{' '}
+            composite scores run from {ranges.find((range) => range.id === 'z')?.min ?? '—'}{' '}
+            to {ranges.find((range) => range.id === 'z')?.max ?? '—'}.
+          </p>
+
+          <h3>Why both are here</h3>
+          <p>
+            This prototype shows both methods so they can be compared directly. The
+            published index will use one. They are not two labels on the same league
+            table. A single indicator never reorders, because each method stretches the
+            same column without changing the order inside it. The composite is
+            different: it adds {meta.leaves} columns together, and the two methods
+            stretch the middle and the tails of each distribution differently, so the
+            totals can reorder.
+          </p>
+          {methodComparison.available && methodComparison.max && (
+            <p>
+              In this build, {methodComparison.indicatorDiffering} of{' '}
+              {methodComparison.indicatorComparable} indicator ranks differ between the
+              two methods. At the composite level, {methodComparison.differing} of{' '}
+              {methodComparison.countryCount} countries have a different overall rank, by
+              up to {Math.abs(methodComparison.max.delta)} places —{' '}
+              {methodComparison.max.name} moves from {methodComparison.max.from} to{' '}
+              {methodComparison.max.to}. That movement is the finding this prototype
+              exists to show, not a rendering fault. The rankings page adds a{' '}
+              <strong>Rank vs min–max</strong> column whenever the z-score view is active.
+            </p>
+          )}
+          <p class="example-note">
+            Method names in the export: {scaleIds.map((id) => methodLabel(id)).join(' and ')}.
+          </p>
+        </section>
+
+        <section id="missing-data" class="method-section">
+          <h2 class="display-m">Missing data</h2>
+          <p>
+            Some countries do not report every indicator. When more than half of a
+            sub-pillar's indicators are missing, we do not guess at the gap: that
+            sub-pillar is marked <strong>not scored</strong>, and its share of the index
+            is spread across the parts that do have data. The score still reflects what
+            is known — it just rests on less.
+          </p>
+          <p>
+            In the {meta.edition} edition, {missingCells} of {totalCells} country ×
+            sub-pillar cells are not scored. Coverage is the share of the index's weight
+            that stands on a reported value. 100% means all {meta.leaves} indicators had
+            a number. In this edition, {fullCoverage} of {meta.countries} countries are
+            at 100%.
+          </p>
+
+          {droppedExample ? (
+            <div class="panel example-table">
+              <div class="table-note" style="border-top: 0; border-bottom: 1px solid var(--border-subtle)">
+                <span class="label">A worked example</span>
+                <span>
+                  {droppedExample.country}, {meta.edition}
+                </span>
+              </div>
+              <div style="padding: var(--space-4)">
+                <p class="body-s">
+                  <strong>{droppedExample.pillar} · {droppedExample.subPillar}</strong>{' '}
+                  reports {droppedExample.present} of {droppedExample.indicators.length}{' '}
+                  indicators. That is below the half-way rule, so the sub-pillar is not
+                  scored and its weight is redistributed.
+                  {droppedExample.reason ? ` Reason in the data: ${droppedExample.reason}.` : ''}
+                </p>
+                <table>
+                  <caption class="sr-only">
+                    Indicator rows for {droppedExample.country}, {droppedExample.key}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Indicator</th>
+                      <th scope="col" class="num">Score (0–100)</th>
+                      <th scope="col">State</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {droppedExample.indicators.map((indicator) => (
+                      <tr>
+                        <td>{indicator.label}</td>
+                        <td class="num">
+                          {indicator.status === 'present'
+                            ? formatScore(indicator.score)
+                            : '—'}
+                        </td>
+                        <td>
+                          {indicator.status === 'present' ? (
+                            'Scored'
+                          ) : (
+                            <span class="missing-label">Not scored</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p class="example-note">
+                  A gap is never printed as 0 and never left blank. In a table it is an em
+                  dash; in prose it is the words “Not scored”.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p>No sub-pillar is dropped in this edition.</p>
+          )}
+        </section>
+
+        <section id="comparing-editions" class="method-section">
+          <h2 class="display-m">Comparing editions</h2>
+          <p>
+            This compares {meta.edition} with the 2025 edition for the countries scored
+            in both. The list of countries is not identical between editions, so a rank
+            can move because others moved, not only because this country did.
+          </p>
+          <p class="example-note">
+            The rankings page does not yet show this column in the prototype build; the
+            comparison series is not connected to the table.
+          </p>
+        </section>
+
+        <section id="download-cite" class="method-section">
+          <h2 class="display-m">Download & cite</h2>
+          <p>
+            Downloads are placeholders in this local prototype: no file is attached yet.
+            They are shown so the shape of the published page is visible.
+          </p>
+          <ul class="download-list">
+            <li><span class="placeholder-item">Rankings CSV — coming in a later wave</span></li>
+            <li>
+              <span class="placeholder-item">
+                All {meta.leaves} × {meta.countries} CSV — coming in a later wave
+              </span>
+            </li>
+            <li><span class="placeholder-item">Framework JSON — coming in a later wave</span></li>
+            <li><span class="placeholder-item">Copy citation — coming in a later wave</span></li>
+          </ul>
+          <p>
+            A citable edition needs the team's sign-off and a publication date. Neither
+            exists yet, so this prototype does not offer a citation string.
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.method-toc a'));
+  const sections = links
+    .map((link) => {
+      const href = link.getAttribute('href');
+      return href ? document.querySelector<HTMLElement>(href) : null;
+    })
+    .filter((section): section is HTMLElement => section !== null);
+
+  function setCurrent(id: string) {
+    for (const link of links) {
+      const current = link.getAttribute('href') === `#${id}`;
+      if (current) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    }
+  }
+
+  if (sections.length > 0) {
+    setCurrent(sections[0].id);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setCurrent(entry.target.id);
+        }
+      },
+      { rootMargin: '-80px 0px -60% 0px', threshold: 0 },
+    );
+    for (const section of sections) observer.observe(section);
+  }
+</script>

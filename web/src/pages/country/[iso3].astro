@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import CountryScores from '../../components/CountryScores.tsx';
+import {
+  defaultData,
+  defaultScale,
+  meta,
+  notScoredSubPillars,
+  pillars,
+  scaleIds,
+  scales,
+  subPillarCount,
+} from '../../lib/data';
+import { formatPercent } from '../../lib/format';
+import type { ScoreRow } from '../../lib/types';
+
+export function getStaticPaths() {
+  return defaultData.scores.map((row) => ({
+    params: { iso3: row.iso3 },
+    props: { iso3: row.iso3 },
+  }));
+}
+
+const { iso3 } = Astro.params;
+
+const rows = Object.fromEntries(
+  scaleIds.map((id) => [id, scales[id].scores.find((row) => row.iso3 === iso3)]),
+) as Record<string, ScoreRow>;
+
+const medians = Object.fromEntries(scaleIds.map((id) => [id, scales[id].median]));
+const indicators = Object.fromEntries(
+  scaleIds.map((id) => [
+    id,
+    scales[id].indicators.filter((row) => row.iso3 === iso3),
+  ]),
+);
+const subPillarOf = Object.fromEntries(
+  scaleIds.map((id) => [id, scales[id].subPillarOf]),
+);
+
+const row = rows[defaultScale];
+
+const notScored = notScoredSubPillars(row);
+const coverageLine =
+  row.coverage >= 0.9999
+    ? `Coverage 100% — ${row.indicatorsPresent} of ${row.indicatorsTotal} indicators, all ${subPillarCount} sub-pillars scored.`
+    : `Coverage ${formatPercent(row.coverage)} — ${row.indicatorsPresent} of ${row.indicatorsTotal} indicators, ${notScored} of ${subPillarCount} sub-pillars not scored.`;
+
+const displayName = row.shortName || row.country;
+---
+
+<BaseLayout
+  title={`${displayName} · CHIPS ${meta.edition}`}
+  description={`${displayName} in the SIDE ${meta.edition} CHIPS index: overall score, rank, the five pillar scores and their sub-pillar detail.`}
+>
+  <div class="container page">
+    <p class="body-s" style="margin-bottom: var(--space-6)">
+      <a href="/">← All {meta.countries} countries</a>
+    </p>
+
+    <header style="margin-bottom: var(--space-4)">
+      <h1 class="display-l">{displayName}</h1>
+      {row.country !== displayName && (
+        <p class="body-s hint" style="margin-top: var(--space-1)">
+          {row.country}
+        </p>
+      )}
+    </header>
+
+    <CountryScores
+      client:load
+      rows={rows}
+      indicators={indicators}
+      subPillarOf={subPillarOf}
+      medians={medians}
+      scaleIds={scaleIds}
+      defaultScale={defaultScale}
+      pillars={pillars}
+      countryCount={defaultData.scores.length}
+      coverageLine={coverageLine}
+    />
+  </div>
+</BaseLayout>

@@ -1,0 +1,74 @@
+/* Design tokens — IA spec §6. Values are normative; do not drift. */
+:root {
+  /* Color */
+  --paper: #fbfaf7;
+  --surface: #ffffff;
+  --ink: #14181c;
+  --ink-muted: #55606c;
+  --brand: #1b3a6b;
+  --accent: #0b5fa5;
+  --border: #808a94;
+  --border-subtle: #d7dbdf;
+  --missing-fill: #e3e6e9;
+  --missing-hatch: #9aa3ac;
+  --positive: #1f6b3a;
+  --negative: #9b2226;
+
+  /* Pillars: fill, tint, text-on-tint */
+  --pillar-connect: #0072b2;
+  --pillar-connect-tint: #e6f0f7;
+  --pillar-connect-text: #005a8c;
+  --pillar-harness: #00805d;
+  --pillar-harness-tint: #e4f0ec;
+  --pillar-harness-text: #00664b;
+  --pillar-innovate: #b36b00;
+  --pillar-innovate-tint: #f7eedf;
+  --pillar-innovate-text: #7a5200;
+  --pillar-protect: #b4453f;
+  --pillar-protect-tint: #f6e9e8;
+  --pillar-protect-text: #8a2f2a;
+  --pillar-sustainability: #6a4c93;
+  --pillar-sustainability-tint: #ede9f3;
+  --pillar-sustainability-text: #4a3268;
+
+  /* Type */
+  --font-display: 'Newsreader Variable', 'Newsreader', Georgia, serif;
+  --font-body: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Space: base 4px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+
+  /* Layout */
+  --content-max: 1120px;
+  --measure: 68ch;
+  --gutter: 24px;
+  --header-height: 56px;
+
+  /* Radius and rules */
+  --radius: 2px;
+  --rule: 1px solid var(--border-subtle);
+
+  /* Focus ring */
+  --focus-ring: 2px solid var(--accent);
+  --focus-offset: 2px;
+}
+
+@media (max-width: 960px) {
+  :root {
+    --header-height: 0px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --gutter: 16px;
+  }
+}

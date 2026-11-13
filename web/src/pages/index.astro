@@ -1,0 +1,116 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import RankingsExplorer from '../components/RankingsExplorer.tsx';
+import { defaultScale, indicatorCount, meta, methodComparison, pillars, scaleIds, scales } from '../lib/data';
+import { formatComposite } from '../lib/format';
+import { methodShortLabel } from '../lib/scale';
+import type { PillarLite, ScaleScores } from '../lib/types';
+
+const datasets: Record<string, ScaleScores> = Object.fromEntries(
+  scaleIds.map((id) => [
+    id,
+    {
+      id,
+      scores: scales[id].scores,
+      median: scales[id].median,
+      min: scales[id].min,
+      max: scales[id].max,
+    },
+  ]),
+);
+
+const pillarList: PillarLite[] = pillars.map((pillar) => ({
+  id: pillar.id,
+  weight: pillar.weight,
+  subPillarCount: pillar.subPillars.length,
+  indicatorCount: indicatorCount(pillar),
+}));
+
+const ranges = scaleIds
+  .map(
+    (id) =>
+      `${methodShortLabel(id)} ${formatComposite(scales[id].min)}–${formatComposite(scales[id].max)}`,
+  )
+  .join(', ');
+
+const movement = methodComparison.available ? methodComparison.max : null;
+const scaleCaption = movement
+  ? `These are two ways of putting the same ${meta.leaves} indicators on a 0–100 scale. They produce different scores and a different league table — ${movement.name} moves ${Math.abs(movement.delta)} places between them. The index will publish one; this prototype shows both.`
+  : `Two ways of putting the same ${meta.leaves} indicators on a 0–100 scale. Switch between them to compare.`;
+---
+
+<BaseLayout
+  title={`CHIPS ${meta.edition} rankings · SIDE`}
+  description={`Rankings for ${meta.countries} countries on the SIDE ${meta.edition} digital-economy index, built from ${meta.leaves} indicators in five areas.`}
+>
+  <div class="container page">
+    <a class="skip-link" href="#change-2025">Skip to the change since 2025 section</a>
+
+    <header class="page-head">
+      <div class="page-head__main">
+        <h1 class="display-l">CHIPS {meta.edition}</h1>
+        <p class="body-l lede">
+          A digital-economy score for {meta.countries} countries, from {meta.leaves} indicators
+          in five areas.
+        </p>
+        <p class="body-s">
+          <a href="/methodology#values-to-100">How the score works →</a>
+        </p>
+      </div>
+      <p class="body-s page-head__meta">
+        Edition {meta.edition} · {meta.countries} countries
+      </p>
+    </header>
+
+    <details class="what-this-means" style="margin-bottom: var(--space-4)">
+      <summary>What this means</summary>
+      <div class="body-s">
+        <p>
+          Scores run from 0 to 100. The <strong>Scale</strong> control changes how each
+          indicator is put on that scale: <strong>min–max</strong> compares a country
+          with the lowest and highest values anyone recorded, while <strong>z-score</strong>
+          compares it with the average across the {meta.countries} countries. Composite
+          scores in this build run {ranges}. A 40 means the country sits below the top of
+          the range the world covers — not at 40% of an ideal.
+        </p>
+        <p>
+          CHIPS combines {meta.leaves} indicators into five areas — CONNECT, HARNESS,
+          INNOVATE, PROTECT and SUSTAINABILITY — and combines those five into one number.
+          It is a summary, not a verdict: two countries can land on the same score for
+          opposite reasons.
+        </p>
+        <p>
+          A rank is a position, not a grade: the gap between 3rd and 4th can be a
+          hundredth of a point or ten. Read the score next to the rank, or the rank will
+          flatter small differences. The two scales can rank countries differently:
+          they are two shapes of the same {meta.leaves} indicators, and the composite
+          adds those shapes together. The table shows the movement.
+        </p>
+      </div>
+    </details>
+
+    <RankingsExplorer
+      client:load
+      datasets={datasets}
+      scaleIds={scaleIds}
+      defaultScale={defaultScale}
+      edition={meta.edition}
+      pillars={pillarList}
+      caption={scaleCaption}
+    />
+
+    <section id="change-2025" tabindex="-1" class="change-section" aria-labelledby="change-heading">
+      <h2 id="change-heading" class="display-m" style="margin-top: var(--space-12)">
+        Change since 2025
+      </h2>
+      <p class="body-s hint">
+        Rank movement for the countries scored in both editions. Two columns only: the
+        2025 rank and the movement.
+      </p>
+      <p class="body-s hint">
+        Not part of this prototype build. The 2025 comparison series is not connected to
+        the table yet, so no change values are shown.
+      </p>
+    </section>
+  </div>
+</BaseLayout>

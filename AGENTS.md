@@ -128,6 +128,18 @@ docs/decisions/             # short ADRs for methodology choices
 - **Keep `data/2027 pillar-wise/` and `SIDE 2027 - Absolute.csv` in sync.** A
   pillar CSV edit that isn't reflected in the combined file is a bug.
 - **Never commit unless asked.** Keep the working tree clean enough to review.
+- **Never launch Firefox.** It is the user's personal browser, so any invocation
+  — including `--headless --screenshot` — attaches to their running instance,
+  hijacks a tab and leaves a hung process behind. No Firefox, in any mode.
+- **Browser verification is Safari**, via `safaridriver`. Two constraints worth
+  knowing before you plan a check: Safari has **no headless mode**, so a driven
+  session is a visible window that takes focus; and remote automation must be
+  enabled once (`Develop → Allow Remote Automation`, or `sudo safaridriver
+  --enable`, which needs the user's password — ask, never assume). Screenshots are
+  viewport-only, so capture sections rather than whole pages.
+- **If a check must not touch the screen**, use Playwright with its WebKit engine
+  and say so in the report — WebKit is not Safari, and the difference matters when
+  claiming browser compatibility. Never substitute Chrome or Edge unasked.
 
 ## OpenCode setup in this repo
 

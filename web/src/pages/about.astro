@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import { meta, scaleIds } from '../lib/data';
+import { methodLabel } from '../lib/scale';
+---
+
+<BaseLayout
+  title={`About · SIDE CHIPS ${meta.edition}`}
+  description={`About the SIDE CHIPS ${meta.edition} prototype: what the scores describe, what they do not, and their publication status.`}
+>
+  <div class="container page">
+    <header class="page-head">
+      <div class="page-head__main">
+        <h1 class="display-l">About this prototype</h1>
+        <p class="body-l lede">
+          A local, pre-publication prototype of the SIDE digital-economy index for{' '}
+          {meta.edition}. It is here to test the reading experience, not to publish a
+          figure.
+        </p>
+      </div>
+      <p class="body-s page-head__meta">Edition {meta.edition}</p>
+    </header>
+
+    <div style="max-width: var(--measure)">
+      <section class="method-section">
+        <h2 class="display-m">Publication status</h2>
+        <p>
+          <strong>Pre-publication.</strong> The numbers come from the repo's own scoring
+          engine and have not been signed off by the SIDE team. No figure on this site
+          should be quoted, shared or cited as a published result. A sign-off owner has
+          not yet been named.
+        </p>
+      </section>
+
+      <section class="method-section">
+        <h2 class="display-m">What the scores describe</h2>
+        <p>
+          CHIPS summarizes national conditions across five areas — CONNECT, HARNESS,
+          INNOVATE, PROTECT and SUSTAINABILITY — using {meta.leaves} indicators for{' '}
+          {meta.countries} countries. It is a summary, not a verdict: two countries can
+          land on the same score for opposite reasons.
+        </p>
+        <p>
+          These scores describe national conditions, not government performance, and
+          they do not measure policy quality. A high score can come from private
+          investment, from geography, or from a single large market.
+        </p>
+        <p>
+          The prototype carries two scaling methods,{' '}
+          {scaleIds.map((id) => methodLabel(id)).join(' and ')}, so they can be compared
+          side by side. The scores differ between them, and so does the overall ranking:
+          the composite adds the indicators together, and the two methods stretch the
+          middle and the tails of each distribution differently. This prototype shows
+          both; the published index will use one.
+        </p>
+      </section>
+
+      <section class="method-section">
+        <h2 class="display-m">Where the numbers come from</h2>
+        <p>
+          The export behind this site records {meta.countries} countries, {meta.leaves}{' '}
+          indicators and {meta.indicatorsLoadable} usable numeric columns in the{' '}
+          {meta.edition} Absolute dataset. Columns outside the published framework are
+          listed, with reasons, on the{' '}
+          <a href="/methodology#indicators">methodology page</a>.
+        </p>
+        <p class="example-note">
+          Data generated {meta.generated}. Method details:{' '}
+          <a href="/methodology#values-to-100">from values to 0–100</a>.
+        </p>
+      </section>
+
+      <section class="method-section">
+        <h2 class="display-m">Credits</h2>
+        <p>
+          Display type is Newsreader and interface type is Inter, both self-hosted under
+          the SIL Open Font License. There are no analytics, cookies or third-party
+          scripts on this local build.
+        </p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

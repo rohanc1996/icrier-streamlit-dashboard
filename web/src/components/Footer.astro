@@ -1,0 +1,28 @@
+---
+import MethodNote from './MethodNote.tsx';
+import { defaultScale, meta, scaleIds } from '../lib/data';
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <div>
+      <p class="site-footer__status">
+        Pre-publication prototype — figures are not signed off for citation.
+      </p>
+      <p class="site-footer__note">
+        SIDE · CHIPS, a local prototype of the {meta.edition} digital-economy index.
+        Not the published edition.
+      </p>
+    </div>
+    <div>
+      <MethodNote
+        client:idle
+        edition={meta.edition}
+        countries={meta.countries}
+        leaves={meta.leaves}
+        scaleIds={scaleIds}
+        defaultScale={defaultScale}
+      />
+    </div>
+  </div>
+</footer>

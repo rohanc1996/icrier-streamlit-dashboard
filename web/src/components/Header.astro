@@ -1,0 +1,34 @@
+---
+import CountrySearch from './CountrySearch.tsx';
+
+interface Props {
+  countries: Array<{ iso3: string; name: string; fullName: string }>;
+  scaleIds: string[];
+  defaultScale: string;
+}
+
+const { countries, scaleIds, defaultScale } = Astro.props;
+const path = Astro.url.pathname;
+const rankingsCurrent = path === '/' || path.startsWith('/country/');
+const methodologyCurrent = path === '/methodology';
+const aboutCurrent = path === '/about';
+---
+
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="site-header__wordmark" href="/">SIDE · CHIPS</a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/" aria-current={rankingsCurrent ? 'page' : undefined}>Rankings</a>
+      <a href="/methodology" aria-current={methodologyCurrent ? 'page' : undefined}>
+        How the index works
+      </a>
+      <a href="/about" aria-current={aboutCurrent ? 'page' : undefined}>About</a>
+    </nav>
+    <CountrySearch
+      client:idle
+      countries={countries}
+      scaleIds={scaleIds}
+      defaultScale={defaultScale}
+    />
+  </div>
+</header>

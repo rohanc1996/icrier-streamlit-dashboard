@@ -1,0 +1,32 @@
+{
+  "name": "side-chips-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SIDE / CHIPS public prototype — local only",
+  "scripts": {
+    "sync-data": "node scripts/sync-data.mjs",
+    "predev": "npm run sync-data",
+    "dev": "astro dev",
+    "prebuild": "npm run sync-data",
+    "build": "astro build",
+    "preview": "astro preview",
+    "verify": "node scripts/verify.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/react": "7.1.8",
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/newsreader": "5.3.0",
+    "astro": "7.4.11",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "axe-core": "4.14.0",
+    "playwright": "1.61.1"
+  }
+}

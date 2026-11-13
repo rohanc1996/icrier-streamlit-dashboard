@@ -1,0 +1,241 @@
+{
+  "export": "data/derived/web/2026/chips.json",
+  "conventions": {
+    "js_half_up": "Math.round(score*10000)/100 (the site's JavaScript today)",
+    "decimal_half_even": "exact-decimal round to 2 dp, ties to even",
+    "numpy_half_even": "pandas Series.round(2) on the 0-100 value (the engine)"
+  },
+  "methods": {
+    "full_minmax": {
+      "cells": 1136,
+      "ranked": 1110,
+      "unranked": 26,
+      "nullness_disagreements": 0,
+      "js_half_up": {
+        "disagreements": 5,
+        "examples": [
+          {
+            "iso3": "CHL",
+            "subPillar": "HARNESS \u00b7 Apps and platform",
+            "score": 0.015166666666666669,
+            "derivedRank": 34.0,
+            "exportedRank": 33.0,
+            "rankShift": -1.0,
+            "tieCause": [
+              {
+                "iso3": "DZA",
+                "score": 0.015250000000000001,
+                "score0to100": 1.5250000000000001,
+                "jsRounded": 1.53,
+                "engineRounded": 1.52
+              }
+            ]
+          },
+          {
+            "iso3": "GRC",
+            "subPillar": "CONNECT \u00b7 Access",
+            "score": 0.0052499999999999995,
+            "derivedRank": 52.0,
+            "exportedRank": 51.0,
+            "rankShift": -1.0,
+            "tieCause": [
+              {
+                "iso3": "DOM",
+                "score": 0.00525,
+                "score0to100": 0.525,
+                "jsRounded": 0.53,
+                "engineRounded": 0.52
+              }
+            ]
+          },
+          {
+            "iso3": "ITA",
+            "subPillar": "INNOVATE \u00b7 AI",
+            "score": 0.03916666666666667,
+            "derivedRank": 24.0,
+            "exportedRank": 23.0,
+            "rankShift": -1.0,
+            "tieCause": [
+              {
+                "iso3": "ESP",
+                "score": 0.03925,
+                "score0to100": 3.925,
+                "jsRounded": 3.93,
+                "engineRounded": 3.92
+              }
+            ]
+          },
+          {
+            "iso3": "NOR",
+            "subPillar": "CONNECT \u00b7 Access",
+            "score": 0.0026666666666666666,
+            "derivedRank": 62.0,
+            "exportedRank": 59.0,
+            "rankShift": -3.0,
+            "tieCause": [
+              {
+                "iso3": "BGR",
+                "score": 0.00275,
+                "score0to100": 0.27499999999999997,
+                "jsRounded": 0.28,
+                "engineRounded": 0.27
+              },
+              {
+                "iso3": "SRB",
+                "score": 0.00275,
+                "score0to100": 0.27499999999999997,
+                "jsRounded": 0.28,
+                "engineRounded": 0.27
+              },
+              {
+                "iso3": "SGP",
+                "score": 0.00275,
+                "score0to100": 0.27499999999999997,
+                "jsRounded": 0.28,
+                "engineRounded": 0.27
+              }
+            ]
+          },
+          {
+            "iso3": "PRT",
+            "subPillar": "CONNECT \u00b7 Access",
+            "score": 0.0052499999999999995,
+            "derivedRank": 52.0,
+            "exportedRank": 51.0,
+            "rankShift": -1.0,
+            "tieCause": [
+              {
+                "iso3": "DOM",
+                "score": 0.00525,
+                "score0to100": 0.525,
+                "jsRounded": 0.53,
+                "engineRounded": 0.52
+              }
+            ]
+          }
+        ]
+      },
+      "decimal_half_even": {
+        "disagreements": 3,
+        "examples": [
+          {
+            "iso3": "CHL",
+            "subPillar": "HARNESS \u00b7 Apps and platform",
+            "score": 0.015166666666666669,
+            "derivedRank": 34.0,
+            "exportedRank": 33.0,
+            "rankShift": -1.0,
+            "tieCause": [
+              {
+                "iso3": "DZA",
+                "score": 0.015250000000000001,
+                "score0to100": 1.5250000000000001,
+                "jsRounded": 1.53,
+                "engineRounded": 1.52
+              }
+            ]
+          },
+          {
+            "iso3": "GRC",
+            "subPillar": "CONNECT \u00b7 Access",
+            "score": 0.0052499999999999995,
+            "derivedRank": 52.0,
+            "exportedRank": 51.0,
+            "rankShift": -1.0,
+            "tieCause": [
+              {
+                "iso3": "DOM",
+                "score": 0.00525,
+                "score0to100": 0.525,
+                "jsRounded": 0.53,
+                "engineRounded": 0.52
+              }
+            ]
+          },
+          {
+            "iso3": "PRT",
+            "subPillar": "CONNECT \u00b7 Access",
+            "score": 0.0052499999999999995,
+            "derivedRank": 52.0,
+            "exportedRank": 51.0,
+            "rankShift": -1.0,
+            "tieCause": [
+              {
+                "iso3": "DOM",
+                "score": 0.00525,
+                "score0to100": 0.525,
+                "jsRounded": 0.53,
+                "engineRounded": 0.52
+              }
+            ]
+          }
+        ]
+      },
+      "numpy_half_even": {
+        "disagreements": 0,
+        "examples": []
+      }
+    },
+    "z": {
+      "cells": 1136,
+      "ranked": 1110,
+      "unranked": 26,
+      "nullness_disagreements": 0,
+      "js_half_up": {
+        "disagreements": 1,
+        "examples": [
+          {
+            "iso3": "GHA",
+            "subPillar": "INNOVATE \u00b7 Other Emerging Technology",
+            "score": 0.41925,
+            "derivedRank": 46.0,
+            "exportedRank": 47.0,
+            "rankShift": 1.0,
+            "tieCause": [
+              {
+                "iso3": "GHA",
+                "score": 0.41925,
+                "score0to100": 41.925000000000004,
+                "jsRounded": 41.93,
+                "engineRounded": 41.92
+              }
+            ]
+          }
+        ]
+      },
+      "decimal_half_even": {
+        "disagreements": 1,
+        "examples": [
+          {
+            "iso3": "GHA",
+            "subPillar": "INNOVATE \u00b7 Other Emerging Technology",
+            "score": 0.41925,
+            "derivedRank": 46.0,
+            "exportedRank": 47.0,
+            "rankShift": 1.0,
+            "tieCause": [
+              {
+                "iso3": "GHA",
+                "score": 0.41925,
+                "score0to100": 41.925000000000004,
+                "jsRounded": 41.93,
+                "engineRounded": 41.92
+              }
+            ]
+          }
+        ]
+      },
+      "numpy_half_even": {
+        "disagreements": 0,
+        "examples": []
+      }
+    }
+  },
+  "totals": {
+    "cells": 2272,
+    "ranked": 2220,
+    "unranked": 52,
+    "js_disagreements": 6,
+    "js_agreements": 2214
+  }
+}
