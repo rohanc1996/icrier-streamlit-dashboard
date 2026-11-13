@@ -25,6 +25,13 @@ Operating rules:
 - For any comparison, report the country, indicator, both values, and the delta.
   Do not describe a discrepancy without the numbers behind it.
 - Respect the frozen-year rule and the additive 2027 rule in `AGENTS.md`.
+- Web export work lives in `pipeline/` and writes JSON only. Read through
+  `core/loader.py` — never a second CSV reader — compute scores with
+  `core/chips.chips_table()` and `core/rankings.scaled_scores()`, and write to
+  `data/derived/` or `web/src/data/`. Never write to `data/SIDE <year> - *.csv`;
+  the published editions are read-only inputs.
+- Any web export must reconcile numerically against the dashboard before it is
+  considered done: same country, same indicator, both values, and a zero delta.
 - After changing logic, run both test suites and report exactly which you ran.
 - When a source has a vintage, state the latest published period and your
   confidence (High/Medium/Low). Never present an inferred vintage as confirmed.

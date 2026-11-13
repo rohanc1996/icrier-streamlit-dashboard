@@ -48,9 +48,16 @@ dependency without asking first.
    must not alter earlier editions' scores.
 3. **Weights total 100% at every level.** The framework editor enforces this;
    any spec change must keep `validate_spec_totals` clean.
-4. **Scaling is monotone across methods.** `full_minmax` and `z_score` may give
-   different 0–1 scores but must preserve the same ordering. Never introduce a
-   method that reorders countries.
+4. **Scaling is monotone per indicator, not across the composite.** For a single
+   indicator, `full_minmax` and `z_score` are monotone transforms of the same
+   column, so the country order never changes — no method may reorder countries
+   on an indicator. The composite is different: it sums many differently-shaped
+   transforms, and monotone transforms do not commute with sums, so the two
+   methods **can and do** reorder countries overall (2026: 64 of 71 overall ranks
+   differ, max 19 places; pillar ranks 312 of 355). This is intended and pinned
+   by `core/rankings.py::composite_scaling_comparison` and the
+   `chips_drank.max() > 0` check in `tests/test_chips.py`. Do not "fix" it, and
+   do not claim in any document that overall ranks are method-independent.
 5. **Rounding is part of the published method.** Indicator scores round to
    1 decimal on the 0–100 scale; aggregates carry full precision; the final
    CHIPS score rounds to 2 decimals (see `core/chips.py`). Don't "clean this up".
