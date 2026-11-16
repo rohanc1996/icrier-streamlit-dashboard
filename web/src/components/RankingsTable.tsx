@@ -16,9 +16,12 @@ interface RankingsTableProps {
   sort: SortState;
   onSort: (key: SortKey) => void;
   scale: string;
-  defaultScale: string;
-  /** Present only when the active scale is not min–max. */
+  /** The scale a country profile opens on, so the link can carry it. */
+  linkScale: string;
+  /** The other method's ranks; the movement column compares against it. */
   baselineRanks: Record<string, number> | null;
+  /** Short label of the comparison method ("min–max", "z"). */
+  baselineLabel: string | null;
 }
 
 function sortDirectionWord(key: SortKey, dir: 'asc' | 'desc'): string {
@@ -44,10 +47,12 @@ export default function RankingsTable({
   sort,
   onSort,
   scale,
-  defaultScale,
+  linkScale,
   baselineRanks,
+  baselineLabel,
 }: RankingsTableProps) {
   const visible = rows.length;
+  const against = baselineLabel ?? 'the other scale';
 
   function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
     if (sort.key !== key) return 'none';
@@ -86,7 +91,7 @@ export default function RankingsTable({
       return (
         <>
           <span aria-hidden="true">—</span>
-          <span className="sr-only">no change compared with min–max</span>
+          <span className="sr-only">no change compared with {against}</span>
         </>
       );
     }
@@ -99,8 +104,8 @@ export default function RankingsTable({
           {amount}
         </span>
         <span className="sr-only">
-          {up ? 'up' : 'down'} {amount} {amount === 1 ? 'place' : 'places'} compared with
-          min–max
+          {up ? 'up' : 'down'} {amount} {amount === 1 ? 'place' : 'places'} compared with{' '}
+          {against}
         </span>
       </span>
     );
@@ -113,7 +118,7 @@ export default function RankingsTable({
           CHIPS rankings, {edition} edition. {visible} of {allCount} countries
           shown, sorted by {sortLabel(sort.key)}, {sortDirectionWord(sort.key, sort.dir)}.
           {baselineRanks
-            ? ' Rank movement is shown against the min–max scale.'
+            ? ` Rank movement is shown against ${against}.`
             : ''}
         </caption>
         <thead>
@@ -145,8 +150,8 @@ export default function RankingsTable({
             </th>
             {baselineRanks && (
               <th scope="col" className="num movement-col">
-                <abbr title="Rank movement compared with the min–max scale">
-                  Rank vs min–max
+                <abbr title={`Rank movement compared with the ${against} scale`}>
+                  Rank vs {against}
                 </abbr>
               </th>
             )}
@@ -167,14 +172,18 @@ export default function RankingsTable({
             const partial = row.coverage < PARTIAL_DATA_COVERAGE;
             return (
               <tr key={row.iso3}>
-                <td className={`num rank-cell${mode === 'rank' ? ' emphasis' : ''}`}>
+                <td
+                  className={`num rank-cell${mode === 'rank' ? ' emphasis' : ''}${
+                    row.rank === 1 ? ' rank-top' : ''
+                  }`}
+                >
                   {formatRank(row.rank)}
                 </td>
                 <td>
                   <div className="country-cell">
                     <a
                       className="country-link"
-                      href={withScale(`/country/${row.iso3}`, scale, defaultScale)}
+                      href={withScale(`/country/${row.iso3}`, scale, linkScale)}
                     >
                       {name}
                     </a>
@@ -229,7 +238,7 @@ export default function RankingsTable({
         <span>Scores 0–100</span>
         <span>{edition} Absolute edition</span>
         <span>{methodLabel(scale)} scaling</span>
-        {baselineRanks && <span>Movement: rank vs min–max</span>}
+        {baselineRanks && <span>Movement: rank vs {against}</span>}
         <span>Bar tick: median {formatScore(median)}</span>
         <span>Rank and score share one order; the emphasis control changes which number is large.</span>
         {showPillars && (

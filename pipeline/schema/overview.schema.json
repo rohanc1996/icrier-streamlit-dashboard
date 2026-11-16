@@ -1,0 +1,415 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icrier.org/side/schema/overview.json",
+  "title": "SIDE / CHIPS overview carousel export",
+  "description": "Everything the eight-pane overview carousel needs under either scaling method, pre-joined and pre-ranked: for each of full_minmax and z, the score field, top 15, weighted composition of the top 10, India's pillar verdicts, ranks and scores across editions with the pool per edition, GDP context, data coverage and the pane-7 correlation. Meta and the cross-method rank movement sit at the top level. Emitted by pipeline/export_overview.py from SIDE_dashboard/core/. All scores are 0-1; ranks are 1-based competition ranks. The site swaps method blocks and never recomputes.",
+  "type": "object",
+  "required": ["meta", "methods", "scaleMovement"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": { "$ref": "#/$defs/meta" },
+    "methods": {
+      "description": "One complete block per scaling method. Every pane except scaleMovement is inside a block, scored under that method.",
+      "type": "object",
+      "required": ["full_minmax", "z"],
+      "additionalProperties": false,
+      "properties": {
+        "full_minmax": { "$ref": "#/$defs/methodBlock" },
+        "z": { "$ref": "#/$defs/methodBlock" }
+      }
+    },
+    "scaleMovement": { "$ref": "#/$defs/scaleMovement" }
+  },
+  "$defs": {
+    "methodBlock": {
+      "description": "Every method-dependent pane, scored under one scaling method.",
+      "type": "object",
+      "required": [
+        "field", "top15", "composition", "india", "movement",
+        "sizeVsScore", "coverage", "correlation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "field": { "$ref": "#/$defs/field" },
+        "top15": {
+          "description": "Pane 2: ranks 1-15, same row shape as field.values.",
+          "type": "array",
+          "minItems": 15,
+          "items": { "$ref": "#/$defs/countryRow" }
+        },
+        "composition": {
+          "description": "Pane 3: top 10 countries with the five weighted pillar contributions that sum to the unrounded composite.",
+          "type": "array",
+          "minItems": 10,
+          "items": { "$ref": "#/$defs/compositionRow" }
+        },
+        "india": { "$ref": "#/$defs/india" },
+        "movement": { "$ref": "#/$defs/movement" },
+        "sizeVsScore": {
+          "description": "Pane 7: CHIPS score against 2025 nominal GDP in US dollars. gdp is method-independent; score and rank are this method's. gdpPerCapita is null until a population series is agreed.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/sizeRow" }
+        },
+        "coverage": {
+          "description": "Pane 8: score against data coverage.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/coverageRow" }
+        },
+        "correlation": { "$ref": "#/$defs/correlation" }
+      }
+    },
+    "correlation": {
+      "description": "Panel 7's caption: log10(GDP) against this method's CHIPS score, over all n rows. ExTop2 excludes the two largest economies (USA and China).",
+      "type": "object",
+      "required": ["pearson", "spearman", "pearsonExTop2", "spearmanExTop2", "n"],
+      "additionalProperties": false,
+      "properties": {
+        "pearson": { "type": "number", "minimum": -1, "maximum": 1 },
+        "spearman": { "type": "number", "minimum": -1, "maximum": 1 },
+        "pearsonExTop2": { "type": "number", "minimum": -1, "maximum": 1 },
+        "spearmanExTop2": { "type": "number", "minimum": -1, "maximum": 1 },
+        "n": { "type": "integer", "minimum": 3 }
+      }
+    },
+    "score": {
+      "description": "A 0-1 index score.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "rank": {
+      "description": "1-based competition rank (1 = best, ties share the minimum).",
+      "type": "integer",
+      "minimum": 1
+    },
+    "iso3": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "pillarId": {
+      "type": "string",
+      "enum": ["CONNECT", "HARNESS", "INNOVATE", "PROTECT", "SUSTAINABILITY"]
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "edition", "generated", "methods", "defaultMethod", "countries",
+        "gdpYear", "gdpSource"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "edition": {
+          "description": "Dataset edition, as a four-digit year.",
+          "type": "string",
+          "pattern": "^\\d{4}$"
+        },
+        "generated": {
+          "description": "UTC export timestamp, ISO-8601.",
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "methods": {
+          "description": "Scaling methods available in the payload, in display order.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["full_minmax", "z"] }
+        },
+        "defaultMethod": {
+          "description": "Method the overview opens on. Deliberately z: the site defaults to the standardised scale.",
+          "type": "string",
+          "const": "z"
+        },
+        "countries": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gdpYear": {
+          "description": "Calendar year of the GDP series joined onto sizeVsScore.",
+          "type": "integer",
+          "minimum": 1960
+        },
+        "gdpSource": {
+          "description": "Repository-relative path of the GDP reference file.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "countryRow": {
+      "type": "object",
+      "required": ["iso3", "country", "shortName", "score", "rank"],
+      "additionalProperties": false,
+      "properties": {
+        "iso3": { "$ref": "#/$defs/iso3" },
+        "country": { "type": "string", "minLength": 1 },
+        "shortName": { "type": "string", "minLength": 1 },
+        "score": { "$ref": "#/$defs/score" },
+        "rank": { "$ref": "#/$defs/rank" }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": ["median", "min", "max", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "median": {
+          "description": "Median of the 71 scores in this method block.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min": {
+          "description": "Lowest score in this method block.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max": {
+          "description": "Highest score in this method block.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "values": {
+          "description": "Every country, sorted by this method's overall rank.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/countryRow" }
+        }
+      }
+    },
+    "compositionPillar": {
+      "type": "object",
+      "required": ["id", "score", "weight", "contribution"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/pillarId" },
+        "score": { "$ref": "#/$defs/score" },
+        "weight": {
+          "description": "Nominal pillar weight from the CHIPS framework (0.25/0.25/0.25/0.125/0.125).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "contribution": {
+          "description": "weight x score. The five contributions sum to the country's unrounded composite.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "compositionRow": {
+      "type": "object",
+      "required": ["iso3", "country", "rank", "score", "pillars"],
+      "additionalProperties": false,
+      "properties": {
+        "iso3": { "$ref": "#/$defs/iso3" },
+        "country": { "type": "string", "minLength": 1 },
+        "rank": { "$ref": "#/$defs/rank" },
+        "score": { "$ref": "#/$defs/score" },
+        "pillars": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": { "$ref": "#/$defs/compositionPillar" }
+        }
+      }
+    },
+    "indiaPillar": {
+      "type": "object",
+      "required": ["id", "score", "rank", "of"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/pillarId" },
+        "score": { "$ref": "#/$defs/score" },
+        "rank": { "$ref": "#/$defs/rank" },
+        "of": {
+          "description": "Number of countries that competed in this pillar's rank.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "india": {
+      "type": "object",
+      "required": ["iso3", "country", "rank", "score", "pillars", "best", "worst"],
+      "additionalProperties": false,
+      "properties": {
+        "iso3": { "const": "IND" },
+        "country": { "type": "string", "minLength": 1 },
+        "rank": { "$ref": "#/$defs/rank" },
+        "score": { "$ref": "#/$defs/score" },
+        "pillars": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": { "$ref": "#/$defs/indiaPillar" }
+        },
+        "best": {
+          "description": "India's best-ranked pillar.",
+          "type": "object",
+          "required": ["id", "rank"],
+          "additionalProperties": false,
+          "properties": {
+            "id": { "$ref": "#/$defs/pillarId" },
+            "rank": { "$ref": "#/$defs/rank" }
+          }
+        },
+        "worst": {
+          "description": "India's worst-ranked pillar.",
+          "type": "object",
+          "required": ["id", "rank"],
+          "additionalProperties": false,
+          "properties": {
+            "id": { "$ref": "#/$defs/pillarId" },
+            "rank": { "$ref": "#/$defs/rank" }
+          }
+        }
+      }
+    },
+    "movement": {
+      "type": "object",
+      "required": ["years", "pool", "scorableYears", "countries"],
+      "additionalProperties": false,
+      "properties": {
+        "years": {
+          "description": "Editions in the window, ascending integers. Derived from the published edition window, never hard-coded.",
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 2000 }
+        },
+        "pool": {
+          "description": "Number of countries each edition carries (the field a rank is out of), keyed by year as a string. Taken from the loader's country list, not from a CSV row count. It can exceed the number of scored countries: 2025 carries 59 names, 38 of them scored.",
+          "type": "object",
+          "minProperties": 2,
+          "propertyNames": { "pattern": "^\\d{4}$" },
+          "additionalProperties": { "type": "integer", "minimum": 1 }
+        },
+        "scorableYears": {
+          "description": "How many editions in years produced at least one score.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "countries": {
+          "description": "Countries with a rank in at least two of the years. ranks and scores are keyed by year (as a string); a missing rank or score is null, and a null rank always pairs with a null score.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/movementRow" }
+        }
+      }
+    },
+    "movementRow": {
+      "type": "object",
+      "required": ["iso3", "country", "ranks", "scores"],
+      "additionalProperties": false,
+      "properties": {
+        "iso3": { "$ref": "#/$defs/iso3" },
+        "country": { "type": "string", "minLength": 1 },
+        "ranks": {
+          "type": "object",
+          "minProperties": 2,
+          "propertyNames": { "pattern": "^\\d{4}$" },
+          "additionalProperties": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          }
+        },
+        "scores": {
+          "description": "The 0-1 overall score behind each rank, so pane 5 needs no join back to series.json.",
+          "type": "object",
+          "minProperties": 2,
+          "propertyNames": { "pattern": "^\\d{4}$" },
+          "additionalProperties": {
+            "type": ["number", "null"],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "mover": {
+      "type": "object",
+      "required": ["iso3", "country", "rankFull", "rankZ", "delta"],
+      "additionalProperties": false,
+      "properties": {
+        "iso3": { "$ref": "#/$defs/iso3" },
+        "country": { "type": "string", "minLength": 1 },
+        "rankFull": { "$ref": "#/$defs/rank" },
+        "rankZ": { "$ref": "#/$defs/rank" },
+        "delta": {
+          "description": "rankZ - rankFull. Non-zero means the two scalings order the countries differently.",
+          "type": "integer"
+        }
+      }
+    },
+    "scaleMovement": {
+      "type": "object",
+      "required": ["pairs", "movers"],
+      "additionalProperties": false,
+      "properties": {
+        "pairs": {
+          "description": "The two methods compared, in the order rankFull, rankZ.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "string", "enum": ["full_minmax", "z"] }
+        },
+        "movers": {
+          "description": "All scored countries, sorted by absolute delta descending.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/mover" }
+        }
+      }
+    },
+    "sizeRow": {
+      "type": "object",
+      "required": ["iso3", "country", "score", "rank", "gdp", "gdpPerCapita"],
+      "additionalProperties": false,
+      "properties": {
+        "iso3": { "$ref": "#/$defs/iso3" },
+        "country": { "type": "string", "minLength": 1 },
+        "score": { "$ref": "#/$defs/score" },
+        "rank": { "$ref": "#/$defs/rank" },
+        "gdp": {
+          "description": "Nominal GDP in current US dollars, meta.gdpYear.",
+          "type": "number",
+          "minimum": 0
+        },
+        "gdpPerCapita": {
+          "description": "Deliberately null: the repo has no population series.",
+          "type": "null"
+        }
+      }
+    },
+    "coverageRow": {
+      "type": "object",
+      "required": [
+        "iso3", "country", "score", "rank", "coverage",
+        "indicatorsPresent", "indicatorsTotal"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "iso3": { "$ref": "#/$defs/iso3" },
+        "country": { "type": "string", "minLength": 1 },
+        "score": { "$ref": "#/$defs/score" },
+        "rank": { "$ref": "#/$defs/rank" },
+        "coverage": {
+          "description": "Weight-weighted share of CHIPS indicator weight the country actually has data for.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "indicatorsPresent": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indicatorsTotal": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

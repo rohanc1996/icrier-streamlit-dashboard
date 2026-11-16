@@ -1,7 +1,7 @@
 # Scaling methods — score and rank comparison
 
 Edition **2026 Absolute**, exported from the CHIPS
-engine (`SIDE_dashboard/core/chips.py`) on 2026-11-13T10:09:16Z.
+engine (`SIDE_dashboard/core/chips.py`) on 2026-11-16T04:56:53Z.
 
 `full_minmax` = full-range min–max (`scaling.METHOD_FULL`); `z` = z-score, standardised then mapped through the logistic curve (`scaling.METHOD_Z`). Both keep every country on the same 0–1 scale.
 

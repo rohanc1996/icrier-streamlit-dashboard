@@ -9,11 +9,18 @@ import { countries, defaultScale, meta, scaleIds } from '../lib/data';
 interface Props {
   title: string;
   description?: string;
+  /**
+   * The scale the page opens on, used by the footer's method note. Defaults to
+   * the edition default (country profiles); the overview and rankings pages
+   * pass the site default instead.
+   */
+  noteScale?: string;
 }
 
 const {
   title,
   description = `SIDE · CHIPS: a digital-economy score for ${meta.countries} countries, from ${meta.leaves} indicators in five areas.`,
+  noteScale = defaultScale,
 } = Astro.props;
 ---
 
@@ -32,6 +39,6 @@ const {
     <main id="main">
       <slot />
     </main>
-    <Footer />
+    <Footer noteScale={noteScale} />
   </body>
 </html>

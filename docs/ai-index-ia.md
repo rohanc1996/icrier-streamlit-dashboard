@@ -365,45 +365,65 @@ is the only long page.
 
 ## 6. Design tokens
 
-Institutional and paper-based: off-white paper, near-black ink, one deep navy for
-structure, one blue for links and focus. Pillar hues are Okabe–Ito derived and
-darkened to clear 3:1 against paper, and are still never the only carrier (§7).
+Institutional and paper-based, in **ICRIER's own colors**. Navy does the structural
+work; orange is a rare exclamation, never chrome. Pillar hues are drawn from the
+same deep, desaturated family so the page reads as one palette rather than a
+dashboard, and are still never the only carrier (§7).
+
+Provenance: `#272D4F` and `#FF5E00` are the theme's own variables
+(`--theme-color`, `--color-darkorange`) on icrier.org; the navy also matches the
+logo (sampled `#272D4E`, with royal blue `#052F77`/`#0E377C` and pale `#748CB4`
+alongside it). `--tint` is their own `--background-lightcolor`.
 
 ### Color
 
-| Token | Hex | Use | Contrast against background |
+| Token | Hex | Use | Contrast against `--paper` |
 | --- | --- | --- | --- |
-| `--paper` | `#FBFAF7` | Page background | — |
-| `--surface` | `#FFFFFF` | Cards, table body | 1.04:1 vs paper (border needed, not fill) |
-| `--ink` | `#14181C` | Primary text | **17.09:1** on paper |
-| `--ink-muted` | `#55606C` | Secondary text, captions, units | **6.14:1** on paper |
-| `--brand` | `#1B3A6B` | Wordmark, headings, rules | **10.79:1** on paper |
-| `--accent` | `#0B5FA5` | Links, focus ring, selected state | **6.30:1** on paper · 6.57:1 on white |
-| `--border` | `#808A94` | Input borders, control boundaries | **3.36:1** on paper (meets 1.4.11) |
-| `--border-subtle` | `#D7DBDF` | Table rules, dividers | 1.33:1 (decorative only) |
+| `--paper` | `#FAF8F5` | Page background — warm off-white, never pure white | — |
+| `--surface` | `#FFFFFF` | Table body only, where digits must stay crisp | 1.04:1 (needs the rule, not a fill) |
+| `--ink` | `#14182B` | Primary text (navy-black, never `#000`) | **16.6:1** |
+| `--ink-muted` | `#55606C` | Secondary text, captions, units | **6.05:1** |
+| `--brand` | `#272D4F` | Wordmark, headings, rules, links, buttons | **12.6:1** |
+| `--accent` | `#FF5E00` | **Fills and marks only** — 2px rules, underlines, the top rank numeral | **2.89:1 — fails text at every size** |
+| `--accent-ink` | `#B84A00` | Orange where it must be read (the profile's composite number) | **4.93:1** |
+| `--tint` | `#272D4F0D` | Navy wash — score tracks, panels, chips | ground tint |
+| `--rule` | `#E3E0DA` | Hairlines and dividers, warm not grey | decorative only |
+| `--border` | `#9AA0AA` | Input and control boundaries | **≥3:1** (meets 1.4.11) |
 | `--missing-fill` | `#E3E6E9` + 45° hatch `#9AA3AC` | Not-scored cells and marks | Text on it: **5.12:1** |
-| `--positive` | `#1F6B3A` | Rank up | **6.24:1** on paper |
-| `--negative` | `#9B2226` | Rank down | **7.59:1** on paper |
+| `--positive` | `#0F766E` | Rank up | **5.16:1** |
+| `--negative` | `#8C2F2F` | Rank down | **6.4:1** |
+
+**Orange discipline — three jobs, nothing else.** (1) The single composite number
+on a profile and the rankings hero, rendered as `--accent-ink` because it is text.
+(2) A 2px `--accent` rule or underline marking the selected control or active
+section. (3) The top-ranked row's rank numeral. Orange is never a link colour,
+never a button fill, never hover, never a segmented control's fill (that is navy
+fill + white text + an orange underline), and never body text. The measured
+2.89:1 is why: at display sizes it still misses the 3:1 large-text floor on this
+warm ground.
 
 ### Pillars (fills, for marks and tints)
 
 | Pillar | Fill | On paper | Tint (chips) | Text on tint |
 | --- | --- | --- | --- | --- |
-| CONNECT | `#0072B2` | 4.97:1 | `#E6F0F7` | `#005A8C` — 6.40:1 |
-| HARNESS | `#00805D` | 4.74:1 | `#E4F0EC` | `#00664B` — 5.99:1 |
-| INNOVATE | `#B36B00` | 4.01:1 | `#F7EEDF` | `#7A5200` — 6.01:1 |
-| PROTECT | `#B4453F` | 5.21:1 | `#F6E9E8` | `#8A2F2A` — 7.04:1 |
-| SUSTAINABILITY | `#6A4C93` | 6.56:1 | `#EDE9F3` | `#4A3268` — 9.01:1 |
+| CONNECT | `#272D4F` | 12.6:1 | `#E9EAF0` | `#272D4F` |
+| HARNESS | `#0F766E` | 5.16:1 | `#E6F0EE` | `#0B5B54` |
+| INNOVATE | `#8A6D1F` | 4.62:1 | `#F4F0E3` | `#6B5418` |
+| PROTECT | `#6B4C7A` | 6.74:1 | `#EFE9F1` | `#553C60` |
+| SUSTAINABILITY | `#B84A00` | 4.93:1 | `#F8EBE3` | `#8C3900` |
 
 **Honest limitation:** five hues cannot be reliably distinguished by all color-blind
-readers — practical CVD-safe grouping tops out around three or four. The mitigation
-is structural, not cosmetic: every pillar mark is labeled with its name or a 2-letter
-code (`CO HA IN PR SU`), pillars always appear in the same order, and any
-single-pillar chart uses `--ink`, not the pillar hue. Hue is decoration for
-orientation; the label carries the information.
+readers, and this family is deliberately closer together than a CVD-optimised set
+(navy/teal and olive/orange are the closest pairs). That is a conscious trade of
+separation for cohesion, and it only holds because the mitigation is structural:
+every pillar mark is labeled with its name or a 2-letter code (`CO HA IN PR SU`),
+pillars always appear in the same order, and a single-pillar chart uses `--ink`,
+not the pillar hue. Hue is decoration for orientation; the label carries the
+information.
 
 **Missing is not a pillar color.** It is grey + hatch + the words "not scored", so it
 never competes with a hue and never disappears in a printout.
+
 
 ### Type
 
@@ -412,11 +432,11 @@ subsets beyond Latin + Latin-1 punctuation.
 
 | Token | Face | Size / line | Weight | Use |
 | --- | --- | --- | --- | --- |
-| `display-xl` | Newsreader | 56 / 60 | 400 | The one number on a profile (40.41) |
-| `display-l` | Newsreader | 40 / 46 | 400 | Page title |
+| `display-xl` | Newsreader | 88 / 92 desktop · 56 / 60 mobile | 400 | The one number on a profile (40.41), in `--accent-ink` |
+| `display-l` | Newsreader | 64 / 68 desktop · 40 / 46 mobile | 400 | Rankings page title |
 | `display-m` | Newsreader | 28 / 34 | 500 | Country name, section heads |
 | `body-l` | Inter | 18 / 28 | 400 | Lede paragraph under a title |
-| `body` | Inter | 16 / 26 | 400 | Default |
+| `body` | Inter | 17 / 27 | 400 | Default |
 | `body-s` | Inter | 14 / 22 | 400 | Captions, units, table body |
 | `label` | Inter | 13 / 16 | 600, +0.02em | Toolbar labels, table headers |
 | `micro` | Inter | 12 / 16 | 500 | Chips, footnotes |
@@ -427,16 +447,27 @@ column — it has no tabular figures, so digits will not align, and the misalign
 reads as sloppiness in exactly the place the site is claiming precision. Scores in
 running text use Inter, not Newsreader.
 
+The display sizes are deliberately larger than a dashboard would use. The number
+is the argument; give it room and the page stops looking like a reporting tool.
+
 ### Space, layout, radius
 
 - Base unit 4px; scale `4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96`.
 - Max content width 1120px; reading measure 68ch; table gutter 24px.
+- ~96px above the rankings title and above the profile composite; section spacing
+  runs to the 64/96 end of the scale. Tightening these is the fastest way to lose
+  the editorial register.
+- **Header is a hairline, not a bar.** Paper ground, navy wordmark, one 1px `--rule`
+  beneath. A solid navy header band is the dated tell.
+- **No cards.** Pillars render as a five-column band with a coloured top rule and
+  hairline separators. Radius 0–2px, shadows nowhere. Separation comes from 1px
+  `--rule` and space.
+- Score-bar tracks use `--tint`, not grey. Keep the median tick.
 - Breakpoints: 320 / 640 / 960 / 1200. At 640 and below, the rankings table drops to
   three columns (rank, country, score); pillar columns are hidden, not squeezed.
-- Radius 2px on cards and inputs, 0 on table rows. Shadows: none. Separation is by
-  1px `--border-subtle` rules — shadows add visual noise to a 71-row table.
-- Focus ring: `2px solid #0B5FA5` with `2px` paper offset; never removed, never
-  replaced by a color change alone.
+- Focus ring: `2px solid #272D4F` with a 2px paper offset; never removed, never
+  replaced by a colour change alone.
+
 
 ---
 
@@ -446,7 +477,7 @@ running text use Inter, not Newsreader.
 | --- | --- |
 | 1.3.1 Structure | Real `<table>` with `<caption>`, `<th scope="col">`, sortable headers as `<button>` inside `<th>` carrying `aria-sort`. No `div` grids. |
 | 1.4.1 Use of color | Direction of change uses ▲/▼ **and** the sign **and** a visually-hidden "up 4 places". Pillar identity always carries a code. Missing uses hatch + words. |
-| 1.4.3 / 1.4.11 Contrast | All text pairs in §6 are ≥4.5:1 (≥3:1 for the 56px display figure); all control boundaries ≥3:1. Pillar fills ≥3:1 against paper. |
+| 1.4.3 / 1.4.11 Contrast | All text pairs in §6 are ≥4.5:1 **against `#FAF8F5`, the warm ground, not white**; all control boundaries ≥3:1. Pillar fills ≥3:1. `#FF5E00` is never a text colour at any size — it measures 2.89:1 here — and the display figure uses `--accent-ink` instead. |
 | 1.4.4 / 1.4.10 Reflow | Usable at 320px and at 200% zoom with no horizontal scroll; table collapses to three columns. |
 | 1.4.12 Text spacing | Line-height 1.5, paragraph 2em, letter 0.12em, word 0.16em without clipping; check it on the toolbar labels, the tightest text on the site. |
 | 2.1.1 Keyboard | Everything operable: search, sort, toggles, accordions, downloads. Accordion headers are `<button aria-expanded>`. |
@@ -520,8 +551,15 @@ are the site.
 Decided after review, superseding §9.1.
 
 **The prototype publishes both scaling methods with a user toggle**, defaulting to
-full-range min–max, with the choice in the URL (`?scale=z`) alongside the accordion
-state. `meta.defaultMethod` drives the default; nothing is hard-coded.
+**z-score**, with the choice in the URL (`?scale=minmax`) alongside the accordion and
+pane state. `meta.defaultMethod` drives the default; nothing is hard-coded.
+
+Updated 2026-11-16: the default moved from min–max to **z-score**, matching the
+Streamlit dashboard, so the site and the internal tool agree on what a "CHIPS score"
+is. Min–max remains one toggle away and is still explained in the methodology page.
+The toggle covers the **overview panes as well as the rankings table** — every pane
+re-renders from the same selected method, so no pane may carry a method-specific
+constant.
 
 **Correction to this specification.** §2 and §3 assumed the two methods differ only
 in magnitude. They do not. Verified on the 2026 edition:
@@ -562,4 +600,111 @@ monotone transforms do not commute with sums, so the league table itself changes
    `aria-live` region as sorting and filtering.
 5. Before any public launch, one method must be named official. Two league tables is
    a review affordance, not a publishing policy.
+
+---
+
+## 11. Amendment — overview carousel (2026-11-15)
+
+`/` becomes an **overview carousel**; the rankings table moves to `/rankings`. Nav:
+Overview · Rankings · How the index works · About. This supersedes §1's "no landing
+page" position: a first-time reader now meets the argument before the table, and the
+table stays one click away.
+
+The pattern is borrowed from The Observer's Global AI Index story (`3484101`,
+"GAII 5.0 Clicky") — note that the live page no longer embeds it; it embeds a custom
+mini-site instead. Two of its moves are **not** copied, because SIDE's data cannot
+support them:
+
+| Observer move | Why we can't | Replacement |
+|---|---|---|
+| Scale × Intensity bubble (4 slides) | That is Absolute × Relative; our Relative file has 17 of 71 countries | Dropped. Pane 7 uses GDP as external context instead |
+| 5-edition ladder / race chart | We have 2 usable editions, 38 countries scored in both | Pane 5 is a score slope for N years, not a race |
+
+### The eight panes
+
+| # | Pane | Chart | Question |
+|---|---|---|---|
+| 1 | The field | Beeswarm, 71 scores, median tick | How spread out is the world? |
+| 2 | The podium and the pack | Lollipop, top 15, top 3 in ink, 31.6→22.8 annotated (derived, not hard-coded) | Who leads, and how tight is the chasing pack? |
+| 3 | Anatomy of a score | Segmented bars, top 10, weighted pillar contributions | What is a score made of? |
+| 4 | India's five verdicts | Dot plot of India's pillar ranks vs all 71 distributions | 3rd overall, 66th on sustainability — where? |
+| 5 | Movement | Dumbbell of **score** across the years scored; rank appears only in the table | Did anyone actually move? |
+| 6 | The same index, two scales | Diverging bars, rank change min–max vs z | Does the method change the league table? |
+| 7 | Scale and score | Scatter, GDP 2025 nominal × CHIPS | Does the index reward size? |
+| 8 | How much stands behind a score | Coverage × score | How much data backs each rank? |
+
+The arc is field → ranking → composition → one country → movement → methodology →
+external context → data honesty. It ends on the caveat, which is the right closing
+note for a pre-publication index.
+
+### Interaction
+Arrow-driven pane switcher, not scroll-snap and not scrollytelling: prev/next
+chevrons, an `n / 8` counter, a dot stepper, ←/→ and Home/End, `?pane=n` deep link.
+**No autoplay**; `prefers-reduced-motion` removes the transition rather than
+shortening it. Every pane carries a one-line "what this shows" and a **"View as
+table"** fallback (§7), which doubles as the print view.
+
+### Pane 5 is built for N years
+`overview.json` derives the year list from the editions present and includes any
+country scored in at least two. Today that is 2025–2026 for 38 countries; when 2027
+lands it becomes three points for those countries and two for the 71, with no chart
+rewrite. The caveat text must carry the live count, never a hard-coded 38.
+
+### Pane 5 encodes score, not rank (2026-11-16)
+The first build plotted **rank** and produced a false impression. Verified against
+`series.json` for the 38 countries scored in both editions:
+
+| Country | Rank 2025→2026 | Score 2025→2026 |
+|---|---|---|
+| Saudi Arabia | 19 → 55 (+36) | 0.1903 → 0.1803 (−1.0 pt) |
+| Egypt | 29 → 63 (+34) | 0.1588 → 0.1685 (**+1.0 pt**) |
+| Czechia | 27 → 57 (+30) | 0.1637 → 0.1782 (+1.5) |
+| Belgium | 24 → 52 (+28) | 0.1694 → 0.1819 (+1.2) |
+| South Africa | 30 → 54 (+24) | 0.1580 → 0.1806 (+2.3) |
+
+Four of the five largest "fallers" improved their score. Across the panel the median
+rank change is 5.5 places while the median score change is 2.9 points, with 27
+countries moving down against 10 up. The pool grew from 59 to 71 countries and the
+2025 edition used a smaller indicator set, so rank churn is mostly composition.
+
+**Rule: pane 5 plots the score change.** Rank lives in the table, with its own
+column, and is never the encoded quantity. The caption must not claim small
+movement: the median |Δ score| is 2.9 points but the **maximum is China, −16.7
+points** (75.47 → 58.76), because the 2025 edition used a smaller indicator set.
+China's gap is named in the caption as the clearest evidence that cross-edition
+scores are not like-for-like. "About three points" describes the median and must
+never be written as the range.
+
+**Known limitation, unresolved:** min–max scaling is computed per edition over that
+edition's own countries, so scores are not strictly comparable across editions
+either. A true like-for-like panel would re-score both editions on the common
+country set. That is a new derived table and a methodological decision for
+`docs/decisions/` — not a chart tweak, and not to be introduced implicitly.
+
+**Two different counts, easy to confuse.** `movement.pool` is the **edition field
+size** — 59 for 2025, 71 for 2026 — while the number actually **scored** in 2025 is
+38, and 38 is the panel size. So "the pool grew from 59 to 71" and "38 of 71,
+scored in both editions" are both true and describe different things. Any caption
+that mixes them will mislead; state which is which.
+
+### Pane 7 framing — a constraint, not a preference
+The **Absolute** edition scores absolute volumes (users, subscribers, connections),
+so its scores are mechanically related to population and GDP. The scatter therefore
+shows a relationship that is partly definitional. It is captioned as a property of
+the Absolute edition — "the index rewards scale" — and never as a discovery that
+richer countries perform better.
+
+The relationship is also real and can be quoted, measured on log GDP 2025 against
+the composite for all 71 countries:
+
+| Measure | All 71 | Excluding USA + China | Excluding the top 3 scorers |
+|---|---|---|---|
+| Pearson (log GDP) | 0.71 | 0.66 | 0.70 |
+| Spearman | 0.75 | 0.73 | 0.72 |
+
+It survives removing the largest economies, so the caption states ρ ≈ 0.75 rather
+than gesturing at a trend. A per-capita view is the obvious next step but requires a
+population series the repo does not have; `gdpPerCapita` is emitted as `null` until
+that data is sourced and agreed.
+
 

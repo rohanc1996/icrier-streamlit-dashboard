@@ -1,6 +1,13 @@
 ---
 import MethodNote from './MethodNote.tsx';
 import { defaultScale, meta, scaleIds } from '../lib/data';
+
+interface Props {
+  /** The scale the page opens on, so the note names the right method. */
+  noteScale?: string;
+}
+
+const { noteScale = defaultScale } = Astro.props;
 ---
 
 <footer class="site-footer">
@@ -21,7 +28,7 @@ import { defaultScale, meta, scaleIds } from '../lib/data';
         countries={meta.countries}
         leaves={meta.leaves}
         scaleIds={scaleIds}
-        defaultScale={defaultScale}
+        defaultScale={noteScale}
       />
     </div>
   </div>

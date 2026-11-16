@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { readScaleParam, SCALE_EVENT, methodLabel } from '../lib/scale';
+import { readScaleParam, SCALE_EVENT, methodLabel, movementLabel, otherScale, writeScaleParam } from '../lib/scale';
 import type { PillarLite, ScaleScores, ScoreRow, SortKey, SortState } from '../lib/types';
 import RankingsTable from './RankingsTable';
 import RankingsToolbar from './RankingsToolbar';
@@ -7,7 +7,10 @@ import RankingsToolbar from './RankingsToolbar';
 interface RankingsExplorerProps {
   datasets: Record<string, ScaleScores>;
   scaleIds: string[];
+  /** The site default (z-score), read from the payload's meta. */
   defaultScale: string;
+  /** The scale a country profile opens on, used for outbound links. */
+  profileScale: string;
   edition: string;
   pillars: PillarLite[];
   caption: string;
@@ -43,6 +46,7 @@ export default function RankingsExplorer({
   datasets,
   scaleIds,
   defaultScale,
+  profileScale,
   edition,
   pillars,
   caption,
@@ -55,13 +59,17 @@ export default function RankingsExplorer({
   const [announcement, setAnnouncement] = useState('');
 
   const data = datasets[scale] ?? datasets[defaultScale];
-  // The movement column is measured against min–max whenever it is present.
-  const baselineId = scaleIds.includes('full_minmax') ? 'full_minmax' : defaultScale;
+  // The movement column always measures against the other method, so it is
+  // "Rank vs min–max" while z is active and "Rank vs z" while min–max is.
+  const baselineId = otherScale(scaleIds, scale);
+  const baselineLabel = baselineId ? movementLabel(baselineId) : null;
   const movementRanks = useMemo(
     () =>
-      Object.fromEntries(
-        (datasets[baselineId]?.scores ?? []).map((row) => [row.iso3, row.rank]),
-      ),
+      baselineId
+        ? Object.fromEntries(
+            (datasets[baselineId]?.scores ?? []).map((row) => [row.iso3, row.rank]),
+          )
+        : null,
     [datasets, baselineId],
   );
 
@@ -86,16 +94,17 @@ export default function RankingsExplorer({
 
   function chooseScale(next: string) {
     setScale(next);
-    const url = new URL(window.location.href);
-    if (next === defaultScale) {
-      url.searchParams.delete('scale');
-    } else {
-      url.searchParams.set('scale', next);
-    }
+    // The default leaves the URL alone, so `?scale` is absent unless the
+    // non-default method is active. The token is `minmax`, not `full_minmax`.
+    const url = writeScaleParam(new URL(window.location.href), next, defaultScale);
     window.history.replaceState({}, '', url);
     window.dispatchEvent(new CustomEvent(SCALE_EVENT, { detail: { scale: next } }));
+    const against = otherScale(scaleIds, next);
     setAnnouncement(
-      `Showing ${methodLabel(next)} scores. The ranks change with the scale; the Rank vs min–max column shows the movement.`,
+      `Showing ${methodLabel(next)} scores. The ranks change with the scale;` +
+        (against
+          ? ` the Rank vs ${movementLabel(against)} column shows the movement.`
+          : '.'),
     );
   }
 
@@ -163,8 +172,9 @@ export default function RankingsExplorer({
         sort={sort}
         onSort={chooseSort}
         scale={scale}
-        defaultScale={defaultScale}
-        baselineRanks={scale === baselineId ? null : movementRanks}
+        linkScale={profileScale}
+        baselineRanks={movementRanks}
+        baselineLabel={baselineLabel}
       />
     </section>
   );

@@ -60,7 +60,7 @@ JSON_METHODS = {
     "z": scaling.METHOD_Z,
 }
 METHOD_ORDER = list(JSON_METHODS)
-DEFAULT_METHOD_KEY = "full_minmax"
+DEFAULT_METHOD_KEY = "z"
 METHOD_LABELS = {
     "full_minmax": "Full-range min-max",
     "z": "Z-score (standardized)",

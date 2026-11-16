@@ -221,10 +221,21 @@ const ranges = scaleIds.map((id) => ({
             Raw indicators arrive in different units — dollars, megabits per second,
             patents, survey scores. Each one is put on a common 0–100 scale before the
             pillar weights are applied. This prototype offers two ways of doing that,
-            switchable on the rankings page.
+            switchable on the overview and rankings pages. <strong>Z-score is the
+            default</strong>; min–max is the alternative.
           </p>
 
-          <h3>Min–max</h3>
+          <h3>Z-score (the default)</h3>
+          <p>
+            Every indicator is standardized against the average and spread of the{' '}
+            {meta.countries} countries, then passed through a logistic curve so the
+            result stays between 0 and 100. A score of 50 is the average country on that
+            indicator; higher is above average. On this method, the {meta.edition}{' '}
+            composite scores run from {ranges.find((range) => range.id === 'z')?.min ?? '—'}{' '}
+            to {ranges.find((range) => range.id === 'z')?.max ?? '—'}.
+          </p>
+
+          <h3>Min–max (the alternative)</h3>
           <p>
             Every indicator's lowest observed value becomes 0 and its highest becomes
             100, with the countries in between spread evenly across that range. The
@@ -234,16 +245,6 @@ const ranges = scaleIds.map((id) => ({
             the {meta.edition} composite scores run from{' '}
             {ranges.find((range) => range.id === 'full_minmax')?.min ?? '—'} to{' '}
             {ranges.find((range) => range.id === 'full_minmax')?.max ?? '—'}.
-          </p>
-
-          <h3>Z-score</h3>
-          <p>
-            Every indicator is standardized against the average and spread of the{' '}
-            {meta.countries} countries, then passed through a logistic curve so the
-            result stays between 0 and 100. A score of 50 is the average country on that
-            indicator; higher is above average. On this method, the {meta.edition}{' '}
-            composite scores run from {ranges.find((range) => range.id === 'z')?.min ?? '—'}{' '}
-            to {ranges.find((range) => range.id === 'z')?.max ?? '—'}.
           </p>
 
           <h3>Why both are here</h3>
@@ -265,8 +266,9 @@ const ranges = scaleIds.map((id) => ({
               up to {Math.abs(methodComparison.max.delta)} places —{' '}
               {methodComparison.max.name} moves from {methodComparison.max.from} to{' '}
               {methodComparison.max.to}. That movement is the finding this prototype
-              exists to show, not a rendering fault. The rankings page adds a{' '}
-              <strong>Rank vs min–max</strong> column whenever the z-score view is active.
+              exists to show, not a rendering fault. The rankings page carries a
+              movement column named after the other method — <strong>Rank vs min–max</strong>{' '}
+              while z-score is active, <strong>Rank vs z</strong> while min–max is.
             </p>
           )}
           <p class="example-note">
@@ -293,7 +295,7 @@ const ranges = scaleIds.map((id) => ({
 
           {droppedExample ? (
             <div class="panel example-table">
-              <div class="table-note" style="border-top: 0; border-bottom: 1px solid var(--border-subtle)">
+              <div class="table-note" style="border-top: 0; border-bottom: 1px solid var(--rule)">
                 <span class="label">A worked example</span>
                 <span>
                   {droppedExample.country}, {meta.edition}

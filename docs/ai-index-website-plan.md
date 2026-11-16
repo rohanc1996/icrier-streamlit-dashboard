@@ -64,8 +64,9 @@ listed in `meta.excludedFromIndex` — missing data is never silent.
   `aggregate_country`/`tree_to_frame` — never recomputed from `score_matrix`.
 - Final CHIPS: rounded to 2 decimals on the 0–100 scale (`chips.py:352`).
 - Method: **both** are exported — `full_minmax` and `z` — and the prototype toggles
-  between them. `meta.defaultMethod` is `full_minmax`. Note the Streamlit dashboard
-  still defaults to `METHOD_Z`; the two defaults deliberately differ for now.
+  between them across the overview panes and the rankings table. `meta.defaultMethod`
+  is **`z`**, matching the Streamlit dashboard's `METHOD_Z`, so the site and the
+  internal tool agree on what a CHIPS score is.
 - Scaling uses all 71 countries; filtering before scoring changes every number.
 
 ## Contract

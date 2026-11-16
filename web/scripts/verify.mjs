@@ -26,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { webkit } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import axe from 'axe-core';
+import { movementRuns } from '../src/lib/movement.mjs';
 
 const WEB_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(WEB_ROOT, 'dist');
@@ -35,6 +36,32 @@ const OUT = path.join(WEB_ROOT, '.verify');
 const CHIPS = JSON.parse(
   await readFile(path.join(WEB_ROOT, 'src', 'data', '2026', 'chips.json'), 'utf8'),
 );
+const OVERVIEW = JSON.parse(
+  await readFile(path.join(WEB_ROOT, 'src', 'data', 'overview.json'), 'utf8'),
+);
+
+/**
+ * Pane 5 encodes score and the payload carries one block per scaling method,
+ * so every expectation below is read from the method being checked.
+ */
+const DEFAULT_METHOD = OVERVIEW.meta.defaultMethod;
+const METHOD_IDS = OVERVIEW.meta.methods ?? Object.keys(OVERVIEW.methods);
+const OTHER_METHOD = METHOD_IDS.find((id) => id !== DEFAULT_METHOD);
+const block = (id) => OVERVIEW.methods[id];
+const countryIn = (id, iso3) =>
+  block(id).field.values.find((row) => row.iso3 === iso3);
+const scoreText = (value) => (value * 100).toFixed(2);
+
+/** Score delta across the movement window, in points, from the payload. */
+function scoreDelta(methodId, iso3, years) {
+  const country = block(methodId).movement.countries.find((row) => row.iso3 === iso3);
+  if (!country) return null;
+  const present = years
+    .map((year) => country.scores?.[String(year)])
+    .filter((value) => Number.isFinite(value));
+  if (present.length < 2) return null;
+  return (present[present.length - 1] - present[0]) * 100;
+}
 
 /** The exporter's sub-pillar rank for one country, or null. */
 function jsonSubPillar(method, iso3, key) {
@@ -179,6 +206,10 @@ async function newPage(viewport) {
 }
 const settle = (page) => page.evaluate(async () => {
   await document.fonts.ready;
+  // Wait out the 180ms pane entry animation so screenshots are not captured
+  // mid-fade. A fixed wait rather than animation promises: some transitions run
+  // indefinitely and awaiting them never resolves.
+  await new Promise((r) => setTimeout(r, 240));
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 });
 async function shot(page, name, fullPage) {
@@ -203,82 +234,832 @@ const liveRegion = (page) =>
   page.locator('section[aria-labelledby="rankings-heading"] [aria-live]');
 
 try {
-  /* ---------------------------------------------------------- desktop: `/` */
+  /* -------------------------------------------------------- desktop: overview */
+  const overview = await newPage(desktopViewport);
+  await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+  await settle(overview);
+
+  const pane = (n) => overview.locator(`[data-pane="${n}"]`);
+  const livePane = () =>
+    overview.locator('[data-pane]:not([hidden])').getAttribute('data-pane');
+  const counterText = () =>
+    overview.locator('.carousel__count').innerText().then((text) => text.trim());
+  const announcement = () =>
+    overview.locator('.carousel [aria-live]').innerText().then((text) => text.trim());
+  const waitPane = (n) =>
+    overview.waitForFunction(
+      (number) =>
+        document.querySelector(`[data-pane="${number}"]`)?.hasAttribute('hidden') === false,
+      n,
+    );
+
+  await check('/ renders 8 carousel panes, exactly one visible', async () => {
+    const total = await overview.locator('[data-pane]').count();
+    expectEqual(total, 8, 'pane count');
+    const visible = await overview.locator('[data-pane]:not([hidden])').count();
+    expectEqual(visible, 1, 'visible panes');
+    expectEqual(await livePane(), '1', 'visible pane');
+    expectEqual(await counterText(), '1 / 8', 'counter');
+    return '8 panes in the DOM, pane 1 visible';
+  });
+
+  await check('carousel is a labelled group with a roledescription', async () => {
+    const group = overview.locator('[aria-roledescription="carousel"]');
+    await group.waitFor();
+    const label = await group.getAttribute('aria-label');
+    expect(label && label.length > 8, `missing aria-label: ${label}`);
+    return `role=group, "${label}"`;
+  });
+
+  await check('pane 1: 71 dots, India marked, median tick', async () => {
+    const dots = await pane(1).locator('circle[data-dot]').count();
+    expectEqual(dots, 71, 'field dots');
+    expectEqual(await pane(1).locator('.field-chart__dot--india').count(), 1, 'India marks');
+    expectEqual(await pane(1).locator('.field-chart__median').count(), 1, 'median tick');
+    const label = await pane(1).locator('.field-chart').getAttribute('aria-label');
+    expectMatch(label, /71 CHIPS scores/, 'chart label');
+    expectMatch(label, /India is 3rd/, 'India in chart label');
+    return `71 dots, 1 India mark, median tick; "${label.slice(0, 60)}…"`;
+  });
+
+  await check('pane 1 has a View as table fallback with 71 rows', async () => {
+    const details = pane(1).locator('details[data-pane-table]');
+    expectEqual(await details.count(), 1, 'details count');
+    expectMatch((await details.locator('summary').innerText()).trim(), /View as table/, 'summary');
+    const rows = await pane(1).locator('table tbody tr').count();
+    expectEqual(rows, 71, 'table rows');
+    await details.locator('summary').click();
+    expectEqual(await details.getAttribute('open'), '', 'disclosure open');
+    const first = (await pane(1).locator('table tbody tr').first().innerText()).replace(/\s+/g, ' ');
+    const usa = countryIn(DEFAULT_METHOD, 'USA');
+    expectMatch(first, new RegExp(`1 USA ${scoreText(usa.score).replace('.', '\\.')}`), 'first row');
+    await details.locator('summary').click();
+    expectEqual(await details.getAttribute('open'), null, 'disclosure closed again');
+    return `71 table rows; opened and closed the disclosure; first row ${first}`;
+  });
+
+  await check('overview defaults to z-score: pane 1 USA at 80.91', async () => {
+    expectEqual(DEFAULT_METHOD, 'z', 'payload default method');
+    const checked = await overview
+      .locator('input[name="overview-scale"]:checked')
+      .inputValue();
+    expectEqual(checked, DEFAULT_METHOD, 'checked scale');
+    expect(
+      !overview.url().includes('scale='),
+      `URL should not carry scale= by default: ${overview.url()}`,
+    );
+    const dot = Number(await pane(1).locator('circle[data-dot="USA"]').getAttribute('data-score'));
+    expectEqual(scoreText(dot), '80.91', 'pane 1 USA dot score');
+    return `z active, no ?scale; USA dot ${scoreText(dot)}`;
+  });
+
+  await check('scale toggle: pane 1 USA 80.91 → 67.27 → 80.91', async () => {
+    await overview.getByRole('radio', { name: 'Min–max' }).check();
+    await settle(overview);
+    expectMatch(overview.url(), /[?&]scale=minmax(&|$)/, 'URL after toggle');
+    const minmax = Number(
+      await pane(1).locator('circle[data-dot="USA"]').getAttribute('data-score'),
+    );
+    expectEqual(scoreText(minmax), '67.27', 'pane 1 USA under min–max');
+
+    await overview.getByRole('radio', { name: 'Z-score' }).check();
+    await settle(overview);
+    expect(!overview.url().includes('scale='), `scale=z should normalise away: ${overview.url()}`);
+    const back = Number(
+      await pane(1).locator('circle[data-dot="USA"]').getAttribute('data-score'),
+    );
+    expectEqual(scoreText(back), '80.91', 'pane 1 USA back under z');
+    return '80.91 → 67.27 → 80.91; ?scale=minmax appears then drops';
+  });
+
+  const spanText = (methodId) => {
+    const top15 = [...block(methodId).top15].sort((a, b) => a.rank - b.rank);
+    return `Places 4–13 span ${scoreText(top15[3].score)} → ${scoreText(top15[12].score)}`;
+  };
+  const indiaRankOf = (methodId, pillar) =>
+    block(methodId).india.pillars.find((item) => item.id === pillar).rank;
+  const rhoText = (methodId) =>
+    `ρ Spearman ${block(methodId).correlation.spearman.toFixed(4)}`;
+  const highlighted = async () =>
+    (
+      await overview
+        .locator('[data-dumbbell][data-highlighted="true"]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-dumbbell')))
+    )
+      .sort()
+      .join(',');
+
+  await check('scale toggle re-scores panes 2, 4, 5 and 7 together', async () => {
+    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(overview);
+
+    const read = async () => ({
+      zSpan: (await pane(2).locator('.pane__caption').textContent()).replace(/\s+/g, ' '),
+      zSust: await pane(4)
+        .locator('[data-verdict="SUSTAINABILITY"] .verdict__rank-value')
+        .getAttribute('data-rank'),
+      zRho: (await pane(7).locator('.pane__caption').textContent()).replace(/\s+/g, ' '),
+      zDots: await highlighted(),
+    });
+
+    const first = await read();
+    expectMatch(first.zSpan, new RegExp(spanText(DEFAULT_METHOD)), 'pane 2 span (z)');
+    expectEqual(Number(first.zSust), indiaRankOf(DEFAULT_METHOD, 'SUSTAINABILITY'), 'pane 4 SUSTAINABILITY (z)');
+    expectMatch(first.zRho, new RegExp(rhoText(DEFAULT_METHOD).replace('.', '\\.')), 'pane 7 ρ (z)');
+    expectEqual(Number(first.zSust), 42, 'z SUSTAINABILITY rank');
+
+    await overview.getByRole('radio', { name: 'Min–max' }).check();
+    await settle(overview);
+
+    const second = await read();
+    expectMatch(second.zSpan, new RegExp(spanText(OTHER_METHOD)), 'pane 2 span (min–max)');
+    expectEqual(Number(second.zSust), indiaRankOf(OTHER_METHOD, 'SUSTAINABILITY'), 'pane 4 SUSTAINABILITY (min–max)');
+    expectMatch(second.zRho, new RegExp(rhoText(OTHER_METHOD).replace('.', '\\.')), 'pane 7 ρ (min–max)');
+    expectEqual(Number(second.zSust), 66, 'min–max SUSTAINABILITY rank');
+    expect(second.zDots !== first.zDots, `pane 5 highlight set did not change: ${first.zDots}`);
+
+    expect(first.zSpan !== second.zSpan, 'pane 2 span text unchanged');
+    expect(first.zRho !== second.zRho, 'pane 7 caption unchanged');
+    return `span "${spanText(DEFAULT_METHOD)}" → "${spanText(OTHER_METHOD)}"; SUST 42 → 66; ` +
+      `ρ ${block(DEFAULT_METHOD).correlation.spearman} → ${block(OTHER_METHOD).correlation.spearman}; ` +
+      `highlighted ${first.zDots} → ${second.zDots}`;
+  });
+
+  await check('pane 6 is exempt: its numbers do not change with the toggle', async () => {
+    const before = {
+      headline: (await pane(6).locator('.pane__callout').textContent()).replace(/\s+/g, ' '),
+      first: await pane(6).locator('[data-diverge]').first().getAttribute('data-delta'),
+      rows: await pane(6).locator('[data-diverge]').count(),
+    };
+    await overview.getByRole('radio', { name: 'Z-score' }).check();
+    await settle(overview);
+    const after = {
+      headline: (await pane(6).locator('.pane__callout').textContent()).replace(/\s+/g, ' '),
+      first: await pane(6).locator('[data-diverge]').first().getAttribute('data-delta'),
+      rows: await pane(6).locator('[data-diverge]').count(),
+    };
+    expectEqual(after.headline, before.headline, 'pane 6 headline');
+    expectEqual(after.first, before.first, 'pane 6 largest delta');
+    expectEqual(after.rows, before.rows, 'pane 6 row count');
+    const caption = (await pane(6).locator('.pane__caption').textContent()).replace(/\s+/g, ' ');
+    expectMatch(caption, /always shows both methods/, 'pane 6 caption note');
+    return `${before.rows} rows, headline "${before.headline.slice(0, 60)}…" stable; caption notes the exemption`;
+  });
+
+  await check('?pane=4&scale=minmax reloads pane 4 open with min–max active', async () => {
+    await overview.goto(`${server.base}/?pane=4&scale=minmax`, { waitUntil: 'load' });
+    await settle(overview);
+    await waitPane(4);
+    expectEqual(await livePane(), '4', 'visible pane');
+    expectEqual(await counterText(), '4 / 8', 'counter');
+    const checked = await overview
+      .locator('input[name="overview-scale"]:checked')
+      .inputValue();
+    expectEqual(checked, OTHER_METHOD, 'checked scale after reload');
+    const rank = await pane(4)
+      .locator('[data-verdict="SUSTAINABILITY"] .verdict__rank-value')
+      .getAttribute('data-rank');
+    expectEqual(Number(rank), 66, 'SUSTAINABILITY rank under min–max');
+    expectMatch(overview.url(), /pane=4/, 'pane param kept');
+    expectMatch(overview.url(), /scale=minmax/, 'scale param kept');
+    return 'pane 4 open, min–max active, SUSTAINABILITY 66';
+  });
+
+  await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+  await settle(overview);
+  await shot(overview, 'desktop-overview-z.png', true);
+
+  await overview.getByRole('radio', { name: 'Min–max' }).check();
+  await settle(overview);
+  await shot(overview, 'desktop-overview-minmax.png', true);
+
+  await check('Next moves to pane 2, writes ?pane=2 and announces it', async () => {
+    await overview.getByRole('button', { name: 'Next pane' }).click();
+    await waitPane(2);
+    expectEqual(await livePane(), '2', 'visible pane');
+    expectMatch(overview.url(), /[?&]pane=2(&|$)/, 'URL');
+    expectEqual(await counterText(), '2 / 8', 'counter');
+    expectEqual(
+      await announcement(),
+      'Pane 2 of 8: The podium and the pack',
+      'live region',
+    );
+    return `pane 2; ${new URL(overview.url()).search}; "${await announcement()}"`;
+  });
+
+  await check('pane 2: 15 lollipop rows with a line and dot each', async () => {
+    const rows = await pane(2).locator('[data-lollipop]').count();
+    expectEqual(rows, 15, 'lollipop rows');
+    expectEqual(await pane(2).locator('.lollipop__line').count(), 15, 'lines');
+    expectEqual(await pane(2).locator('.lollipop__dot').count(), 15, 'dots');
+    const text = (await pane(2).innerText()).replace(/\s+/g, ' ');
+    expectMatch(text, /Places 4–13 span/, 'span annotation');
+    return '15 rows, 15 lines, 15 dots; 4–13 annotation present';
+  });
+
+  await check('pane 2 has a View as table fallback with 15 rows', async () => {
+    const rows = await pane(2).locator('table tbody tr').count();
+    expectEqual(rows, 15, 'table rows');
+    return '15 table rows';
+  });
+
+  await shot(overview, 'desktop-overview-pane2.png', true);
+
+  /* ---------------------------------------------------------- pane 3 */
+  await overview.goto(`${server.base}/?pane=3`, { waitUntil: 'load' });
+  await settle(overview);
+  await waitPane(3);
+
+  await check('pane 3: 10 stacked bars, 5 segments each, matching overview.json', async () => {
+    const bars = pane(3).locator('[data-composition-country]');
+    expectEqual(await bars.count(), 10, 'bar count');
+    expectEqual(await pane(3).locator('rect[data-segment]').count(), 50, 'segment count');
+
+    const top = [...block(DEFAULT_METHOD).composition].sort((a, b) => a.rank - b.rank)[0];
+    const row = pane(3).locator(`[data-composition-country="${top.iso3}"]`);
+    const contributions = await row
+      .locator('rect[data-segment]')
+      .evaluateAll((elements) =>
+        elements.map((element) => Number(element.getAttribute('data-contribution'))),
+      );
+    expectEqual(contributions.length, top.pillars.length, 'top bar segments');
+    const expected = top.pillars.map((pillar) => pillar.contribution);
+    expected.forEach((value, index) => {
+      expect(
+        Math.abs(contributions[index] - value) <= 1e-6,
+        `segment ${index} is ${contributions[index]}, payload has ${value}`,
+      );
+    });
+    const expectedSum = expected.reduce((sum, value) => sum + value, 0);
+    const drawnTotal = contributions.reduce((sum, value) => sum + value, 0);
+    expect(
+      Math.abs(drawnTotal - expectedSum) <= 1e-6,
+      `segments sum to ${drawnTotal}, payload sums to ${expectedSum}`,
+    );
+    const total = Number(await row.getAttribute('data-total'));
+    expect(
+      Math.abs(total - expectedSum) <= 1e-6,
+      `bar total ${total} does not agree with ${expectedSum}`,
+    );
+    const printed = (await row.locator('.composition__value').innerText()).trim();
+    expectEqual(printed, (top.score * 100).toFixed(2), 'printed score');
+    expectEqual(
+      await pane(3).locator('.composition__legend-item').count(),
+      5,
+      'legend items',
+    );
+    return `${top.iso3}: 5 segments, sum ${drawnTotal.toFixed(6)}, printed ${printed}, legend 5`;
+  });
+
+  await check('pane 3 has a View as table with 50 country-pillar rows', async () => {
+    const top = block(DEFAULT_METHOD).composition[0];
+    const rows = await pane(3).locator('table tbody tr').count();
+    expectEqual(rows, 50, 'table rows');
+    // The disclosure is closed, so read textContent, not rendered innerText.
+    const headers = (await pane(3).locator('thead th').allTextContents()).map((text) =>
+      text.trim(),
+    );
+    expectEqual(headers.join('|'), 'Rank|Country|Pillar|Contribution|Score', 'columns');
+    const cells = (
+      await pane(3).locator('table tbody tr').first().locator('td').allTextContents()
+    ).map((text) => text.trim());
+    const expectedCells = [
+      '1',
+      'USA',
+      top.pillars[0].id,
+      (top.pillars[0].contribution * 100).toFixed(2),
+      (top.score * 100).toFixed(2),
+    ];
+    expectEqual(cells.join('|'), expectedCells.join('|'), 'first row');
+    return `50 rows; ${headers.join(' · ')}`;
+  });
+
+  await shot(overview, 'desktop-overview-pane3.png', true);
+
+  /* ---------------------------------------------------------- pane 4 */
+  await overview.goto(`${server.base}/?pane=4`, { waitUntil: 'load' });
+  await settle(overview);
+  await waitPane(4);
+
+  await check('pane 4: 5 verdict rows, CONNECT rank 3, SUSTAINABILITY rank 42', async () => {
+    const rows = pane(4).locator('[data-verdict]');
+    expectEqual(await rows.count(), 5, 'verdict rows');
+    expectEqual(
+      await pane(4).locator('circle.verdict__dot').count(),
+      5 * OVERVIEW.meta.countries,
+      'strip dots',
+    );
+
+    const marker = (pillar) =>
+      pane(4).locator(`[data-verdict="${pillar}"] .verdict__marker`);
+
+    const india = block(DEFAULT_METHOD).india;
+    const best = india.best;
+    const worst = india.worst;
+    const bestText = await pane(4).locator(`[data-verdict="${best.id}"]`).innerText();
+    expectEqual(Number(await marker(best.id).getAttribute('data-rank')), best.rank, 'best rank');
+    expectMatch(bestText.replace(/\s+/g, ' '), new RegExp(`${best.rank}\\s+of ${OVERVIEW.meta.countries}`), 'best row');
+
+    const worstText = await pane(4).locator(`[data-verdict="${worst.id}"]`).innerText();
+    expectEqual(Number(await marker(worst.id).getAttribute('data-rank')), worst.rank, 'worst rank');
+    expectMatch(worstText.replace(/\s+/g, ' '), new RegExp(`${worst.rank}\\s+of ${OVERVIEW.meta.countries}`), 'worst row');
+
+    expectEqual(best.id, 'CONNECT', 'strongest pillar id');
+    expectEqual(worst.id, 'SUSTAINABILITY', 'weakest pillar id');
+    expectEqual(best.rank, 3, 'CONNECT rank under z');
+    expectEqual(worst.rank, 42, 'SUSTAINABILITY rank under z');
+    return `${best.id} ${best.rank} · ${worst.id} ${worst.rank}; 355 strip dots`;
+  });
+
+  await check('pane 4 has a View as table with 5 pillar rows', async () => {
+    const rows = await pane(4).locator('table tbody tr').count();
+    expectEqual(rows, 5, 'table rows');
+    const first = (await pane(4).locator('table tbody tr').first().textContent()).replace(
+      /\s+/g,
+      ' ',
+    );
+    return `5 rows; first ${first.trim()}`;
+  });
+
+  await shot(overview, 'desktop-overview-pane4.png', true);
+
+  /* ---------------------------------------------------------- pane 5 */
+  await overview.goto(`${server.base}/?pane=5`, { waitUntil: 'load' });
+  await settle(overview);
+  await waitPane(5);
+
+  await check('pane 5: one dumbbell per country, caveat carries the live count', async () => {
+    const count = block(DEFAULT_METHOD).movement.countries.length;
+    const years = block(DEFAULT_METHOD).movement.years;
+    expectEqual(
+      await pane(5).locator('[data-dumbbell]').count(),
+      count,
+      'dumbbell rows',
+    );
+    const points = await pane(5).locator('[data-dumbbell-point]').count();
+    expectEqual(points, count * years.length, 'dumbbell endpoints');
+
+    const caveat = (await pane(5).locator('.movement-chart__caveat').innerText()).replace(
+      /\s+/g,
+      ' ',
+    );
+    expectMatch(
+      caveat,
+      new RegExp(`\\b${count} of ${OVERVIEW.meta.countries} countries`),
+      'caveat text',
+    );
+    expectMatch(caveat, /scored in both editions/, 'caveat editions');
+
+    // The five largest |Δ score|, computed from the same payload the build uses.
+    const expected = block(DEFAULT_METHOD).movement.countries
+      .map((country) => ({ ...country, delta: scoreDelta(DEFAULT_METHOD, country.iso3, years) }))
+      .filter((country) => country.delta !== null)
+      .sort(
+        (a, b) =>
+          Math.abs(b.delta) - Math.abs(a.delta) || a.country.localeCompare(b.country),
+      )
+      .slice(0, 5)
+      .map((country) => country.iso3)
+      .sort();
+    const actual = (
+      await pane(5)
+        .locator('[data-dumbbell][data-highlighted="true"]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-dumbbell')))
+    ).sort();
+    expectEqual(actual.join(','), expected.join(','), 'highlighted set (largest |Δ score|)');
+
+    const paneText = (await pane(5).innerText()).replace(/\s+/g, ' ');
+    expect(!/Rank 1 is at the top/i.test(paneText), 'rank axis label is still present');
+    return `${count} dumbbells, ${points} endpoints; marked ${expected.join(', ')}; ${caveat}`;
+  });
+
+  await check('pane 5: a null edition breaks the line (synthetic)', async () => {
+    const cases = [
+      {
+        name: 'gap between two scores',
+        years: [2025, 2026, 2027],
+        ranks: { 2025: 5, 2026: null, 2027: 9 },
+        expected: 0,
+      },
+      {
+        name: 'trailing null',
+        years: [2025, 2026, 2027],
+        ranks: { 2025: 5, 2026: 6, 2027: null },
+        expected: 1,
+      },
+      {
+        name: 'leading null',
+        years: [2025, 2026],
+        ranks: { 2025: null, 2026: 3 },
+        expected: 0,
+      },
+      {
+        name: 'all present, three editions',
+        years: [2025, 2026, 2027],
+        ranks: { 2025: 5, 2026: 6, 2027: 4 },
+        expected: 2,
+      },
+    ];
+    const results = [];
+    for (const item of cases) {
+      const runs = movementRuns(item.years, item.ranks);
+      expectEqual(runs.length, item.expected, item.name);
+      for (const run of runs) {
+        expect(
+          run.fromRank !== null && run.toRank !== null,
+          `${item.name}: a segment touches a null`,
+        );
+        expect(run.toYear > run.fromYear, `${item.name}: year order`);
+      }
+      results.push(`${item.name} ${runs.length}`);
+    }
+    return results.join(' · ');
+  });
+
+  await check('pane 5 table: score and rank per edition, Δ points and Δ rank', async () => {
+    const disclosure = pane(5).locator('details[data-pane-table]');
+    await disclosure.locator('summary').click();
+    const movement = block(DEFAULT_METHOD).movement;
+    const rows = await pane(5).locator('table tbody tr').count();
+    expectEqual(rows, movement.countries.length, 'table rows');
+    const years = movement.years;
+    const headers = (await pane(5).locator('thead th').allTextContents()).map((text) =>
+      text.trim(),
+    );
+    expectEqual(
+      headers.join('|'),
+      [
+        'Country',
+        ...years.map((year) => `${year} score`),
+        'Δ points',
+        ...years.map((year) => `${year} rank`),
+        'Δ rank',
+      ].join('|'),
+      'columns',
+    );
+    const saudi = movement.countries.find((row) => row.iso3 === 'SAU');
+    const firstScore = saudi.scores[String(years[0])];
+    const lastScore = saudi.scores[String(years[years.length - 1])];
+    const deltaPoints = Math.round((lastScore - firstScore) * 1000) / 10;
+    const deltaRank = saudi.ranks[String(years[years.length - 1])] - saudi.ranks[String(years[0])];
+    const expected = [
+      (firstScore * 100).toFixed(2),
+      (lastScore * 100).toFixed(2),
+      deltaPoints > 0 ? `+${deltaPoints.toFixed(1)}` : `−${Math.abs(deltaPoints).toFixed(1)}`,
+      String(saudi.ranks[String(years[years.length - 1])]),
+      deltaRank > 0 ? `+${deltaRank}` : `−${Math.abs(deltaRank)}`,
+    ];
+    const saudiRow = pane(5).locator('table tbody tr', { hasText: 'Saudi Arabia' });
+    const cells = (await saudiRow.locator('td').allInnerTexts()).map((text) => text.trim());
+    expectEqual(cells[1], expected[0], 'Saudi first-edition score');
+    expectEqual(cells[2], expected[1], 'Saudi last-edition score');
+    expectEqual(cells[3], expected[2], 'Saudi Δ points');
+    expectEqual(cells[5], expected[3], 'Saudi last-edition rank');
+    expectEqual(cells[6], expected[4], 'Saudi Δ rank');
+    await disclosure.locator('summary').click();
+    return `${rows} rows; ${headers.join(' · ')}; Saudi ${cells.slice(1).join(' / ')}`;
+  });
+
+  await shot(overview, 'desktop-overview-pane5.png', true);
+
+  /* ---------------------------------------------------------- pane 6 */
+  await overview.goto(`${server.base}/?pane=6`, { waitUntil: 'load' });
+  await settle(overview);
+  await waitPane(6);
+
+  await check('pane 6: 10 diverging rows, the largest is Saudi Arabia at 19', async () => {
+    expectEqual(
+      await pane(6).locator('[data-diverge]').count(),
+      10,
+      'diverging rows',
+    );
+    const largest = pane(6).locator('[data-diverge]').first();
+    expectEqual(await largest.getAttribute('data-diverge'), 'SAU', 'largest row');
+    expectEqual(Number(await largest.getAttribute('data-delta')), -19, 'largest delta');
+    const text = (await largest.innerText()).replace(/\s+/g, ' ');
+    expectMatch(text, /55 → 36/, 'both ranks');
+    return `10 rows; largest SAU ${text.trim()}`;
+  });
+
+  await check('pane 6 states the 64-of-71 headline in the pane', async () => {
+    const text = (await pane(6).innerText()).replace(/\s+/g, ' ');
+    expectMatch(text, /64 of 71 countries change rank/, 'headline');
+    expectMatch(text, /Saudi Arabia moves 19 places/i, 'largest mover');
+    const changed = OVERVIEW.scaleMovement.movers.filter((row) => row.delta !== 0).length;
+    expectEqual(changed, 64, 'payload changed count');
+    return '64 of 71 · Saudi Arabia moves 19 places';
+  });
+
+  await check('pane 6 table: all 71 countries with both ranks and Δ rank', async () => {
+    const disclosure = pane(6).locator('details[data-pane-table]');
+    await disclosure.locator('summary').click();
+    const rows = await pane(6).locator('table tbody tr').count();
+    expectEqual(rows, OVERVIEW.scaleMovement.movers.length, 'table rows');
+    const headers = (await pane(6).locator('thead th').allTextContents()).map((text) =>
+      text.trim(),
+    );
+    expectMatch(headers.join('|'), /Min–max rank\|Z-score rank\|Δ rank/, 'columns');
+    const saudi = pane(6).locator('table tbody tr', { hasText: 'Saudi Arabia' });
+    const cells = (await saudi.locator('td').allInnerTexts()).map((text) => text.trim());
+    expectEqual(cells.slice(1).join(' / '), '55 / 36 / −19', 'Saudi row');
+    await disclosure.locator('summary').click();
+    return `${rows} rows; ${headers.join(' · ')}`;
+  });
+
+  await shot(overview, 'desktop-overview-pane6.png', true);
+
+  /* ---------------------------------------------------------- pane 7 */
+  await overview.goto(`${server.base}/?pane=7`, { waitUntil: 'load' });
+  await settle(overview);
+  await waitPane(7);
+
+  const xTickNodes = () =>
+    pane(7).locator('.scatter-chart--sizeScore text.chart__tick-label');
+
+  await check('pane 7: 71 points on a log GDP axis with magnitude tick labels', async () => {
+    expectEqual(await pane(7).locator('[data-scatter]').count(), 71, 'points');
+    const texts = (await xTickNodes().allTextContents()).map((text) => text.trim());
+    const money = texts.filter((text) => /^\$\d+(?:\.\d+)?(?:bn|tn)$/.test(text));
+    expectEqual(money.length, 4, 'GDP tick labels');
+    expect(money.includes('$50bn') && money.includes('$5tn'), `unexpected ticks ${texts}`);
+    expect(
+      !texts.some((text) => /^\d{6,}$/.test(text)),
+      `raw numbers used as tick labels: ${texts}`,
+    );
+
+    // Equal decade gaps are what a log axis does; a linear axis would not.
+    const positions = await xTickNodes().evaluateAll((nodes) =>
+      nodes
+        .filter((node) => /^\$\d/.test((node.textContent || '').trim()))
+        .map((node) => Number.parseFloat(node.getAttribute('x'))),
+    );
+    const sorted = [...new Set(positions)].sort((a, b) => a - b);
+    expectEqual(sorted.length, 4, 'distinct tick positions');
+    const gaps = sorted.slice(1).map((value, index) => value - sorted[index]);
+    expect(
+      Math.abs(gaps[0] - gaps[1]) < 2,
+      `tick gaps are not logarithmic: ${JSON.stringify(gaps)}`,
+    );
+    return `${money.join(' · ')}; gaps ${gaps.map((gap) => gap.toFixed(1)).join('/')}`;
+  });
+
+  await check('pane 7 names India, the USA, China and a smaller high scorer', async () => {
+    const labels = (
+      await pane(7).locator('.scatter-chart--sizeScore text.chart__label').allTextContents()
+    ).map((text) => text.trim());
+    for (const name of ['India', 'United States', 'China']) {
+      expect(labels.includes(name), `${name} is not labelled (${labels.join(', ')})`);
+    }
+    expect(labels.length >= 4, `expected a fourth label, got ${labels.join(', ')}`);
+    return labels.join(' · ');
+  });
+
+  await check('pane 7 table: all 71 countries with compact GDP', async () => {
+    const disclosure = pane(7).locator('details[data-pane-table]');
+    await disclosure.locator('summary').click();
+    const rows = await pane(7).locator('table tbody tr').count();
+    expectEqual(rows, 71, 'table rows');
+    const usa = pane(7).locator('table tbody tr', { hasText: 'United States' });
+    const cells = (await usa.locator('td').allInnerTexts()).map((text) => text.trim());
+    expectMatch(cells[3], /^\$\d+(?:\.\d+)?(?:bn|tn)$/, 'compact GDP');
+    await disclosure.locator('summary').click();
+    return `${rows} rows; USA ${cells.slice(0, 4).join(' / ')}`;
+  });
+
+  await shot(overview, 'desktop-overview-pane7.png', true);
+
+  /* ---------------------------------------------------------- pane 8 */
+  await overview.goto(`${server.base}/?pane=8`, { waitUntil: 'load' });
+  await settle(overview);
+  await waitPane(8);
+
+  await check('pane 8: 71 points, 9 marked below 80% coverage', async () => {
+    expectEqual(await pane(8).locator('[data-scatter]').count(), 71, 'points');
+    expectEqual(
+      await pane(8).locator('[data-scatter][data-below="true"]').count(),
+      9,
+      'below-threshold marks',
+    );
+    const expected = block(DEFAULT_METHOD).coverage.filter((row) => row.coverage < 0.8).length;
+    expectEqual(expected, 9, 'payload below-threshold count');
+    const text = (await pane(8).innerText()).replace(/\s+/g, ' ');
+    expectMatch(text, /9 of 71 countries sit below 80% coverage/, 'callout');
+    expectMatch(text, /26 country × sub-pillar cells are unscored/, 'unscored cells');
+    return '71 points, 9 marked, 26 unscored cells in the pane';
+  });
+
+  await check('pane 8 table: all 71 countries with coverage', async () => {
+    const disclosure = pane(8).locator('details[data-pane-table]');
+    await disclosure.locator('summary').click();
+    const rows = await pane(8).locator('table tbody tr').count();
+    expectEqual(rows, 71, 'table rows');
+    const headers = (await pane(8).locator('thead th').allInnerTexts()).map((text) =>
+      text.trim(),
+    );
+    expectMatch(headers.join('|'), /Coverage\|Indicators/, 'columns');
+    await disclosure.locator('summary').click();
+    return `${rows} rows; ${headers.join(' · ')}`;
+  });
+
+  await shot(overview, 'desktop-overview-pane8.png', true);
+
+  await check('min–max views of panes 4, 5 and 7 render and screenshot', async () => {
+    const widths = [];
+    for (const n of [4, 5, 7]) {
+      await overview.goto(`${server.base}/?pane=${n}&scale=minmax`, { waitUntil: 'load' });
+      await settle(overview);
+      await waitPane(n);
+      await shot(overview, `desktop-overview-pane${n}-minmax.png`, true);
+      const checked = await overview
+        .locator('input[name="overview-scale"]:checked')
+        .inputValue();
+      expectEqual(checked, OTHER_METHOD, `pane ${n} scale`);
+      widths.push(`${n}:${checked}`);
+    }
+    return widths.join(' ');
+  });
+
+  await check('Prev returns to pane 1 and drops ?pane from the URL', async () => {
+    await overview.goto(`${server.base}/?pane=2`, { waitUntil: 'load' });
+    await settle(overview);
+    await waitPane(2);
+    await overview.getByRole('button', { name: 'Previous pane' }).click();
+    await waitPane(1);
+    expect(!overview.url().includes('pane='), `URL still carries pane=: ${overview.url()}`);
+    expectEqual(await counterText(), '1 / 8', 'counter');
+    return `${new URL(overview.url()).pathname}${new URL(overview.url()).search}`;
+  });
+
+  await check('arrow keys move panes; Home and End jump to the ends', async () => {
+    await overview.getByRole('button', { name: 'Next pane' }).click();
+    await waitPane(2);
+    await overview.keyboard.press('ArrowRight');
+    await waitPane(3);
+    await overview.keyboard.press('ArrowLeft');
+    await waitPane(2);
+    await overview.keyboard.press('End');
+    await waitPane(8);
+    const last = await livePane();
+    await overview.keyboard.press('Home');
+    await waitPane(1);
+    expectEqual(last, '8', 'End pane');
+    return '→ 3, ← 2, End 8, Home 1';
+  });
+
+  await check('?pane=5 reloads with pane 5 open and announced', async () => {
+    await overview.goto(`${server.base}/?pane=5`, { waitUntil: 'load' });
+    await settle(overview);
+    await waitPane(5);
+    expectEqual(await counterText(), '5 / 8', 'counter');
+    expectEqual(await announcement(), 'Pane 5 of 8: Movement', 'live region');
+    const current = await overview.locator('.carousel__dot[aria-current="true"]').getAttribute('aria-label');
+    expectMatch(current, /pane 5: Movement/, 'active dot');
+    return '?pane=5 → pane 5, "Pane 5 of 8: Movement"';
+  });
+
+  await check('moving panes does not steal focus', async () => {
+    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(overview);
+    const next = overview.getByRole('button', { name: 'Next pane' });
+    // WebKit (like Safari) does not focus a button on a mouse click, so move
+    // the pane the way a keyboard user would: activate the focused button.
+    await next.focus();
+    await next.press('Enter');
+    await waitPane(2);
+    const focused = await overview.evaluate(
+      () => document.activeElement?.getAttribute('aria-label') ?? null,
+    );
+    expectEqual(focused, 'Next pane', 'focused element');
+    return 'focus stayed on the Next button';
+  });
+
+  await check('no autoplay: the pane does not change on its own', async () => {
+    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(overview);
+    const before = await livePane();
+    await overview.waitForTimeout(900);
+    expectEqual(await livePane(), before, 'pane after 900ms');
+    expect(!overview.url().includes('pane='), 'URL grew a pane parameter');
+    return 'still on pane 1 after 900ms';
+  });
+
+  await check('prefers-reduced-motion removes the pane transition', async () => {
+    const reduced = await newPage(desktopViewport);
+    await reduced.emulateMedia({ reducedMotion: 'reduce' });
+    await reduced.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(reduced);
+    const name = await reduced
+      .locator('[data-pane="1"]')
+      .evaluate((element) => getComputedStyle(element).animationName);
+    expectEqual(name, 'none', 'animation-name');
+    await reduced.close();
+    return 'animation-name: none';
+  });
+
+  await check('every pane has a View as table disclosure', async () => {
+    const details = await overview.locator('details[data-pane-table]').count();
+    expectEqual(details, 8, 'disclosure count');
+    const summaries = await overview.locator('details[data-pane-table] > summary').allInnerTexts();
+    const bad = summaries.filter((text) => !/View as table/.test(text));
+    expect(bad.length === 0, `summaries without the label: ${JSON.stringify(bad)}`);
+    return '8 disclosures, all labelled View as table';
+  });
+
+  await check('all eight panes carry a real chart and a real table', async () => {
+    expectEqual(await overview.locator('.pane__placeholder').count(), 0, 'placeholders');
+    const fallbacks = await overview.locator('.pane__table-fallback').count();
+    expectEqual(fallbacks, 0, 'table fallbacks');
+    const counts = [];
+    for (let n = 1; n <= 8; n += 1) {
+      const rows = await pane(n).locator('table tbody tr').count();
+      expect(rows > 0, `pane ${n} has no table rows`);
+      counts.push(`${n}:${rows}`);
+    }
+    return `no placeholders; table rows ${counts.join(' ')}`;
+  });
+
+  /* ------------------------------------------------- desktop: `/rankings` */
   const page = await newPage(desktopViewport);
-  await page.goto(`${server.base}/`, { waitUntil: 'networkidle' });
+  await page.goto(`${server.base}/rankings`, { waitUntil: 'load' });
   await settle(page);
 
-  await check('/ renders 71 data rows', async () => {
+  await check('/rankings renders 71 data rows', async () => {
     await rowsOf(page).first().waitFor();
     const n = await rowsOf(page).count();
     expectEqual(n, 71, 'table tbody tr count');
     return '71 rows';
   });
 
-  await check('/ links to 71 /country/{ISO3} pages', async () => {
+  await check('/rankings links to 71 /country/{ISO3} pages', async () => {
     const n = await page.locator('a[href^="/country/"]').count();
     expectEqual(n, 71, 'country link count');
     return '71 links';
   });
 
-  await check('default scale is full_minmax', async () => {
+  await check('/rankings defaults to z-score with no scale param', async () => {
     const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, 'full_minmax', 'checked scale');
+    expectEqual(checked, DEFAULT_METHOD, 'checked scale');
+    expectEqual(checked, 'z', 'default method is z');
     expect(!page.url().includes('scale='), `URL should not carry scale=, got ${page.url()}`);
-    return 'full_minmax, no scale param';
+    return 'z, no scale param';
   });
 
-  await check('Saudi Arabia row: rank 55, score 18.03', async () => {
+  await check('Saudi Arabia row (z): rank 36, score 46.20', async () => {
     const text = await saudiRow(page).innerText();
-    const cells = await saudiRow(page).locator('td').allInnerTexts();
-    expectEqual(num(cells[0]), 55, 'rank');
-    expectEqual(num(cells[2]), 18.03, 'score');
-    return `${cells[0].trim()} / ${cells[2].trim()} (${text.split('\n')[1]})`;
-  });
-
-  await shot(page, 'desktop-rankings.png', true);
-
-  await check('click Z-score → URL gains scale=z', async () => {
-    await page.getByRole('radio', { name: 'Z-score' }).check();
-    await settle(page);
-    expectMatch(page.url(), /[?&]scale=z(&|$)/, 'URL');
-    return page.url().replace(server.base, '');
-  });
-
-  await check('Z-score: Saudi Arabia rank 36, score 46.20', async () => {
     const cells = await saudiRow(page).locator('td').allInnerTexts();
     expectEqual(num(cells[0]), 36, 'rank');
     expectEqual(num(cells[2]), 46.2, 'score');
-    expectEqual(cells[2].trim(), '46.20', 'score text');
-    return '36 / 46.20';
+    return `${cells[0].trim()} / ${cells[2].trim()} (${text.split('\n')[1]})`;
   });
 
-  await check('Z-score: rank-movement cell reads +19', async () => {
-    const cell = saudiRow(page).locator('td.movement-col');
-    await cell.waitFor();
-    const text = await cell.innerText();
-    expectMatch(text.replace(/\s+/g, ' '), /\+19/, 'movement cell text');
-    return JSON.stringify(text.replace(/\s+/g, ' ').trim());
+  await check('movement header names the other method: Rank vs min–max', async () => {
+    const header = await page.locator('thead th.movement-col abbr').innerText();
+    expectEqual(header.trim(), 'Rank vs min–max', 'movement header (z active)');
+    return header.trim();
   });
 
   await shot(page, 'desktop-rankings-z.png', true);
 
-  await check('reload ?scale=z keeps Z-score active', async () => {
-    await page.goto(`${server.base}/?scale=z`, { waitUntil: 'networkidle' });
+  await check('click Min–max → URL gains scale=minmax, Saudi rank 55', async () => {
+    await page.getByRole('radio', { name: 'Min–max' }).check();
     await settle(page);
-    const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, 'z', 'checked scale after reload');
+    expectMatch(page.url(), /[?&]scale=minmax(&|$)/, 'URL');
     const cells = await saudiRow(page).locator('td').allInnerTexts();
-    expectEqual(num(cells[0]), 36, 'rank after reload');
-    return 'z active, rank 36';
+    expectEqual(num(cells[0]), 55, 'rank');
+    expectEqual(num(cells[2]), 18.03, 'score');
+    const header = await page.locator('thead th.movement-col abbr').innerText();
+    expectEqual(header.trim(), 'Rank vs z', 'movement header (min–max active)');
+    return `${page.url().replace(server.base, '')} · 55 / 18.03 · "${header.trim()}"`;
   });
 
-  await check('switch back to min–max drops scale=z from URL', async () => {
-    await page.getByRole('radio', { name: 'Min–max' }).check();
+  await check('min–max: rank-movement cell reads −19 against z', async () => {
+    const cell = saudiRow(page).locator('td.movement-col');
+    await cell.waitFor();
+    const text = await cell.innerText();
+    expectMatch(text.replace(/\s+/g, ' '), /−19/, 'movement cell text');
+    return JSON.stringify(text.replace(/\s+/g, ' ').trim());
+  });
+
+  await shot(page, 'desktop-rankings-minmax.png', true);
+
+  await check('reload /rankings?scale=minmax keeps min–max active', async () => {
+    await page.goto(`${server.base}/rankings?scale=minmax`, { waitUntil: 'load' });
+    await settle(page);
+    const checked = await page.locator('input[name="scale"]:checked').inputValue();
+    expectEqual(checked, OTHER_METHOD, 'checked scale after reload');
+    const cells = await saudiRow(page).locator('td').allInnerTexts();
+    expectEqual(num(cells[0]), 55, 'rank after reload');
+    return 'min–max active, rank 55';
+  });
+
+  await check('switch back to Z-score drops scale from the URL', async () => {
+    await page.getByRole('radio', { name: 'Z-score' }).check();
     await settle(page);
     expect(!page.url().includes('scale='), `URL still carries scale=: ${page.url()}`);
     const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, 'full_minmax', 'checked scale');
+    expectEqual(checked, 'z', 'checked scale');
+    const header = await page.locator('thead th.movement-col abbr').innerText();
+    expectEqual(header.trim(), 'Rank vs min–max', 'movement header back to z');
     return `${new URL(page.url()).pathname}${new URL(page.url()).search}`;
   });
 
@@ -321,18 +1102,35 @@ try {
 
   /* ------------------------------------------------------ desktop: country */
   const country = await newPage(desktopViewport);
-  await country.goto(`${server.base}/country/IND`, { waitUntil: 'networkidle' });
+  await country.goto(`${server.base}/country/IND`, { waitUntil: 'load' });
   await settle(country);
 
-  await check('/country/IND renders India, rank 3, composite 40.41', async () => {
-    const h1 = (await country.locator('h1').innerText()).trim();
-    expectEqual(h1, 'India', 'h1');
-    const head = await country.locator('.country-head').innerText();
-    expectMatch(head.replace(/\s+/g, ' '), /Rank 3 of 71/, 'rank line');
-    const score = (await country.locator('.country-head__score .display-xl').innerText()).trim();
-    expectEqual(score, '40.41', 'composite score');
-    return `India · rank 3 of 71 · score ${score}`;
-  });
+  const defaultMethod = CHIPS.meta.defaultMethod;
+  const indiaDefault = CHIPS.methods[defaultMethod].scores.find((r) => r.iso3 === 'IND');
+  const indiaMinMax = CHIPS.methods.full_minmax.scores.find((r) => r.iso3 === 'IND');
+  const expectedComposite = (indiaDefault.overall * 100).toFixed(2);
+  const expectedMinMax = (indiaMinMax.overall * 100).toFixed(2);
+
+  await check(
+    `/country/IND renders India, rank 3, composite ${expectedComposite} on the default (${defaultMethod}) scale`,
+    async () => {
+      const h1 = (await country.locator('h1').innerText()).trim();
+      expectEqual(h1, 'India', 'h1');
+      const head = await country.locator('.country-head').innerText();
+      expectMatch(head.replace(/\s+/g, ' '), /Rank 3 of 71/, 'rank line');
+      const score = (await country.locator('.country-head__score .display-xl').innerText()).trim();
+      expectEqual(score, expectedComposite, 'composite score');
+
+      // The other method must still be reachable and must change the headline.
+      await country.goto(`${server.base}/country/IND?scale=minmax`, { waitUntil: 'load' });
+      await settle(country);
+      const minMaxScore = (
+        await country.locator('.country-head__score .display-xl').innerText()
+      ).trim();
+      expectEqual(minMaxScore, expectedMinMax, 'min–max composite');
+      return `India · rank 3 · ${score} default, ${minMaxScore} min–max`;
+    },
+  );
 
   await shot(country, 'desktop-country-ind.png', true);
 
@@ -391,8 +1189,8 @@ try {
     const z = jsonSubPillar('z', 'IND', key);
     const zOf = jsonSubPillarOf('z', key);
 
-    await country.goto(`${server.base}/country/IND?open=harness.ai`, {
-      waitUntil: 'networkidle',
+    await country.goto(`${server.base}/country/IND?open=harness.ai&scale=minmax`, {
+      waitUntil: 'load',
     });
     await settle(country);
     await waitOpen('HARNESS');
@@ -405,7 +1203,7 @@ try {
     expectEqual(fullText, `${full.rank} of ${fullOf}`, 'full_minmax rank text');
 
     await country.goto(`${server.base}/country/IND?open=harness.ai&scale=z`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     await settle(country);
     await waitOpen('HARNESS');
@@ -421,7 +1219,7 @@ try {
   });
 
   await check('?open=harness reloads with HARNESS expanded', async () => {
-    await country.goto(`${server.base}/country/IND?open=harness`, { waitUntil: 'networkidle' });
+    await country.goto(`${server.base}/country/IND?open=harness`, { waitUntil: 'load' });
     await settle(country);
     await waitOpen('HARNESS');
     expectEqual(await cardButton('HARNESS').getAttribute('aria-expanded'), 'true', 'HARNESS open');
@@ -430,7 +1228,7 @@ try {
   });
 
   await check('opening INNOVATE closes the previous pillar', async () => {
-    await country.goto(`${server.base}/country/IND`, { waitUntil: 'networkidle' });
+    await country.goto(`${server.base}/country/IND`, { waitUntil: 'load' });
     await settle(country);
     await cardButton('CONNECT').click();
     await waitOpen('CONNECT');
@@ -442,7 +1240,7 @@ try {
   });
 
   await check('SUSTAINABILITY skips the sub-pillar level and shows 6 indicators', async () => {
-    await country.goto(`${server.base}/country/IND`, { waitUntil: 'networkidle' });
+    await country.goto(`${server.base}/country/IND`, { waitUntil: 'load' });
     await settle(country);
     await cardButton('SUSTAINABILITY').click();
     await waitOpen('SUSTAINABILITY');
@@ -454,7 +1252,7 @@ try {
   });
 
   await check('Costa Rica dropped sub-pillar says Not scored, never 0', async () => {
-    await country.goto(`${server.base}/country/CRI?open=harness.ai`, { waitUntil: 'networkidle' });
+    await country.goto(`${server.base}/country/CRI?open=harness.ai`, { waitUntil: 'load' });
     await settle(country);
     await waitOpen('HARNESS');
     const row = pillarPanel('HARNESS').locator('tr[data-subpillar="HARNESS · AI"]');
@@ -475,7 +1273,7 @@ try {
 
   await check('?open and ?scale coexist', async () => {
     await country.goto(`${server.base}/country/IND?open=harness&scale=z`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'load',
     });
     await settle(country);
     await waitOpen('HARNESS');
@@ -487,7 +1285,7 @@ try {
   });
 
   await check('focus stays on a sub-pillar toggle when its panel closes', async () => {
-    await country.goto(`${server.base}/country/IND?open=harness`, { waitUntil: 'networkidle' });
+    await country.goto(`${server.base}/country/IND?open=harness`, { waitUntil: 'load' });
     await settle(country);
     await waitOpen('HARNESS');
     const toggle = pillarPanel('HARNESS').locator(
@@ -505,7 +1303,7 @@ try {
   });
 
   await check('Enter and Space toggle a pillar header', async () => {
-    await country.goto(`${server.base}/country/IND`, { waitUntil: 'networkidle' });
+    await country.goto(`${server.base}/country/IND`, { waitUntil: 'load' });
     await settle(country);
     await cardButton('CONNECT').focus();
     await country.keyboard.press('Enter');
@@ -527,7 +1325,7 @@ try {
   });
 
   await check('open panel controls are focusable and operate from the keyboard', async () => {
-    await country.goto(`${server.base}/country/IND?open=harness`, { waitUntil: 'networkidle' });
+    await country.goto(`${server.base}/country/IND?open=harness`, { waitUntil: 'load' });
     await settle(country);
     await waitOpen('HARNESS');
     const firstToggle = pillarPanel('HARNESS').locator('.subpillar-toggle').first();
@@ -569,7 +1367,7 @@ try {
 
   narrowPage = await newPage({ width: 320, height: 800 });
   await narrowPage.goto(`${server.base}/country/IND?open=harness.ai`, {
-    waitUntil: 'networkidle',
+    waitUntil: 'load',
   });
   await settle(narrowPage);
   await narrowPage.waitForFunction(
@@ -599,7 +1397,7 @@ try {
 
   /* -------------------------------------------------------- desktop: method */
   const method = await newPage(desktopViewport);
-  await method.goto(`${server.base}/methodology`, { waitUntil: 'networkidle' });
+  await method.goto(`${server.base}/methodology`, { waitUntil: 'load' });
   await settle(method);
 
   await check('/methodology mentions both scaling methods', async () => {
@@ -628,10 +1426,10 @@ try {
   });
 
   const tab = await newPage(desktopViewport);
-  await tab.goto(`${server.base}/`, { waitUntil: 'networkidle' });
+  await tab.goto(`${server.base}/rankings`, { waitUntil: 'load' });
   await settle(tab);
 
-  await check('Tab from top of / reaches the filter input within 10 stops', async () => {
+  await check('Tab from top of /rankings reaches the filter input within 10 stops', async () => {
     tabTrace = [];
     let reached = -1;
     for (let i = 1; i <= 10; i++) {
@@ -662,10 +1460,10 @@ try {
 
   /* --------------------------------------------------------------- mobile */
   mobilePage = await newPage(mobileViewport);
-  await mobilePage.goto(`${server.base}/`, { waitUntil: 'networkidle' });
+  await mobilePage.goto(`${server.base}/rankings`, { waitUntil: 'load' });
   await settle(mobilePage);
 
-  await check('390px: no horizontal scroll', async () => {
+  await check('390px: rankings has no horizontal scroll', async () => {
     const [scrollWidth, innerWidth, bodyScroll] = await mobilePage.evaluate(() => [
       document.documentElement.scrollWidth,
       window.innerWidth,
@@ -680,9 +1478,113 @@ try {
 
   await shot(mobilePage, 'mobile-rankings.png', false);
 
+  const mobileOverview = await newPage(mobileViewport);
+  await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
+  await settle(mobileOverview);
+
+  await check('390px: overview carousel has no horizontal scroll', async () => {
+    const [scrollWidth, innerWidth, bodyScroll] = await mobileOverview.evaluate(() => [
+      document.documentElement.scrollWidth,
+      window.innerWidth,
+      document.body.scrollWidth,
+    ]);
+    expect(
+      scrollWidth <= innerWidth,
+      `documentElement.scrollWidth ${scrollWidth} > window.innerWidth ${innerWidth} (body ${bodyScroll})`,
+    );
+    return `${scrollWidth} <= ${innerWidth}`;
+  });
+
+  await check('390px: carousel controls stay usable (≥24px targets)', async () => {
+    const sizes = await mobileOverview.evaluate(() =>
+      [...document.querySelectorAll('.carousel__button, .carousel__dot')].map((element) => {
+        const box = element.getBoundingClientRect();
+        return { w: Math.round(box.width), h: Math.round(box.height) };
+      }),
+    );
+    const small = sizes.filter((box) => box.w < 24 || box.h < 24);
+    expect(small.length === 0, `targets below 24px: ${JSON.stringify(small)}`);
+    expect(sizes.length === 10, `expected 10 controls, found ${sizes.length}`);
+    return `${sizes.length} controls, smallest ${Math.min(...sizes.map((b) => Math.min(b.w, b.h)))}px`;
+  });
+
+  await check('390px: the scale toggle has two ≥24px targets', async () => {
+    const sizes = await mobileOverview.evaluate(() =>
+      [...document.querySelectorAll('.carousel__scale .segmented__option span')].map(
+        (element) => {
+          const box = element.getBoundingClientRect();
+          return { text: element.textContent.trim(), w: Math.round(box.width), h: Math.round(box.height) };
+        },
+      ),
+    );
+    expectEqual(sizes.length, 2, 'scale options');
+    const small = sizes.filter((box) => box.w < 24 || box.h < 24);
+    expect(small.length === 0, `scale targets below 24px: ${JSON.stringify(small)}`);
+    const checked = await mobileOverview
+      .locator('input[name="overview-scale"]:checked')
+      .inputValue();
+    expectEqual(checked, DEFAULT_METHOD, 'default scale on mobile');
+    return sizes.map((box) => `${box.text} ${box.w}×${box.h}`).join(' · ');
+  });
+
+  await check('390px: min–max overview has no horizontal scroll', async () => {
+    await mobileOverview.goto(`${server.base}/?scale=minmax`, { waitUntil: 'load' });
+    await settle(mobileOverview);
+    const [scrollWidth, innerWidth] = await mobileOverview.evaluate(() => [
+      document.documentElement.scrollWidth,
+      window.innerWidth,
+    ]);
+    expect(
+      scrollWidth <= innerWidth,
+      `scrollWidth ${scrollWidth} > innerWidth ${innerWidth}`,
+    );
+    await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(mobileOverview);
+    return `${scrollWidth} <= ${innerWidth}`;
+  });
+
+  await shot(mobileOverview, 'mobile-overview.png', true);
+
+  await mobileOverview.getByRole('button', { name: 'Next pane' }).click();
+  await mobileOverview.waitForFunction(
+    () => document.querySelector('[data-pane="2"]')?.hasAttribute('hidden') === false,
+  );
+  await shot(mobileOverview, 'mobile-overview-pane2.png', true);
+
+  await check('390px: panes 3–8 have no horizontal scroll', async () => {
+    const widths = [];
+    for (const n of [3, 4, 5, 6, 7, 8]) {
+      await mobileOverview.goto(`${server.base}/?pane=${n}`, { waitUntil: 'load' });
+      await settle(mobileOverview);
+      const [scrollWidth, innerWidth] = await mobileOverview.evaluate(() => [
+        document.documentElement.scrollWidth,
+        window.innerWidth,
+      ]);
+      expect(
+        scrollWidth <= innerWidth,
+        `pane ${n}: scrollWidth ${scrollWidth} > innerWidth ${innerWidth}`,
+      );
+      widths.push(`${n}: ${scrollWidth}/${innerWidth}`);
+      await shot(mobileOverview, `mobile-overview-pane${n}.png`, true);
+    }
+    return widths.join(' · ');
+  });
+
   /* ------------------------------------------------------------------ axe */
   for (const label of [
     '/',
+    '/?scale=minmax',
+    '/?pane=3',
+    '/?pane=4',
+    '/?pane=5',
+    '/?pane=6',
+    '/?pane=7',
+    '/?pane=8',
+    '/?pane=4&scale=minmax',
+    '/?pane=5&scale=minmax',
+    '/?pane=7&scale=minmax',
+    '/rankings',
+    '/rankings?scale=minmax',
     '/country/IND',
     '/country/IND?open=harness.ai',
     '/country/CRI?open=harness.ai',
@@ -690,7 +1592,7 @@ try {
     '/about',
   ]) {
     const target = await newPage(desktopViewport);
-    await target.goto(`${server.base}${label}`, { waitUntil: 'networkidle' });
+    await target.goto(`${server.base}${label}`, { waitUntil: 'load' });
     await settle(target);
     if (label.includes('open=')) {
       await target.waitForFunction(
@@ -722,6 +1624,53 @@ try {
     });
     await target.close();
   }
+
+  await check('axe: overview (/) has no violations', async () => {
+    const entry = axeReport.find((item) => item.page === '/');
+    expect(entry, 'overview axe entry missing');
+    expectEqual(entry.violations.length, 0, 'overview violations');
+    return '0 axe violations';
+  });
+
+  await check('axe: /?scale=minmax has no violations', async () => {
+    const entry = axeReport.find((item) => item.page === '/?scale=minmax');
+    expect(entry, '/?scale=minmax axe entry missing');
+    expectEqual(entry.violations.length, 0, 'min–max overview violations');
+    return '0 axe violations';
+  });
+
+  await check('axe: /rankings has no violations', async () => {
+    const entry = axeReport.find((item) => item.page === '/rankings');
+    expect(entry, 'rankings axe entry missing');
+    expectEqual(entry.violations.length, 0, 'rankings violations');
+    return '0 axe violations';
+  });
+
+  await check('axe: overview panes 3–8 have no violations in both methods', async () => {
+    for (const page of [
+      '/?pane=3',
+      '/?pane=4',
+      '/?pane=5',
+      '/?pane=6',
+      '/?pane=7',
+      '/?pane=8',
+      '/?pane=4&scale=minmax',
+      '/?pane=5&scale=minmax',
+      '/?pane=7&scale=minmax',
+    ]) {
+      const entry = axeReport.find((item) => item.page === page);
+      expect(entry, `${page} axe entry missing`);
+      expectEqual(entry.violations.length, 0, `${page} violations`);
+    }
+    return '0 axe violations on panes 3–8 (z and min–max)';
+  });
+
+  await check('axe: /rankings?scale=minmax has no violations', async () => {
+    const entry = axeReport.find((item) => item.page === '/rankings?scale=minmax');
+    expect(entry, 'min–max rankings axe entry missing');
+    expectEqual(entry.violations.length, 0, 'min–max rankings violations');
+    return '0 axe violations';
+  });
 
   await check('axe: no aria-prohibited-attr on the expanded profile', async () => {
     const entry = axeReport.find((item) => item.page === '/country/IND?open=harness.ai');
@@ -762,8 +1711,46 @@ try {
     return text.trim();
   });
 
+  await check('orange (#FF5E00) is never used as text', async () => {
+    const bad = [];
+    for (const url of [
+      '/',
+      '/?scale=minmax',
+      '/?pane=4&scale=minmax',
+      '/?pane=5',
+      '/?pane=6',
+      '/?pane=7',
+      '/?pane=8',
+      '/rankings',
+      '/country/IND',
+    ]) {
+      const target = await newPage(desktopViewport);
+      await target.goto(`${server.base}${url}`, { waitUntil: 'load' });
+      await settle(target);
+      const hits = await target.evaluate(() => {
+        const found = [];
+        for (const element of document.querySelectorAll('*')) {
+          if (getComputedStyle(element).color === 'rgb(255, 94, 0)') {
+            found.push({
+              tag: element.tagName,
+              cls: String(element.className).slice(0, 60),
+              text: (element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 50),
+            });
+          }
+        }
+        return found;
+      });
+      if (hits.length > 0) bad.push({ url, hits: hits.slice(0, 5) });
+      await target.close();
+    }
+    expect(bad.length === 0, `computed color rgb(255, 94, 0) found: ${JSON.stringify(bad)}`);
+    return '0 elements resolve to rgb(255, 94, 0) on /, panes 5–8, /rankings or /country/IND';
+  });
+
   await tab.close();
   await page.close();
+  await overview.close();
+  await mobileOverview.close();
   await country.close();
   await method.close();
   if (narrowPage) await narrowPage.close();
@@ -839,7 +1826,7 @@ if (failed.length) {
 }
 if (tabTrace.length) {
   console.log('');
-  console.log('Tab trace on / (WebKit tabs form controls here; macOS Safari does not');
+  console.log('Tab trace on /rankings (WebKit tabs form controls here; macOS Safari does not');
   console.log('include links unless "Tab highlights each item on webpage" is on):');
   tabTrace.forEach((stop, i) => console.log(`  ${i + 1}. ${stop}`));
 }

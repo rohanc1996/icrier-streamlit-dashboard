@@ -9,7 +9,10 @@ interface Props {
 
 const { countries, scaleIds, defaultScale } = Astro.props;
 const path = Astro.url.pathname;
-const rankingsCurrent = path === '/' || path.startsWith('/country/');
+const overviewCurrent = path === '/';
+// A country profile is reached from the rankings table, so it keeps that tab
+// current rather than adding a fifth item.
+const rankingsCurrent = path === '/rankings' || path.startsWith('/country/');
 const methodologyCurrent = path === '/methodology';
 const aboutCurrent = path === '/about';
 ---
@@ -18,7 +21,8 @@ const aboutCurrent = path === '/about';
   <div class="container site-header__inner">
     <a class="site-header__wordmark" href="/">SIDE · CHIPS</a>
     <nav class="site-nav" aria-label="Primary">
-      <a href="/" aria-current={rankingsCurrent ? 'page' : undefined}>Rankings</a>
+      <a href="/" aria-current={overviewCurrent ? 'page' : undefined}>Overview</a>
+      <a href="/rankings" aria-current={rankingsCurrent ? 'page' : undefined}>Rankings</a>
       <a href="/methodology" aria-current={methodologyCurrent ? 'page' : undefined}>
         How the index works
       </a>

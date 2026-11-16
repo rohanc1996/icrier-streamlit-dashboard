@@ -51,6 +51,59 @@ await rm(target, { recursive: true, force: true });
 await mkdir(target, { recursive: true });
 await cp(source, target, { recursive: true });
 
+// overview.json feeds the `/` carousel. It is produced alongside chips.json
+// and is optional in this wave: without it the site derives the two built
+// panes from chips.json and says so in the build log.
+const overviewPath = path.join(source, 'overview.json');
+let overview = null;
+try {
+  overview = JSON.parse(await readFile(overviewPath, 'utf8'));
+} catch {
+  overview = null;
+}
+
+if (overview) {
+  const problems = [];
+  if (typeof overview.meta?.edition !== 'string') problems.push('missing meta.edition');
+  if (!overview.meta?.defaultMethod) problems.push('missing meta.defaultMethod');
+  if (!overview.methods || typeof overview.methods !== 'object') {
+    problems.push('missing methods{} (method-split overview)');
+  } else {
+    const ids = Object.keys(overview.methods);
+    if (ids.length === 0) problems.push('methods{} is empty');
+    for (const id of ids) {
+      const block = overview.methods[id];
+      if (!Array.isArray(block?.field?.values)) problems.push(`methods.${id}.field.values is not an array`);
+      if (!Array.isArray(block?.top15)) problems.push(`methods.${id}.top15 is not an array`);
+      if (!Array.isArray(block?.movement?.years)) problems.push(`methods.${id}.movement.years is not an array`);
+    }
+    if (overview.meta?.defaultMethod && !ids.includes(overview.meta.defaultMethod)) {
+      problems.push('meta.defaultMethod does not name a key in methods');
+    }
+  }
+  if (!Array.isArray(overview.scaleMovement?.movers)) {
+    problems.push('missing scaleMovement.movers');
+  }
+  if (problems.length > 0) {
+    console.error('[sync-data] data/derived/web/overview.json is not the overview contract:');
+    for (const problem of problems) console.error(`[sync-data]   - ${problem}`);
+    console.error('[sync-data] Ask the data agent to regenerate the exporter output. Not copying.');
+    process.exit(1);
+  }
+  const ids = overview.meta.methods ?? Object.keys(overview.methods);
+  const lead = overview.methods[overview.meta.defaultMethod];
+  console.log(
+    `[sync-data] overview.json: edition ${overview.meta.edition}, methods ${ids.join(', ')} ` +
+      `(default ${overview.meta.defaultMethod}), ${lead.field.values.length} scores per method, ` +
+      `movement years ${lead.movement.years.join(', ')} ` +
+      `(${lead.movement.countries.length} countries)`,
+  );
+} else {
+  console.log(
+    '[sync-data] no overview.json yet — the overview carousel will fall back to chips.json for panes 1–2',
+  );
+}
+
 console.log(`[sync-data] copied ${path.relative(webRoot, source)} -> src/data`);
 console.log(
   `[sync-data] edition ${chips.meta.edition}, ${chips.meta.countries} countries, ` +

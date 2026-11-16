@@ -1,35 +1,51 @@
-/* Design tokens — IA spec §6. Values are normative; do not drift. */
+/* Design tokens — ICRIER palette, measured against #FAF8F5.
+ *
+ * Deliberate deviation from the supplied table:
+ *   --border #9AA0AA measures 2.48:1 on the warm paper ground, below the
+ *   3:1 control-boundary requirement. The value below (#878D96) measures
+ *   3.15:1 on paper and 3.34:1 on white, so controls stay perceivable.
+ *   --accent-ink #B84A00 measures 4.93:1 on paper (the brief estimated 5.2:1)
+ *   and 5.23:1 on white; it passes AA for normal text.
+ *   --accent #FF5E00 is 2.89:1 on paper and 3.06:1 on white: fills and marks
+ *   only, never a text colour.
+ */
 :root {
   /* Color */
-  --paper: #fbfaf7;
+  --paper: #faf8f5;
   --surface: #ffffff;
-  --ink: #14181c;
+  --ink: #14182b;
   --ink-muted: #55606c;
-  --brand: #1b3a6b;
-  --accent: #0b5fa5;
-  --border: #808a94;
-  --border-subtle: #d7dbdf;
-  --missing-fill: #e3e6e9;
-  --missing-hatch: #9aa3ac;
-  --positive: #1f6b3a;
-  --negative: #9b2226;
+  --brand: #272d4f;
+  --accent: #ff5e00;
+  --accent-ink: #b84a00;
+  --tint: #272d4f0d;
+  --rule: #e3e0da;
+  --border: #878d96;
+
+  /* Missing data: warm grey + hatch; words carry the state. */
+  --missing-fill: #e6e3dd;
+  --missing-hatch: #7d838c;
+
+  /* Rank movement */
+  --positive: #0f766e;
+  --negative: #8c2f2f;
 
   /* Pillars: fill, tint, text-on-tint */
-  --pillar-connect: #0072b2;
-  --pillar-connect-tint: #e6f0f7;
-  --pillar-connect-text: #005a8c;
-  --pillar-harness: #00805d;
-  --pillar-harness-tint: #e4f0ec;
-  --pillar-harness-text: #00664b;
-  --pillar-innovate: #b36b00;
-  --pillar-innovate-tint: #f7eedf;
-  --pillar-innovate-text: #7a5200;
-  --pillar-protect: #b4453f;
-  --pillar-protect-tint: #f6e9e8;
-  --pillar-protect-text: #8a2f2a;
-  --pillar-sustainability: #6a4c93;
-  --pillar-sustainability-tint: #ede9f3;
-  --pillar-sustainability-text: #4a3268;
+  --pillar-connect: #272d4f;
+  --pillar-connect-tint: #e9eaf0;
+  --pillar-connect-text: #272d4f;
+  --pillar-harness: #0f766e;
+  --pillar-harness-tint: #e6f0ee;
+  --pillar-harness-text: #0b5b54;
+  --pillar-innovate: #8a6d1f;
+  --pillar-innovate-tint: #f4f0e3;
+  --pillar-innovate-text: #6b5418;
+  --pillar-protect: #6b4c7a;
+  --pillar-protect-tint: #efe9f1;
+  --pillar-protect-text: #553c60;
+  --pillar-sustainability: #b84a00;
+  --pillar-sustainability-tint: #f8ebe3;
+  --pillar-sustainability-text: #8c3900;
 
   /* Type */
   --font-display: 'Newsreader Variable', 'Newsreader', Georgia, serif;
@@ -54,10 +70,9 @@
 
   /* Radius and rules */
   --radius: 2px;
-  --rule: 1px solid var(--border-subtle);
 
   /* Focus ring */
-  --focus-ring: 2px solid var(--accent);
+  --focus-ring: 2px solid var(--brand);
   --focus-offset: 2px;
 }
 
