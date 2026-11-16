@@ -19,6 +19,8 @@ import {
   scales,
 } from './data';
 import { formatComposite, formatPercent, formatRank } from './format';
+import { FLAG_COUNT, methodFlagIso3s, pageFlagIso3s, topByScoreIso3s } from './flags.mjs';
+import { iso2For } from './iso.mjs';
 import { movementRuns } from './movement.mjs';
 import { methodShortLabel } from './scale';
 import type {
@@ -155,7 +157,7 @@ function fieldSource(id: string): FieldSource {
   };
 }
 
-function buildFieldChart(source: FieldSource): FieldChartModel {
+function buildFieldChart(source: FieldSource, topFlags: string[]): FieldChartModel {
   const max = axisMax(source.values.map((row) => row.score));
   // Inset the range so the first and last tick labels are never clipped.
   const x = scaleLinear().domain([0, max]).range([3, 97]);
@@ -173,6 +175,7 @@ function buildFieldChart(source: FieldSource): FieldChartModel {
 
   const points: FieldPointModel[] = source.values.map((row, index) => {
     const spot = positions[index];
+    const flagRank = flagRankFor(row.iso3, topFlags);
     return {
       iso3: row.iso3,
       label: countryLabel(row),
@@ -181,6 +184,8 @@ function buildFieldChart(source: FieldSource): FieldChartModel {
       xPct: x((spot.x / VIRTUAL_WIDTH) * max),
       cy: centre + spot.y,
       isIndia: row.iso3 === 'IND',
+      flagRank,
+      flagIso2: flagRank ? (iso2For(row.iso3) ?? undefined) : undefined,
     };
   });
 
@@ -247,6 +252,8 @@ function buildTop15Chart(rows: Top15Source[], max: number): Top15ChartModel {
     pct: x(row.score * 100),
     scoreText: scoreText(row.score),
     isTop3: row.rank <= 3,
+    // Every row gets a flag, not just the ten pane 1 also marks.
+    flagIso2: iso2For(row.iso3) ?? undefined,
   }));
 
   // The pack below the podium: places 4–13. Read, never hard-coded.
@@ -1039,6 +1046,45 @@ const SCATTER_BOTTOM = 306;
 const SCATTER_LEFT_PCT = 10;
 const SCATTER_RIGHT_PCT = 96;
 
+/**
+ * The flagged group is the top 10 by score in the active method, read from the
+ * method's own field rather than named here: a method change (or an edition
+ * with different numbers) moves the set without a code edit. The sort rule
+ * lives in `flags.mjs` so the sprite, the fetch script and the verifier agree.
+ */
+function topFlagIso3s(values: Array<{ iso3: string; score: number; rank: number }>): string[] {
+  return topByScoreIso3s(values, FLAG_COUNT);
+}
+
+/** Rank within the flagged group, 1 = best score; undefined when not flagged. */
+function flagRankFor(iso3: string, top: string[]): number | undefined {
+  const index = top.indexOf(iso3);
+  return index === -1 ? undefined : index + 1;
+}
+
+/**
+ * Every alpha-2 code the page's sprite must carry: the union across both
+ * methods of every flag panes 1, 2, 7 and 8 draw — the top 15 by score plus
+ * pane 2's own row list. The scale toggle swaps the whole pane block and the
+ * sprite is defined once per page, so the union is the only safe set.
+ */
+export function overviewFlagIso2s(): string[] {
+  let iso3s = pageFlagIso3s(overview?.methods);
+  if (iso3s.length === 0) {
+    // No overview.json: the build fell back to chips.json, so derive the same
+    // union from the fallback blocks rather than shipping an empty sprite.
+    const methods = overview?.meta?.methods?.length ? overview.meta.methods : [...scaleIds];
+    iso3s = methods.flatMap((id) => methodFlagIso3s(fieldSource(id).values, top15Source(id)));
+  }
+  const missing = iso3s.filter((iso3) => iso2For(iso3) === null);
+  if (missing.length > 0) {
+    throw new Error(
+      `no alpha-2 code for ${missing.join(', ')} — extend src/lib/iso.mjs`,
+    );
+  }
+  return [...new Set(iso3s.map((iso3) => iso2For(iso3) as string))].sort();
+}
+
 function scoreAxisMax(scores: number[]): number {
   const peak = scores.length ? Math.max(...scores) * 100 : 0;
   return Math.max(50, Math.ceil(peak / 10) * 10);
@@ -1054,7 +1100,7 @@ function sizeVsScoreSource(methodId: string) {
  * economy and one high-scoring smaller economy — so the scatter reads as a
  * field rather than a label cloud.
  */
-function buildSizeVsScoreChart(methodId: string): ScatterChartModel | null {
+function buildSizeVsScoreChart(methodId: string, topFlags: string[]): ScatterChartModel | null {
   const source = sizeVsScoreSource(methodId).filter(
     (row) => Number.isFinite(row.gdp) && row.gdp > 0,
   );
@@ -1082,6 +1128,7 @@ function buildSizeVsScoreChart(methodId: string): ScatterChartModel | null {
   const points: ScatterPointModel[] = source.map((row) => {
     const isLabelled = labelled.has(row.iso3);
     const xPct = x(row.gdp);
+    const flagRank = flagRankFor(row.iso3, topFlags);
     return {
       iso3: row.iso3,
       label: SHORT_CHART_NAMES[row.iso3] ?? row.country,
@@ -1089,6 +1136,8 @@ function buildSizeVsScoreChart(methodId: string): ScatterChartModel | null {
       gdp: row.gdp,
       xPct,
       y: y(row.score * 100),
+      flagRank,
+      flagIso2: flagRank ? (iso2For(row.iso3) ?? undefined) : undefined,
       labelXPct: isLabelled ? xPct : undefined,
       labelY: isLabelled ? y(row.score * 100) - 11 : undefined,
       labelAnchor: xPct > 88 ? 'end' : xPct < 14 ? 'start' : 'middle',
@@ -1154,7 +1203,7 @@ function coverageSource(methodId: string) {
  * marked, not hidden; the note about unscored cells is computed from the
  * engine's sub-pillar statuses rather than quoted.
  */
-function buildCoverageChart(methodId: string): ScatterChartModel | null {
+function buildCoverageChart(methodId: string, topFlags: string[]): ScatterChartModel | null {
   const source = coverageSource(methodId);
   if (!source.length) return null;
 
@@ -1167,15 +1216,20 @@ function buildCoverageChart(methodId: string): ScatterChartModel | null {
     .range([SCATTER_BOTTOM, SCATTER_TOP]);
 
   const below = source.filter((row) => row.coverage < COVERAGE_THRESHOLD);
-  const points: ScatterPointModel[] = source.map((row) => ({
-    iso3: row.iso3,
-    label: row.country,
-    score: row.score,
-    coverage: row.coverage,
-    xPct: x(row.coverage),
-    y: y(row.score * 100),
-    belowThreshold: row.coverage < COVERAGE_THRESHOLD,
-  }));
+  const points: ScatterPointModel[] = source.map((row) => {
+    const flagRank = flagRankFor(row.iso3, topFlags);
+    return {
+      iso3: row.iso3,
+      label: row.country,
+      score: row.score,
+      coverage: row.coverage,
+      xPct: x(row.coverage),
+      y: y(row.score * 100),
+      belowThreshold: row.coverage < COVERAGE_THRESHOLD,
+      flagRank,
+      flagIso2: flagRank ? (iso2For(row.iso3) ?? undefined) : undefined,
+    };
+  });
 
   const unscoredCells = (scales[methodId] ?? defaultData).scores.reduce(
     (total, row) => total + notScoredSubPillars(row),
@@ -1311,7 +1365,9 @@ function buildMethodPanes(
   const field = fieldSource(methodId);
   const top15 = top15Source(methodId);
   const max = axisMax(field.values.map((row) => row.score));
-  const fieldChart = buildFieldChart(field);
+  // The flagged group follows the active method's scores, not a fixed list.
+  const topFlags = topFlagIso3s(field.values);
+  const fieldChart = buildFieldChart(field, topFlags);
   const topChart = buildTop15Chart(top15, max);
   const movement = movementSource(methodId);
   const movementChart = buildMovementChart(movement);
@@ -1323,8 +1379,8 @@ function buildMethodPanes(
   };
   const composition = buildCompositionChart(methodId);
   const indiaChart = buildIndiaChart(methodId);
-  const sizeChart = buildSizeVsScoreChart(methodId);
-  const coverageChart = buildCoverageChart(methodId);
+  const sizeChart = buildSizeVsScoreChart(methodId, topFlags);
+  const coverageChart = buildCoverageChart(methodId, topFlags);
   const overallRank = verdict?.overallRank ?? 0;
   const correlation = methodBlock(methodId)?.correlation;
   const yearsText = movement.years.join(' → ');
@@ -1360,7 +1416,7 @@ function buildMethodPanes(
     {
       number: 1,
       title: 'The field',
-      what: `All ${field.values.length} scores, one dot per country, with the edition median marked.`,
+      what: `All ${field.values.length} scores; the top 10 by score are flags, the rest dots, with the edition median marked.`,
       caption:
         'Every country the index scores, at once — no cut-off and no grouping. ' +
         'The median is where the middle of the field sits, not a target. ' +
@@ -1472,7 +1528,7 @@ function buildMethodPanes(
     {
       number: 7,
       title: 'Scale and score',
-      what: 'GDP 2025 on a log scale against the CHIPS score, one dot per country.',
+      what: 'GDP 2025 on a log scale against the CHIPS score; the top 10 by score are flags, the rest dots.',
       caption:
         `GDP in current US dollars against the CHIPS score, from the Absolute edition` +
         `${overview?.meta?.gdpYear ? ` (GDP ${overview.meta.gdpYear})` : ''}. ` +
@@ -1499,7 +1555,7 @@ function buildMethodPanes(
     {
       number: 8,
       title: 'How much stands behind a score',
-      what: 'Data coverage against the composite score, one dot per country.',
+      what: 'Data coverage against the composite score; the top 10 by score are flags, the rest dots.',
       caption:
         'A country with missing data is not automatically penalised: unscored cells are ' +
         'dropped and their weight is redistributed across the indicators that remain. But its ' +

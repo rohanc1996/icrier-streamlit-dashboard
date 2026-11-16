@@ -1,0 +1,87 @@
+/**
+ * ISO-3166 alpha-3 → alpha-2, for the countries the SIDE export scores.
+ *
+ * The circle-flag sprite is keyed by alpha-2 (the upstream file names), while
+ * everything else in the site — payloads, URLs, class names — uses alpha-3.
+ * Keep this table complete for the edition rather than for today's top ten:
+ * the flag layer follows the scores, so a change of method or edition can move
+ * a different set of countries into the flagged group without a code change.
+ */
+export const ISO3_TO_ISO2 = {
+  ARE: 'ae',
+  ARG: 'ar',
+  AUS: 'au',
+  AUT: 'at',
+  BEL: 'be',
+  BGD: 'bd',
+  BGR: 'bg',
+  BRA: 'br',
+  CAN: 'ca',
+  CHE: 'ch',
+  CHL: 'cl',
+  CHN: 'cn',
+  COL: 'co',
+  CRI: 'cr',
+  CZE: 'cz',
+  DEU: 'de',
+  DNK: 'dk',
+  DOM: 'do',
+  DZA: 'dz',
+  ECU: 'ec',
+  EGY: 'eg',
+  ESP: 'es',
+  ETH: 'et',
+  FIN: 'fi',
+  FRA: 'fr',
+  GBR: 'gb',
+  GHA: 'gh',
+  GRC: 'gr',
+  GTM: 'gt',
+  HRV: 'hr',
+  HUN: 'hu',
+  IDN: 'id',
+  IND: 'in',
+  IRL: 'ie',
+  IRQ: 'iq',
+  ISR: 'il',
+  ITA: 'it',
+  JPN: 'jp',
+  KAZ: 'kz',
+  KEN: 'ke',
+  KOR: 'kr',
+  KWT: 'kw',
+  LKA: 'lk',
+  MAR: 'ma',
+  MEX: 'mx',
+  MYS: 'my',
+  NGA: 'ng',
+  NLD: 'nl',
+  NOR: 'no',
+  NZL: 'nz',
+  PAK: 'pk',
+  PER: 'pe',
+  PHL: 'ph',
+  POL: 'pl',
+  PRT: 'pt',
+  QAT: 'qa',
+  ROU: 'ro',
+  RUS: 'ru',
+  RWA: 'rw',
+  SAU: 'sa',
+  SGP: 'sg',
+  SRB: 'rs',
+  SVK: 'sk',
+  SWE: 'se',
+  THA: 'th',
+  TUR: 'tr',
+  UKR: 'ua',
+  USA: 'us',
+  UZB: 'uz',
+  VNM: 'vn',
+  ZAF: 'za',
+};
+
+/** Alpha-2 for an alpha-3 code, or null when the country is not in the table. */
+export function iso2For(iso3) {
+  return ISO3_TO_ISO2[iso3] ?? null;
+}

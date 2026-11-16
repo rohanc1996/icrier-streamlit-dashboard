@@ -697,14 +697,52 @@ richer countries perform better.
 The relationship is also real and can be quoted, measured on log GDP 2025 against
 the composite for all 71 countries:
 
-| Measure | All 71 | Excluding USA + China | Excluding the top 3 scorers |
+| Measure | All 71 (min–max) | Excl. USA + China | Top 3 excluded |
 |---|---|---|---|
 | Pearson (log GDP) | 0.71 | 0.66 | 0.70 |
 | Spearman | 0.75 | 0.73 | 0.72 |
 
-It survives removing the largest economies, so the caption states ρ ≈ 0.75 rather
-than gesturing at a trend. A per-capita view is the obvious next step but requires a
-population series the repo does not have; `gdpPerCapita` is emitted as `null` until
-that data is sourced and agreed.
+Under the **z default** the same relationship is stronger — Pearson 0.8207, Spearman
+0.8499 (0.7862 / 0.8364 excluding the USA and China), so pane 7 reads its ρ from the
+active method's `correlation` block rather than quoting one number. A per-capita view
+is the obvious next step but requires a population series the repo does not have;
+`gdpPerCapita` is emitted as `null` until that data is sourced and agreed.
+
+### Flags on the two scatter panes (2026-11-16)
+
+Panes 7 and 8 replace the mark with a **round country flag for the top 10 by score**,
+derived per method. Everyone else stays a dot. This is a deliberate editorial choice
+by the project owner, with its cost stated:
+
+- **Overlap is accepted.** No dodging, no jitter, no offset. The measured separations
+  are 7.9 px (pane 7, KOR/ESP) and 2.4 px (pane 8, ESP/ARE), so stacked flags do hide
+  each other. The 10th is largely invisible in the static view.
+- **Z-order is rank.** SVG paints in document order, so marks are drawn worst→best
+  and rank 1 lands on top. Document order is the test, not the screenshot.
+- **Hover and focus recover the hidden ones.** An overlay layer, last in the SVG,
+  shows a larger flag plus the country name and score on `:hover` / `:focus` of the
+  base mark. Each mark is `tabindex="0"` with `aria-label="<country>, score <value>"`,
+  so the buried 10 are reachable by keyboard and by tap. CSS only, no chart runtime.
+- **Assets:** `HatScripts/circle-flags`, MIT, vendored into the repo and inlined as one
+  `<symbol>` per flag per page, referenced by `<use>`. Measured cost ~3.1 KB gzip for
+  the ten, against a ~79 KB gzip page.
+- **Political rule:** a flag is only used for a UN member state. Any other entity —
+  Hong Kong is already in `country_names.py` even though it is not in this edition —
+  gets a neutral disc. This is settled here so it is never decided ad hoc inside a chart.
+
+**Extended to panes 1 and 2 (2026-11-16).** Flags now appear in four of the eight
+panes, and there are two distinct roles — do not blur them:
+
+| Role | Panes | Rules |
+|---|---|---|
+| **Flag as mark** | 1 (beeswarm, top 10), 7 and 8 (scatter, top 10) | 18px, ring, z-order = rank, `tabindex="0"`, `aria-label` with country + score, hover/focus overlay |
+| **Flag as row decoration** | 2 (lollipop, all 15 rows) | 15px at the stem tip, `aria-hidden="true"`, **no** tabindex and no overlay — the row already prints the country name as text, so the flag must not introduce a duplicate accessible name |
+
+Panes 3, 5 and 6 deliberately have **no** flags: their bars are the argument, and a
+flag beside a row label adds colour without adding reading speed. That is a decision,
+not an oversight — if a future pane plots position on two axes, it belongs in the
+first row of the table above.
+
+
 
 

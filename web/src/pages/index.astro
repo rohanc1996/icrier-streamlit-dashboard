@@ -1,11 +1,13 @@
 ---
 import BaseLayout from '../components/BaseLayout.astro';
+import FlagSprite from '../components/FlagSprite.astro';
 import OverviewCarousel from '../components/OverviewCarousel.tsx';
 import { meta } from '../lib/data';
-import { buildOverviewView } from '../lib/overview';
+import { buildOverviewView, overviewFlagIso2s } from '../lib/overview';
 
 const overview = buildOverviewView();
 const field = overview.field;
+const flagIso2s = overviewFlagIso2s();
 ---
 
 <BaseLayout
@@ -14,6 +16,7 @@ const field = overview.field;
   noteScale={overview.defaultMethod}
 >
   <div class="container page">
+    <FlagSprite iso2s={flagIso2s} />
     <header class="page-head">
       <div class="page-head__main">
         <h1 class="display-l">CHIPS {meta.edition}</h1>

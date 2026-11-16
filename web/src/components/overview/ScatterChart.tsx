@@ -1,4 +1,10 @@
-import type { ScatterChartModel } from '../../lib/overview-types';
+import { formatComposite } from '../../lib/format';
+import type { ScatterChartModel, ScatterPointModel } from '../../lib/overview-types';
+import FlagMark from './FlagMark';
+import FlagOverlay from './FlagOverlay';
+
+/** Flag radius, in px, at desktop size; the ring adds 1.5px around it. */
+const FLAG_RADIUS = 9;
 
 /**
  * Panes 7–8: a scatter with a fixed pixel height and percentage x positions,
@@ -9,6 +15,12 @@ import type { ScatterChartModel } from '../../lib/overview-types';
  * magnitude, and a linear axis would pile every country except the largest
  * three into the left margin. Pane 8 marks the countries below 80% coverage
  * and states the unscored-cell count in the pane, not in a footnote.
+ *
+ * The ten best scores in the active method are drawn as round flags instead of
+ * dots, centred on the exact data position and allowed to overlap. They are
+ * painted rank 10 first and rank 1 last, so the best score is on top; the ones
+ * underneath stay reachable because every flag is focusable and a CSS sibling
+ * rule reveals its labelled overlay.
  */
 export default function ScatterChart({ model }: { model: ScatterChartModel }) {
   // yTicks run from 0 (bottom) to the axis maximum (top), so the x axis sits
@@ -19,13 +31,20 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
   const labelled = model.points.filter(
     (point) => point.labelY !== undefined && point.labelXPct !== undefined,
   );
+  const dots = model.points.filter((point) => !point.flagRank || !point.flagIso2);
+  // Document order is paint order. Highest rank number first → rank 1 last.
+  const flags = model.points
+    .filter(
+      (point): point is ScatterPointModel & { flagRank: number; flagIso2: string } =>
+        typeof point.flagRank === 'number' && typeof point.flagIso2 === 'string',
+    )
+    .sort((a, b) => b.flagRank - a.flagRank);
+
+  const markName = (point: ScatterPointModel) =>
+    `${point.label}, score ${formatComposite(point.score)}`;
 
   return (
-    <div
-      className={`scatter-chart scatter-chart--${model.kind}`}
-      role="group"
-      aria-label={model.ariaLabel}
-    >
+    <div className={`scatter-chart scatter-chart--${model.kind}`}>
       {coverage && (
         <p className="pane__callout">
           <strong>{model.belowThreshold ?? 0}</strong> of {model.points.length} countries sit
@@ -42,8 +61,8 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
         className="scatter-chart__plot"
         width="100%"
         height={model.height}
-        aria-hidden="true"
-        focusable="false"
+        role="group"
+        aria-label={model.ariaLabel}
       >
         {model.yTicks.map((tick) => (
           <g key={tick.label}>
@@ -94,7 +113,7 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
           </g>
         )}
 
-        {model.points.map((point) => (
+        {dots.map((point) => (
           <circle
             key={point.iso3}
             data-scatter={point.iso3}
@@ -105,6 +124,23 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
             cx={`${point.xPct}%`}
             cy={point.y}
             r={point.belowThreshold ? 5 : 4}
+          />
+        ))}
+
+        {flags.map((point) => (
+          <FlagMark
+            key={point.iso3}
+            iso2={point.flagIso2}
+            xPct={point.xPct}
+            y={point.y}
+            radius={FLAG_RADIUS}
+            label={markName(point)}
+            data={{
+              'data-scatter': point.iso3,
+              'data-iso3': point.iso3,
+              'data-flag-rank': point.flagRank,
+              'data-below': point.belowThreshold ? 'true' : undefined,
+            }}
           />
         ))}
 
@@ -156,6 +192,20 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
         >
           {coverage ? 'share of the indicator set present' : 'GDP 2025, current US$ (log scale)'}
         </text>
+
+        {/* Last in the SVG on purpose: the revealed label sits above every mark. */}
+        {flags.map((point) => (
+          <FlagOverlay
+            key={`overlay-${point.iso3}`}
+            iso2={point.flagIso2}
+            xPct={point.xPct}
+            y={point.y}
+            label={markName(point)}
+            iso3={point.iso3}
+            right={point.xPct <= 74}
+            labelY={Math.max(12, Math.min(model.height - 6, point.y + 4))}
+          />
+        ))}
       </svg>
 
       {coverage && (

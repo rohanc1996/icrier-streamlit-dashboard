@@ -1,0 +1,72 @@
+---
+/**
+ * One sprite per page for the round flags used by the overview scatters.
+ *
+ * The SVGs live in `src/assets/flags/` and are vendored by
+ * `scripts/fetch-flags.mjs` (MIT, HatScripts/circle-flags) so the build never
+ * touches a CDN. Each file is inlined once as a `<symbol>`; every mark on every
+ * pane references it with `<use href="#flag-us">`. No copy per mark, and no
+ * second copy when the method toggle swaps the pane block — the sprite sits
+ * outside the carousel island.
+ *
+ * This component also emits the hover/focus reveal rules, one pair per flag,
+ * because the class suffix follows the data and cannot live in a static
+ * stylesheet. Pure CSS: the base mark is `.flag-mark--us`, the last-child
+ * overlay layer holds `.flag-overlay--us`, and a general sibling combinator
+ * reaches it.
+ */
+interface Props {
+  /** Alpha-2 codes to include. Union across methods, sorted. */
+  iso2s: string[];
+}
+
+const { iso2s } = Astro.props;
+
+const files = import.meta.glob('../assets/flags/*.svg', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+/**
+ * Inline the file's contents and prefix every internal id, because a sprite
+ * puts many flags in one document and their own `mask id="a"` values would
+ * collide.
+ */
+function symbolBody(svg: string, prefix: string): string {
+  const inner = svg
+    .replace(/^[\s\S]*?<svg[^>]*>/, '')
+    .replace(/<\/svg>\s*$/, '');
+  return inner
+    .replace(/\bid="([^"]+)"/g, (_match, id: string) => `id="${prefix}-${id}"`)
+    .replace(/url\(#([^)]+)\)/g, (_match, id: string) => `url(#${prefix}-${id})`)
+    .replace(/\b(?:xlink:)?href="#([^"]+)"/g, (_match, id: string) => `href="#${prefix}-${id}"`);
+}
+
+const symbols = iso2s.flatMap((iso2) => {
+  const entry = Object.entries(files).find(([file]) => file.endsWith(`/${iso2}.svg`));
+  if (!entry) {
+    throw new Error(`missing web/src/assets/flags/${iso2}.svg — run node scripts/fetch-flags.mjs`);
+  }
+  return [{ iso2, body: symbolBody(entry[1], iso2) }];
+});
+
+const revealCss = symbols
+  .map(
+    ({ iso2 }) =>
+      `.flag-mark--${iso2}:hover ~ .flag-overlay--${iso2},\n` +
+      `.flag-mark--${iso2}:focus ~ .flag-overlay--${iso2} { opacity: 1; }`,
+  )
+  .join('\n');
+---
+
+<svg class="flag-sprite" aria-hidden="true" focusable="false" width="0" height="0">
+  <defs>
+    {
+      symbols.map(({ iso2, body }) => (
+        <symbol id={`flag-${iso2}`} viewBox="0 0 512 512" set:html={body} />
+      ))
+    }
+  </defs>
+</svg>
+<style is:global set:html={revealCss}></style>

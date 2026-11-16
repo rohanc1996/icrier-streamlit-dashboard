@@ -1,12 +1,19 @@
 import type { Top15ChartModel } from '../../lib/overview-types';
+import FlagMark from './FlagMark';
+
+/** Flag radius, in px, at desktop size: a 15px flag. */
+const FLAG_RADIUS = 7.5;
 
 /**
  * Lollipop of the top 15. One row per country; the top three carry ink and the
  * rest stay muted, so the gap between the podium and the pack is visible
  * without a second colour or a cut-off.
  *
- * The rows are real text, so assistive technology reads the same numbers the
- * marks encode. The line and dot are decorative and hidden from it.
+ * Every row's stem ends in a flag instead of a dot. The rows are ~30px apart
+ * and the flag is 15px, so consecutive flags clear each other even with the
+ * surface ring. The flags are decorative — the row already prints the country
+ * name as text — so they are hidden from assistive technology and take no tab
+ * stop. No hover overlay here: the name is already on screen.
  */
 export default function Top15Chart({ model }: { model: Top15ChartModel }) {
   return (
@@ -38,7 +45,17 @@ export default function Top15Chart({ model }: { model: Top15ChartModel }) {
                 x2={`${row.pct}%`}
                 y2="9"
               />
-              <circle className="lollipop__dot" cx={`${row.pct}%`} cy="9" r="5" />
+              {row.flagIso2 ? (
+                <FlagMark
+                  iso2={row.flagIso2}
+                  xPct={row.pct}
+                  y={9}
+                  radius={FLAG_RADIUS}
+                  data={{ 'data-iso3': row.iso3 }}
+                />
+              ) : (
+                <circle className="lollipop__dot" cx={`${row.pct}%`} cy="9" r="5" />
+              )}
             </svg>
             <span className="lollipop__value">{row.scoreText}</span>
           </li>

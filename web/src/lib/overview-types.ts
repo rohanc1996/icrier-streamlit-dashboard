@@ -137,6 +137,14 @@ export interface FieldPointModel {
   /** Vertical centre in SVG user units (px). */
   cy: number;
   isIndia: boolean;
+  /**
+   * Set only for the top 10 by score in the active method, which are drawn as
+   * flags instead of dots. 1 is the best score; 10 paints first so 1 sits on
+   * top of the stack.
+   */
+  flagRank?: number;
+  /** Alpha-2 code naming the vendored sprite symbol and the CSS classes. */
+  flagIso2?: string;
 }
 
 export interface FieldChartModel {
@@ -159,6 +167,13 @@ export interface Top15RowModel {
   pct: number;
   scoreText: string;
   isTop3: boolean;
+  /**
+   * Every row is drawn as a flag at the stem tip. Decorative only: the row
+   * already prints the country name, so the mark is hidden from assistive
+   * technology. Undefined when the country has no alpha-2 code, in which case
+   * the row keeps its plain dot.
+   */
+  flagIso2?: string;
 }
 
 export interface Top15ChartModel {
@@ -325,6 +340,14 @@ export interface ScatterPointModel {
   y: number;
   /** Pane 8: coverage is below the 80% line. */
   belowThreshold?: boolean;
+  /**
+   * Set only for the top 10 by score in the active method, which are drawn as
+   * flags instead of dots. 1 is the best score; 10 paints first so 1 sits on
+   * top of the stack.
+   */
+  flagRank?: number;
+  /** Alpha-2 code naming the vendored sprite symbol and the CSS classes. */
+  flagIso2?: string;
   /** Present only for the few points the chart names. */
   labelXPct?: number;
   labelY?: number;

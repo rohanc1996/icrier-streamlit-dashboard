@@ -2116,6 +2116,9 @@ details > :not(summary) {
 .lollipop__track {
   display: block;
   min-width: 48px;
+  /* The 15px flag plus its 1.5px surface ring is 18px tall, exactly the track
+   * height; `visible` keeps the ring's outer edge from being clipped. */
+  overflow: visible;
 }
 
 .lollipop__line {
@@ -2775,6 +2778,62 @@ details > :not(summary) {
   fill-opacity: 0.42;
 }
 
+/* Panes 1–2 and 7–8: the best scores are round flags, not dots. The marks are
+ * painted worst-first, so the best score sits on top. The 1.5px surface ring
+ * makes a stack read as chips. */
+.flag-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.flag-mark {
+  cursor: default;
+}
+
+/* The visible focus indicator is the ring, not the browser outline. */
+.flag-mark:focus {
+  outline: none;
+}
+
+.flag-mark__ring {
+  fill: var(--surface);
+}
+
+.flag-mark__focus {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.flag-mark:focus-visible .flag-mark__focus {
+  opacity: 1;
+}
+
+/* Hidden until the matching mark is hovered or focused. The reveal rules are
+ * generated per flag in FlagSprite.astro, because the set follows the data. */
+.flag-overlay {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.flag-overlay__ring {
+  fill: var(--surface);
+}
+
+.flag-overlay__label {
+  fill: var(--ink);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
 .scatter-chart--coverage .scatter__dot {
   fill: var(--ink-muted);
   fill-opacity: 0.5;
@@ -2864,6 +2923,20 @@ details > :not(summary) {
 
   .movement-chart__caveat {
     font-size: 11px;
+  }
+
+  /* 18px flags shrink to 14px; scaling about the mark's own centre keeps the
+   * flag exactly on the data position. Overlay labels stay at full size. */
+  .flag-mark {
+    transform: scale(0.7778);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* Pane 2's flags are 15px, so they shrink to 13px rather than 14: the same
+   * rule, a different base size. */
+  .lollipop-chart .flag-mark {
+    transform: scale(0.8667);
   }
 
   .movement__head,

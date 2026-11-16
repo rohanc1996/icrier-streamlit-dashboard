@@ -93,6 +93,43 @@ HTML.
 library ships to the browser. Pane 5 reads `movement.years` from the data, so a
 2027 edition extends the panel without a rewrite.
 
+### Flags in panes 1, 2, 7 and 8
+
+The ten best scores are drawn as round country flags instead of dots, in the
+beeswarm (pane 1) and both scatters (panes 7–8). Each is centred on the exact
+data position and allowed to overlap. Paint order is rank order — rank 10
+first, rank 1 last — so the best score is on top. Every flag is focusable and
+reveals a 22px flag plus a "country, score" label when hovered or focused; the
+reveal is CSS-only (a general sibling combinator from `.flag-mark--us` to the
+overlay layer that closes the SVG), so a buried mark stays reachable by
+keyboard and by tap. Everything below the top 10 stays a plain dot.
+
+Pane 2 draws a flag at every stem tip — all 15 rows — at 15px (13px at
+≤640px). Those flags are decorative: the row already prints the country name
+and score as text, so the mark is `aria-hidden` and takes no tab stop, and
+there is no overlay to reveal.
+
+- The flagged set is **derived** from the active method's `field.values`, not
+  hard-coded. It genuinely differs by method — min–max flags ARE, z-score flags
+  CAN — so the page's sprite carries the union. The shared rule lives in
+  `src/lib/flags.mjs` and is used by the build, the fetch script and
+  `scripts/verify.mjs`, so the three cannot drift.
+- The symbols live in `web/src/assets/flags/<iso2>.svg`, vendored by
+  `node scripts/fetch-flags.mjs` (dev-time only; run it when the flagged set
+  changes). The command reads `data/derived/web/overview.json` and downloads
+  only the needed files from HatScripts/circle-flags (MIT). The SVGs are
+  committed, so builds are offline. An unmapped alpha-3 fails the run loudly.
+- `src/components/FlagSprite.astro` inlines each file **once** as a `<symbol>`
+  and rewrites its internal ids (`mask id="a"` → `ca-a`) so many flags can
+  share one document. Marks reference it with `<use href="#flag-us">`; there is
+  one sprite per page, outside the carousel island, so the method toggle never
+  duplicates it.
+- The marks themselves are one component (`FlagMark`, with `FlagOverlay` for
+  the label layer), shared by all four panes.
+- Size is 18px on desktop and 14px at ≤640px (a centre-anchored scale, so the
+  data position does not move); the 1.5px `--surface` ring keeps overlapping
+  flags legible as chips.
+
 ## Data contract for `/`
 
 `data/derived/web/overview.json` (produced by the data agent):

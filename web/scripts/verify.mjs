@@ -27,6 +27,13 @@ import { webkit } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import axe from 'axe-core';
 import { movementRuns } from '../src/lib/movement.mjs';
+import { iso2For } from '../src/lib/iso.mjs';
+import {
+  FLAG_COUNT,
+  TOP15_COUNT,
+  methodFlagIso3s,
+  topByScoreIso3s,
+} from '../src/lib/flags.mjs';
 
 const WEB_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(WEB_ROOT, 'dist');
@@ -51,6 +58,22 @@ const block = (id) => OVERVIEW.methods[id];
 const countryIn = (id, iso3) =>
   block(id).field.values.find((row) => row.iso3 === iso3);
 const scoreText = (value) => (value * 100).toFixed(2);
+
+/**
+ * Panes 1, 7 and 8 draw the top 10 by score as flags; pane 2 draws all 15.
+ * Every expectation is recomputed here from the payload rather than written
+ * down, so a different method (or edition) is checked against its own scores.
+ */
+const topFlagIso3s = (methodId) =>
+  topByScoreIso3s(block(methodId).field.values, FLAG_COUNT);
+
+/** Every flag one method's panes can draw: the page sprite's per-method share. */
+const methodFlags = (methodId) =>
+  methodFlagIso3s(block(methodId).field.values, block(methodId).top15);
+
+/** Pane 2's rows, in rank order, as the export lists them. */
+const top15Iso3s = (methodId) =>
+  [...block(methodId).top15].sort((a, b) => a.rank - b.rank).map((row) => row.iso3);
 
 /** Score delta across the movement window, in points, from the payload. */
 function scoreDelta(methodId, iso3, years) {
@@ -271,15 +294,19 @@ try {
     return `role=group, "${label}"`;
   });
 
-  await check('pane 1: 71 dots, India marked, median tick', async () => {
+  await check('pane 1: 61 dots + 10 flags, India marked, median tick', async () => {
+    const flagged = topFlagIso3s(DEFAULT_METHOD).length;
     const dots = await pane(1).locator('circle[data-dot]').count();
-    expectEqual(dots, 71, 'field dots');
-    expectEqual(await pane(1).locator('.field-chart__dot--india').count(), 1, 'India marks');
+    const flags = await pane(1).locator('.flag-mark').count();
+    expectEqual(dots, 71 - flagged, 'field dots');
+    expectEqual(flags, flagged, 'field flags');
+    expectEqual(await pane(1).locator('[data-field]').count(), 71, 'every country marked');
+    expectEqual(await pane(1).locator('.field-chart__ring').count(), 1, 'India marks');
     expectEqual(await pane(1).locator('.field-chart__median').count(), 1, 'median tick');
     const label = await pane(1).locator('.field-chart').getAttribute('aria-label');
     expectMatch(label, /71 CHIPS scores/, 'chart label');
     expectMatch(label, /India is 3rd/, 'India in chart label');
-    return `71 dots, 1 India mark, median tick; "${label.slice(0, 60)}…"`;
+    return `${dots} dots, ${flags} flags, 1 India mark, median tick; "${label.slice(0, 60)}…"`;
   });
 
   await check('pane 1 has a View as table fallback with 71 rows', async () => {
@@ -308,9 +335,10 @@ try {
       !overview.url().includes('scale='),
       `URL should not carry scale= by default: ${overview.url()}`,
     );
-    const dot = Number(await pane(1).locator('circle[data-dot="USA"]').getAttribute('data-score'));
-    expectEqual(scoreText(dot), '80.91', 'pane 1 USA dot score');
-    return `z active, no ?scale; USA dot ${scoreText(dot)}`;
+    // USA is rank 1, so it is a flag now; the score hook is the same.
+    const mark = Number(await pane(1).locator('[data-field="USA"]').getAttribute('data-score'));
+    expectEqual(scoreText(mark), '80.91', 'pane 1 USA mark score');
+    return `z active, no ?scale; USA mark ${scoreText(mark)}`;
   });
 
   await check('scale toggle: pane 1 USA 80.91 → 67.27 → 80.91', async () => {
@@ -318,7 +346,7 @@ try {
     await settle(overview);
     expectMatch(overview.url(), /[?&]scale=minmax(&|$)/, 'URL after toggle');
     const minmax = Number(
-      await pane(1).locator('circle[data-dot="USA"]').getAttribute('data-score'),
+      await pane(1).locator('[data-field="USA"]').getAttribute('data-score'),
     );
     expectEqual(scoreText(minmax), '67.27', 'pane 1 USA under min–max');
 
@@ -326,7 +354,7 @@ try {
     await settle(overview);
     expect(!overview.url().includes('scale='), `scale=z should normalise away: ${overview.url()}`);
     const back = Number(
-      await pane(1).locator('circle[data-dot="USA"]').getAttribute('data-score'),
+      await pane(1).locator('[data-field="USA"]').getAttribute('data-score'),
     );
     expectEqual(scoreText(back), '80.91', 'pane 1 USA back under z');
     return '80.91 → 67.27 → 80.91; ?scale=minmax appears then drops';
@@ -447,14 +475,15 @@ try {
     return `pane 2; ${new URL(overview.url()).search}; "${await announcement()}"`;
   });
 
-  await check('pane 2: 15 lollipop rows with a line and dot each', async () => {
+  await check('pane 2: 15 lollipop rows, a line and a flag each', async () => {
     const rows = await pane(2).locator('[data-lollipop]').count();
     expectEqual(rows, 15, 'lollipop rows');
     expectEqual(await pane(2).locator('.lollipop__line').count(), 15, 'lines');
-    expectEqual(await pane(2).locator('.lollipop__dot').count(), 15, 'dots');
+    expectEqual(await pane(2).locator('.lollipop__row .flag-mark').count(), 15, 'flags');
+    expectEqual(await pane(2).locator('.lollipop__dot').count(), 0, 'tip dots replaced');
     const text = (await pane(2).innerText()).replace(/\s+/g, ' ');
     expectMatch(text, /Places 4–13 span/, 'span annotation');
-    return '15 rows, 15 lines, 15 dots; 4–13 annotation present';
+    return '15 rows, 15 lines, 15 flags; 4–13 annotation present';
   });
 
   await check('pane 2 has a View as table fallback with 15 rows', async () => {
@@ -862,6 +891,431 @@ try {
   });
 
   await shot(overview, 'desktop-overview-pane8.png', true);
+
+  /* ---------------------------------------------------------- flags */
+  const paneMethodUrl = (paneNumber, methodId) =>
+    `${server.base}/?pane=${paneNumber}${methodId === DEFAULT_METHOD ? '' : `&scale=${methodId}`}`;
+
+  const openPane = async (paneNumber, methodId) => {
+    await overview.goto(paneMethodUrl(paneNumber, methodId), { waitUntil: 'load' });
+    await settle(overview);
+    await waitPane(paneNumber);
+  };
+
+  const flagMarks = (paneNumber) => pane(paneNumber).locator('.flag-mark');
+  const flagOrder = (paneNumber) =>
+    flagMarks(paneNumber).evaluateAll((nodes) => nodes.map((node) => node.dataset.iso3));
+
+  await check('pane 1: exactly 10 flag marks per method, the top 10, rank 1 last', async () => {
+    const details = [];
+    for (const methodId of METHOD_IDS) {
+      await openPane(1, methodId);
+      const expected = topFlagIso3s(methodId);
+      expectEqual(await flagMarks(1).count(), 10, `${methodId} flag marks`);
+      // Everything below the top 10 stays a dot; every country is still marked.
+      expectEqual(await pane(1).locator('circle[data-dot]').count(), 61, `${methodId} dots`);
+      expectEqual(await pane(1).locator('[data-field]').count(), 71, `${methodId} marks`);
+
+      const order = await flagOrder(1);
+      expectEqual(
+        [...order].sort().join(','),
+        [...expected].sort().join(','),
+        `${methodId} flagged set`,
+      );
+      // Paint order is document order: rank 10 first, rank 1 last.
+      expectEqual(order[0], expected[9], `${methodId} first-painted flag (rank 10)`);
+      expectEqual(order[order.length - 1], expected[0], `${methodId} rank 1 is last`);
+
+      const marks = await flagMarks(1).evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          iso3: node.dataset.iso3,
+          label: node.getAttribute('aria-label'),
+          tabindex: node.getAttribute('tabindex'),
+          title: node.querySelector('title')?.textContent ?? '',
+        })),
+      );
+      for (const mark of marks) {
+        const row = countryIn(methodId, mark.iso3);
+        const name = row.shortName || row.country;
+        expectEqual(mark.label, `${name}, score ${scoreText(row.score)}`, `${mark.iso3} label`);
+        expectMatch(mark.label, new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}, score `), `${mark.iso3} name`);
+        expectEqual(mark.title, mark.label, `${mark.iso3} <title>`);
+        expectEqual(mark.tabindex, '0', `${mark.iso3} tabindex`);
+      }
+      details.push(`${methodId}: ${expected[0]} on top, ${expected[9]} beneath`);
+    }
+    return details.join(' · ');
+  });
+
+  await check('pane 1: focusing a buried mark reveals its labelled overlay', async () => {
+    await openPane(1, DEFAULT_METHOD);
+    const expected = topFlagIso3s(DEFAULT_METHOD);
+    const buried = expected[9]; // rank 10, painted first, under the stack
+    const overlay = pane(1).locator(`.flag-overlay[data-overlay="${buried}"]`);
+    const opacity = () =>
+      overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
+    expectEqual(await opacity(), 0, 'overlay hidden before focus');
+    await pane(1).locator(`.flag-mark[data-iso3="${buried}"]`).focus();
+    expectEqual(await opacity(), 1, 'overlay opacity after focus');
+    const text = (await overlay.textContent()).replace(/\s+/g, ' ').trim();
+    const row = countryIn(DEFAULT_METHOD, buried);
+    expectEqual(text, `${row.shortName || row.country}, score ${scoreText(row.score)}`, 'overlay text');
+    await pane(1).locator(`.flag-mark[data-iso3="${buried}"]`).blur();
+    expectEqual(await opacity(), 0, 'overlay hidden again after blur');
+    return `rank 10 "${buried}" → "${text}" (opacity 0 → 1 → 0)`;
+  });
+
+  await check('pane 2: 15 flags per method, each centred on its stem tip', async () => {
+    const details = [];
+    for (const methodId of METHOD_IDS) {
+      await openPane(2, methodId);
+      const expected = top15Iso3s(methodId);
+      expectEqual(
+        await pane(2).locator('.lollipop__row .flag-mark').count(),
+        TOP15_COUNT,
+        `${methodId} flags`,
+      );
+      expectEqual(await pane(2).locator('.lollipop__dot').count(), 0, `${methodId} tip dots`);
+
+      const rows = await pane(2).evaluate(() => {
+        const items = [...document.querySelectorAll('[data-lollipop]')];
+        return items.map((row) => {
+          const track = row.querySelector('.lollipop__track');
+          const line = row.querySelector('.lollipop__line');
+          const mark = row.querySelector('.flag-mark');
+          const use = mark?.querySelector('use');
+          const trackBox = track.getBoundingClientRect();
+          const flagBox = use?.getBoundingClientRect();
+          // The stem tip is the line's x2 at y=9; percentages resolve against
+          // the track's viewport width, which is its layout width in px.
+          const pct = Number.parseFloat(line.getAttribute('x2'));
+          const tip = {
+            x: trackBox.left + (pct / 100) * trackBox.width,
+            y: trackBox.top + 9,
+          };
+          return {
+            iso3: row.dataset.lollipop,
+            hidden: mark?.getAttribute('aria-hidden'),
+            tabindex: mark?.hasAttribute('tabindex'),
+            name: row.querySelector('.lollipop__name')?.textContent?.trim() ?? '',
+            diameter: flagBox ? Number(flagBox.width.toFixed(2)) : 0,
+            centre: flagBox
+              ? {
+                  x: flagBox.x + flagBox.width / 2,
+                  y: flagBox.y + flagBox.height / 2,
+                }
+              : null,
+            tip,
+          };
+        });
+      });
+
+      expectEqual(rows.map((row) => row.iso3).join(','), expected.join(','), `${methodId} rows`);
+      for (const row of rows) {
+        expect(row.centre, `${row.iso3} has no flag`);
+        const dx = Math.abs(row.centre.x - row.tip.x);
+        const dy = Math.abs(row.centre.y - row.tip.y);
+        expect(
+          dx <= 1 && dy <= 1,
+          `${row.iso3} flag centre is ${dx.toFixed(2)},${dy.toFixed(2)}px from the stem tip`,
+        );
+        expectEqual(row.hidden, 'true', `${row.iso3} aria-hidden`);
+        expectEqual(row.tabindex, false, `${row.iso3} takes no tab stop`);
+        expect(row.name.length > 1, `${row.iso3} row lost its name text`);
+      }
+
+      // No overlap: consecutive flag centres must clear the flag diameter.
+      const centres = rows.map((row) => row.centre.y).sort((a, b) => a - b);
+      let tightest = Infinity;
+      for (let index = 1; index < centres.length; index += 1) {
+        tightest = Math.min(tightest, centres[index] - centres[index - 1]);
+      }
+      const diameter = rows[0].diameter;
+      expect(diameter >= 14.5 && diameter <= 15.5, `${methodId} desktop flag ${diameter}px`);
+      expect(
+        tightest >= diameter,
+        `${methodId} flags overlap: tightest gap ${tightest.toFixed(2)}px < ${diameter}px`,
+      );
+      details.push(
+        `${methodId}: ${TOP15_COUNT} flags at ${diameter}px, tightest gap ${tightest.toFixed(2)}px`,
+      );
+    }
+    return details.join(' · ');
+  });
+
+  await check('pane 1 and 2 render with flags in both methods', async () => {
+    await openPane(1, DEFAULT_METHOD);
+    await shot(overview, 'desktop-overview-pane1.png', true);
+    const buried = topFlagIso3s(DEFAULT_METHOD)[9];
+    await pane(1).locator(`.flag-mark[data-iso3="${buried}"]`).focus();
+    await shot(overview, 'desktop-overview-pane1-flag-focus.png', true);
+    await openPane(1, OTHER_METHOD);
+    await shot(overview, 'desktop-overview-pane1-minmax.png', true);
+    await openPane(2, DEFAULT_METHOD);
+    await shot(overview, 'desktop-overview-pane2.png', true);
+    await openPane(2, OTHER_METHOD);
+    await shot(overview, 'desktop-overview-pane2-minmax.png', true);
+    return `pane 1 z + min–max (one overlay), pane 2 z + min–max`;
+  });
+
+  await check('pane 1: flags that touch a dot are reported, not nudged', async () => {
+    const details = [];
+    for (const methodId of METHOD_IDS) {
+      await openPane(1, methodId);
+      const report = await pane(1).evaluate(() => {
+        const hits = (a, b) =>
+          a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        const dots = [...document.querySelectorAll('.field-chart circle[data-dot]')].map((dot) => ({
+          iso3: dot.dataset.dot,
+          box: dot.getBoundingClientRect(),
+        }));
+        const flags = [...document.querySelectorAll('.field-chart .flag-mark')].map((mark) => ({
+          iso3: mark.dataset.iso3,
+          box: mark.querySelector('use').getBoundingClientRect(),
+        }));
+        const dotOverlaps = flags
+          .map((flag) => ({
+            iso3: flag.iso3,
+            hits: dots.filter((dot) => hits(flag.box, dot.box)).map((dot) => dot.iso3),
+          }))
+          .filter((flag) => flag.hits.length > 0)
+          .map((flag) => `${flag.iso3}→${flag.hits.join('+')}`);
+        const flagOverlaps = [];
+        for (let i = 0; i < flags.length; i += 1) {
+          for (let j = i + 1; j < flags.length; j += 1) {
+            if (hits(flags[i].box, flags[j].box)) {
+              flagOverlaps.push(`${flags[i].iso3}×${flags[j].iso3}`);
+            }
+          }
+        }
+        return { dotOverlaps, flagOverlaps };
+      });
+      // Position accuracy wins: the flags stay on their exact data position even
+      // when a neighbour sits under them. This records the cost rather than
+      // nudging the mark off its data point.
+      const dotText =
+        report.dotOverlaps.length === 0
+          ? 'no flag over a dot'
+          : `${report.dotOverlaps.length} flag/dot: ${report.dotOverlaps.join(', ')}`;
+      const flagText =
+        report.flagOverlaps.length === 0
+          ? 'no flag over a flag'
+          : `${report.flagOverlaps.length} flag/flag: ${report.flagOverlaps.join(', ')}`;
+      details.push(`${methodId} → ${dotText} · ${flagText}`);
+    }
+    return details.join(' | ');
+  });
+
+  for (const paneNumber of [7, 8]) {
+    await check(`pane ${paneNumber}: exactly 10 flag marks follow the top 10 by score`, async () => {
+      const details = [];
+      for (const methodId of METHOD_IDS) {
+        await openPane(paneNumber, methodId);
+        expectEqual(await flagMarks(paneNumber).count(), 10, `${methodId} flag marks`);
+        // The dot count still accounts for every country, flags included.
+        expectEqual(
+          await pane(paneNumber).locator('[data-scatter]').count(),
+          71,
+          `${methodId} marks`,
+        );
+        const order = await flagOrder(paneNumber);
+        const expected = topFlagIso3s(methodId);
+        expectEqual(
+          [...order].sort().join(','),
+          [...expected].sort().join(','),
+          `${methodId} flagged set`,
+        );
+        // Paint order is document order: rank 10 first, rank 1 last.
+        expectEqual(order[0], expected[9], `${methodId} first-painted flag (rank 10)`);
+        expectEqual(
+          order[order.length - 1],
+          expected[0],
+          `${methodId} last-painted flag (rank 1)`,
+        );
+        details.push(`${methodId}: ${expected[0]} on top, ${expected[9]} beneath`);
+      }
+      return details.join(' · ');
+    });
+
+    await check(`pane ${paneNumber}: each flag announces the country and score`, async () => {
+      for (const methodId of METHOD_IDS) {
+        await openPane(paneNumber, methodId);
+        const marks = await flagMarks(paneNumber).evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            iso3: node.dataset.iso3,
+            label: node.getAttribute('aria-label'),
+            role: node.getAttribute('role'),
+            tabindex: node.getAttribute('tabindex'),
+            title: node.querySelector('title')?.textContent ?? '',
+            ring: (() => {
+              const ring = node.querySelector('.flag-mark__ring').getBoundingClientRect();
+              const flag = node.querySelector('use').getBoundingClientRect();
+              return {
+                dx: flag.x + flag.width / 2 - (ring.x + ring.width / 2),
+                dy: flag.y + flag.height / 2 - (ring.y + ring.height / 2),
+              };
+            })(),
+          })),
+        );
+        expectEqual(marks.length, 10, `${methodId} marks`);
+        for (const mark of marks) {
+          const source = (block(methodId).coverage ?? []).find(
+            (row) => row.iso3 === mark.iso3,
+          ) ?? countryIn(methodId, mark.iso3);
+          expect(source, `${mark.iso3} missing from the payload`);
+          const name = mark.label?.split(', score ')[0] ?? '';
+          expect(
+            source.country.startsWith(name) || name === source.country,
+            `${mark.iso3} aria-label name "${name}" does not match ${source.country}`,
+          );
+          expectEqual(mark.label, `${name}, score ${scoreText(source.score)}`, `${mark.iso3} aria-label`);
+          expectEqual(mark.title, mark.label, `${mark.iso3} <title>`);
+          expectEqual(mark.role, 'img', `${mark.iso3} role`);
+          expectEqual(mark.tabindex, '0', `${mark.iso3} tabindex`);
+          // The mark is centred on the data position: flag and ring agree.
+          expect(
+            Math.abs(mark.ring.dx) < 0.75 && Math.abs(mark.ring.dy) < 0.75,
+            `${mark.iso3} flag is off-centre by ${mark.ring.dx.toFixed(2)},${mark.ring.dy.toFixed(2)}px`,
+          );
+        }
+      }
+      return '10 labelled, focusable marks per method, all centred on the data position';
+    });
+  }
+
+  await check('flags: Tab reaches a mark, announces it and shows the overlay', async () => {
+    await openPane(7, DEFAULT_METHOD);
+    // The carousel bar is the last stop before the pane; one Tab moves into
+    // the chart, where the first focusable mark is the buried rank 10.
+    await overview.getByRole('button', { name: 'Next pane' }).focus();
+    let found = null;
+    for (let attempt = 0; attempt < 6 && !found; attempt += 1) {
+      await overview.keyboard.press('Tab');
+      found = await overview.evaluate(() => {
+        const element = document.activeElement;
+        if (!element || !element.classList?.contains('flag-mark')) return null;
+        const code = element.querySelector('use')?.getAttribute('href')?.replace('#flag-', '');
+        const overlay = document.querySelector(
+          `[data-pane="7"] .flag-overlay--${code}`,
+        );
+        return {
+          label: element.getAttribute('aria-label'),
+          iso3: element.dataset.iso3,
+          overlay: overlay ? Number(getComputedStyle(overlay).opacity) : null,
+          ring: Number(
+            getComputedStyle(element.querySelector('.flag-mark__focus')).opacity,
+          ),
+        };
+      });
+    }
+    expect(found, 'Tab never reached a flag mark');
+    expect(found.label, 'flag mark has no announced label');
+    expectMatch(found.label, /score \d+\.\d{2}$/, 'announced label');
+    expectEqual(found.overlay, 1, 'overlay opacity while tab-focused');
+    expectEqual(found.ring, 1, ':focus-visible ring opacity');
+    return `Tab → ${found.label} (overlay 1, ring 1)`;
+  });
+
+  await check('flags: hovering a mark shows the same overlay', async () => {
+    await openPane(8, DEFAULT_METHOD);
+    const expected = topFlagIso3s(DEFAULT_METHOD);
+    // Rank 2, near the top of the stack and not buried by anything later.
+    const target = expected[1];
+    const overlay = pane(8).locator(`.flag-overlay[data-overlay="${target}"]`);
+    const opacity = () =>
+      overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
+    expectEqual(await opacity(), 0, 'overlay hidden before hover');
+    await pane(8).locator(`.flag-mark[data-iso3="${target}"]`).hover();
+    expectEqual(await opacity(), 1, 'overlay opacity while hovered');
+    await overview.mouse.move(2, 2);
+    expectEqual(await opacity(), 0, 'overlay hidden after the pointer leaves');
+    return `${target} overlay 0 → 1 → 0 on hover`;
+  });
+
+  await check('flags: one sprite symbol per distinct flag, defined once per page', async () => {
+    await openPane(7, DEFAULT_METHOD);
+    const sprite = await overview.evaluate(() => {
+      const svgs = document.querySelectorAll('svg.flag-sprite');
+      const ids = [...document.querySelectorAll('symbol[id^="flag-"]')].map((node) => node.id);
+      return {
+        sprites: svgs.length,
+        ids,
+        duplicates: ids.length - new Set(ids).size,
+        hidden: [...svgs].every((node) => node.getAttribute('aria-hidden') === 'true'),
+      };
+    });
+    expectEqual(sprite.sprites, 1, 'sprite roots on the page');
+    expectEqual(sprite.duplicates, 0, 'duplicate symbol ids');
+    expect(sprite.hidden, 'sprite is not hidden from assistive tech');
+    // The sprite must carry the union panes 1, 2, 7 and 8 draw in both
+    // methods — pane 2's 15 rows included, not just the top 10.
+    const expected = new Set();
+    for (const methodId of METHOD_IDS) {
+      for (const iso3 of methodFlags(methodId)) expected.add(iso2For(iso3));
+    }
+    const want = [...expected].sort().map((iso2) => `flag-${iso2}`);
+    expectEqual([...sprite.ids].sort().join(','), want.join(','), 'symbol set');
+    expectEqual(sprite.ids.length, expected.size, 'one symbol per distinct flag');
+    // 45 marks on the page (10 + 15 + 10 + 10) but one symbol each.
+    expectEqual(await flagMarks(1).count(), 10, 'pane 1 marks');
+    expectEqual(await flagMarks(2).count(), 15, 'pane 2 marks');
+    expectEqual(await flagMarks(7).count(), 10, 'pane 7 marks');
+    expectEqual(await flagMarks(8).count(), 10, 'pane 8 marks');
+    return `${sprite.ids.length} symbols (${want.length} expected) for 45 marks in four panes`;
+  });
+
+  await check('flags: focusing a buried mark reveals its labelled overlay', async () => {
+    await openPane(7, DEFAULT_METHOD);
+    const expected = topFlagIso3s(DEFAULT_METHOD);
+    const buried = expected[9]; // rank 10, painted first, under the stack
+    const mark = pane(7).locator(`.flag-mark[data-iso3="${buried}"]`);
+    const overlay = pane(7).locator(`.flag-overlay[data-overlay="${buried}"]`);
+    const opacity = () =>
+      overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
+    expectEqual(await opacity(), 0, 'overlay hidden before focus');
+    const pointer = await overlay.evaluate((node) => getComputedStyle(node).pointerEvents);
+    expectEqual(pointer, 'none', 'hidden overlay blocks pointer events');
+
+    await mark.focus();
+    expectEqual(await opacity(), 1, 'overlay opacity after focus');
+    const text = (await overlay.textContent()).replace(/\s+/g, ' ').trim();
+    const row = countryIn(DEFAULT_METHOD, buried);
+    const name = text.split(', score ')[0];
+    expect(
+      row.country.startsWith(name),
+      `overlay name "${name}" does not match ${row.country}`,
+    );
+    expectEqual(text, `${name}, score ${scoreText(row.score)}`, 'overlay label text');
+    expect(
+      text.length > 6 && !text.startsWith('score'),
+      `overlay label is not real text: "${text}"`,
+    );
+
+    await mark.blur();
+    expectEqual(await opacity(), 0, 'overlay hidden again after blur');
+    return `rank 10 "${buried}" → "${text}" (opacity 0 → 1 → 0)`;
+  });
+
+  await check('min–max views of pane 8 render and screenshot', async () => {
+    await openPane(8, OTHER_METHOD);
+    expectEqual(
+      await overview.locator('input[name="overview-scale"]:checked').inputValue(),
+      OTHER_METHOD,
+      'pane 8 scale',
+    );
+    const order = await flagOrder(8);
+    expectEqual(order[order.length - 1], topFlagIso3s(OTHER_METHOD)[0], 'min–max top flag');
+    await shot(overview, 'desktop-overview-pane8-minmax.png', true);
+    return `min–max: ${order.join(' ← ')}`;
+  });
+
+  await check('overlay visible: focused flag screenshot', async () => {
+    await openPane(7, DEFAULT_METHOD);
+    const buried = topFlagIso3s(DEFAULT_METHOD)[9];
+    await pane(7).locator(`.flag-mark[data-iso3="${buried}"]`).focus();
+    await shot(overview, 'desktop-overview-pane7-flag-focus.png', true);
+    return `focused ${buried}`;
+  });
 
   await check('min–max views of panes 4, 5 and 7 render and screenshot', async () => {
     const widths = [];
@@ -1543,6 +1997,81 @@ try {
     return `${scrollWidth} <= ${innerWidth}`;
   });
 
+  await check('390px: flags shrink to 14px and stay on the data position', async () => {
+    await mobileOverview.goto(`${server.base}/?pane=7`, { waitUntil: 'load' });
+    await settle(mobileOverview);
+    const info = await mobileOverview.evaluate(() => {
+      const scope = '[data-pane="7"]:not([hidden])';
+      const mark = document.querySelector(`${scope} .flag-mark`);
+      const flag = mark.querySelector('use').getBoundingClientRect();
+      const ring = mark.querySelector('.flag-mark__ring').getBoundingClientRect();
+      return {
+        w: Number(flag.width.toFixed(2)),
+        h: Number(flag.height.toFixed(2)),
+        dx: Number((flag.x + flag.width / 2 - (ring.x + ring.width / 2)).toFixed(2)),
+        dy: Number((flag.y + flag.height / 2 - (ring.y + ring.height / 2)).toFixed(2)),
+      };
+    });
+    expectEqual(info.w, 14, 'mobile flag width');
+    expectEqual(info.h, 14, 'mobile flag height');
+    expect(info.dx === 0 && info.dy === 0, `flag off centre by ${info.dx},${info.dy}px`);
+    await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(mobileOverview);
+    return `14×14 px, centred (${info.dx}, ${info.dy})`;
+  });
+
+  await check('390px: pane 1 flags 14px, pane 2 flags 13px, both on position', async () => {
+    const measured = {};
+    for (const paneNumber of [1, 2]) {
+      await mobileOverview.goto(`${server.base}/?pane=${paneNumber}`, { waitUntil: 'load' });
+      await settle(mobileOverview);
+      measured[paneNumber] = await mobileOverview.evaluate((n) => {
+        const pane = document.querySelector(`[data-pane="${n}"]:not([hidden])`);
+        const marks = [...pane.querySelectorAll('.flag-mark')];
+        const sizes = marks.map((mark) => {
+          const use = mark.querySelector('use').getBoundingClientRect();
+          return {
+            w: Number(use.width.toFixed(2)),
+            h: Number(use.height.toFixed(2)),
+            cy: use.y + use.height / 2,
+          };
+        });
+        const centres = sizes.map((size) => size.cy).sort((a, b) => a - b);
+        let gap = Infinity;
+        for (let index = 1; index < centres.length; index += 1) {
+          gap = Math.min(gap, centres[index] - centres[index - 1]);
+        }
+        return { count: marks.length, sizes, gap: Number(gap.toFixed(2)) };
+      }, paneNumber);
+    }
+
+    expectEqual(measured[1].count, 10, 'pane 1 mobile flags');
+    expect(measured[1].sizes.every((size) => size.w === 14 && size.h === 14), 'pane 1 is 14px');
+    expectEqual(measured[2].count, 15, 'pane 2 mobile flags');
+    expect(measured[2].sizes.every((size) => size.w === 13 && size.h === 13), 'pane 2 is 13px');
+
+    // Centring on the stem tip, at 13px, in the pane that changed size most.
+    await mobileOverview.goto(`${server.base}/?pane=2`, { waitUntil: 'load' });
+    await settle(mobileOverview);
+    const tip = await mobileOverview.evaluate(() => {
+      const row = document.querySelector('[data-pane="2"]:not([hidden]) [data-lollipop]');
+      const track = row.querySelector('.lollipop__track');
+      const line = row.querySelector('.lollipop__line');
+      const use = row.querySelector('.flag-mark use').getBoundingClientRect();
+      const box = track.getBoundingClientRect();
+      const pct = Number.parseFloat(line.getAttribute('x2'));
+      return {
+        dx: Number((use.x + use.width / 2 - (box.left + (pct / 100) * box.width)).toFixed(2)),
+        dy: Number((use.y + use.height / 2 - (box.top + 9)).toFixed(2)),
+      };
+    });
+    expect(tip.dx === 0 && tip.dy === 0, `mobile flag off centre by ${tip.dx},${tip.dy}px`);
+
+    await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(mobileOverview);
+    return `pane 1 14px · pane 2 13px, gap ${measured[2].gap}px, centred (${tip.dx}, ${tip.dy})`;
+  });
+
   await shot(mobileOverview, 'mobile-overview.png', true);
 
   await mobileOverview.getByRole('button', { name: 'Next pane' }).click();
@@ -1551,9 +2080,9 @@ try {
   );
   await shot(mobileOverview, 'mobile-overview-pane2.png', true);
 
-  await check('390px: panes 3–8 have no horizontal scroll', async () => {
+  await check('390px: panes 1–8 have no horizontal scroll', async () => {
     const widths = [];
-    for (const n of [3, 4, 5, 6, 7, 8]) {
+    for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
       await mobileOverview.goto(`${server.base}/?pane=${n}`, { waitUntil: 'load' });
       await settle(mobileOverview);
       const [scrollWidth, innerWidth] = await mobileOverview.evaluate(() => [
@@ -1583,6 +2112,7 @@ try {
     '/?pane=4&scale=minmax',
     '/?pane=5&scale=minmax',
     '/?pane=7&scale=minmax',
+    '/?pane=8&scale=minmax',
     '/rankings',
     '/rankings?scale=minmax',
     '/country/IND',
@@ -1657,6 +2187,7 @@ try {
       '/?pane=4&scale=minmax',
       '/?pane=5&scale=minmax',
       '/?pane=7&scale=minmax',
+      '/?pane=8&scale=minmax',
     ]) {
       const entry = axeReport.find((item) => item.page === page);
       expect(entry, `${page} axe entry missing`);
