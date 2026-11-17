@@ -7,6 +7,7 @@
   "scripts": {
     "sync-data": "node scripts/sync-data.mjs",
     "fetch-flags": "node scripts/fetch-flags.mjs",
+    "fetch-brand": "node scripts/fetch-brand.mjs",
     "predev": "npm run sync-data",
     "dev": "astro dev",
     "prebuild": "npm run sync-data",

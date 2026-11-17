@@ -776,6 +776,7 @@ details > :not(summary) {
 .site-header__wordmark {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-3);
   min-height: 44px;
   font-family: var(--font-display);
   font-size: 20px;
@@ -784,6 +785,16 @@ details > :not(summary) {
   color: var(--brand);
   text-decoration: none;
   white-space: nowrap;
+}
+
+/* 36px stays inside the 180×97 source's resolution (2.7x, crisp on retina).
+   The mark has no transparent padding and its left edge is a curve, so the
+   negative margin is optical: flush-left reads as indented. */
+.site-header__logo {
+  display: block;
+  height: 36px;
+  width: auto;
+  margin-left: -1px;
 }
 
 .site-nav {

@@ -1,4 +1,4 @@
-# SIDE · CHIPS web prototype
+# SIDE Report web prototype
 
 Local Astro prototype for the SIDE 2026 CHIPS index. Part of the repo's
 `web/` tree; it does not touch the Streamlit dashboard or the data files.
@@ -200,6 +200,14 @@ Design tokens and the type scale are in `src/styles/tokens.css` and
 `src/styles/global.css`. The structure follows `docs/ai-index-ia.md` §6; the
 palette is ICRIER's, with orange reserved for fills, rules and marks — never
 text (`--accent-ink` is the only orange text token, and only where sanctioned).
+
+The ICRIER mark in the header lockup is vendored to
+`web/public/brand/icrier-logo.png` by `node scripts/fetch-brand.mjs`, with the
+same dev-time-only rule as the flags: the PNG is committed, so builds stay
+offline, and the script pins the source's 180×97 dimensions because the header
+reserves layout space from them. It is ICRIER's trademark, not an open-licence
+asset — fine on this local prototype, and not to be redeployed publicly or
+redistributed separately without sign-off.
 
 No deploy config, CI, analytics or CMS. Not for citation: the data is
 pre-publication.

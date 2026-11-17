@@ -19,7 +19,19 @@ const aboutCurrent = path === '/about';
 
 <header class="site-header">
   <div class="container site-header__inner">
-    <a class="site-header__wordmark" href="/">SIDE · CHIPS</a>
+    <a class="site-header__wordmark" href="/">
+      {/* The wordmark carries the link's accessible name, so the mark is
+          decorative here — not alt="ICRIER", which would rename the link. */}
+      <img
+        class="site-header__logo"
+        src="/brand/icrier-logo.png"
+        alt=""
+        width="180"
+        height="97"
+        decoding="async"
+      />
+      <span>SIDE Report</span>
+    </a>
     <nav class="site-nav" aria-label="Primary">
       <a href="/" aria-current={overviewCurrent ? 'page' : undefined}>Overview</a>
       <a href="/rankings" aria-current={rankingsCurrent ? 'page' : undefined}>Rankings</a>

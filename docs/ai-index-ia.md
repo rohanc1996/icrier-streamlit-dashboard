@@ -224,7 +224,7 @@ component will be reused in 2027.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│ SIDE · CHIPS        Rankings   How the index works   About                     │
+│ SIDE Report        Rankings   How the index works   About                     │
 │                                                          [ Search countries… ] │
 ├────────────────────────────────────────────────────────────────────────────────┤
 │ CHIPS 2026                                              Edition 2026 · 71 c.   │
@@ -265,7 +265,7 @@ values in the wireframe above are schematic — the eligible country set is stil
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│ SIDE · CHIPS   Rankings   How the index works   About                          │
+│ SIDE Report   Rankings   How the index works   About                          │
 ├────────────────────────────────────────────────────────────────────────────────┤
 │ ← All 71 countries                                                             │
 │                                                                                │
@@ -329,7 +329,7 @@ testing shows they want two side by side; do not build that in v1.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│ SIDE · CHIPS   Rankings   How the index works   About                           │
+│ SIDE Report   Rankings   How the index works   About                           │
 ├───────────────────────────┬─────────────────────────────────────────────────────┤
 │ On this page              │ How the index works                                 │
 │                           │                                                     │
