@@ -1085,6 +1085,19 @@ export function overviewFlagIso2s(): string[] {
   return [...new Set(iso3s.map((iso3) => iso2For(iso3) as string))].sort();
 }
 
+/**
+ * Every country that appears as a point in the field and the two scatters.
+ *
+ * The reveal rules are generated per point, so the page needs the union across
+ * methods — the toggle swaps the pane block, and a country can move in or out
+ * of the flagged ten without changing the point list.
+ */
+export function overviewPointIso3s(): string[] {
+  const methods = overview?.meta?.methods?.length ? overview.meta.methods : [...scaleIds];
+  const iso3s = methods.flatMap((id) => fieldSource(id).values.map((row) => row.iso3));
+  return [...new Set(iso3s)].sort();
+}
+
 function scoreAxisMax(scores: number[]): number {
   const peak = scores.length ? Math.max(...scores) * 100 : 0;
   return Math.max(50, Math.ceil(peak / 10) * 10);

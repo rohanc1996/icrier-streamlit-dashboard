@@ -1183,37 +1183,48 @@ try {
     });
   }
 
-  await check('flags: Tab reaches a mark, announces it and shows the overlay', async () => {
+  await check('Tab reaches a mark, announces it and shows the overlay', async () => {
     await openPane(7, DEFAULT_METHOD);
-    // The carousel bar is the last stop before the pane; one Tab moves into
-    // the chart, where the first focusable mark is the buried rank 10.
+    // The carousel bar is the last stop before the pane; one Tab moves into the
+    // chart. Plain points are focusable now, so the first stop may be either a
+    // dot or a flag — both must announce themselves and reveal their overlay.
     await overview.getByRole('button', { name: 'Next pane' }).focus();
     let found = null;
     for (let attempt = 0; attempt < 6 && !found; attempt += 1) {
       await overview.keyboard.press('Tab');
       found = await overview.evaluate(() => {
         const element = document.activeElement;
-        if (!element || !element.classList?.contains('flag-mark')) return null;
-        const code = element.querySelector('use')?.getAttribute('href')?.replace('#flag-', '');
+        if (!element) return null;
+        const kind = element.classList?.contains('flag-mark')
+          ? 'flag'
+          : element.classList?.contains('chart-point')
+            ? 'point'
+            : null;
+        if (!kind) return null;
+        const iso3 = element.dataset.iso3;
         const overlay = document.querySelector(
-          `[data-pane="7"] .flag-overlay--${code}`,
+          `[data-pane="7"] .${kind === 'flag' ? 'flag-overlay' : 'point-overlay'}` +
+            `[data-overlay="${iso3}"]`,
         );
         return {
+          kind,
           label: element.getAttribute('aria-label'),
-          iso3: element.dataset.iso3,
+          iso3,
           overlay: overlay ? Number(getComputedStyle(overlay).opacity) : null,
           ring: Number(
-            getComputedStyle(element.querySelector('.flag-mark__focus')).opacity,
+            getComputedStyle(
+              element.querySelector(kind === 'flag' ? '.flag-mark__focus' : '.chart-point__focus'),
+            ).opacity,
           ),
         };
       });
     }
-    expect(found, 'Tab never reached a flag mark');
-    expect(found.label, 'flag mark has no announced label');
+    expect(found, 'Tab never reached a chart mark');
+    expect(found.label, 'chart mark has no announced label');
     expectMatch(found.label, /score \d+\.\d{2}$/, 'announced label');
     expectEqual(found.overlay, 1, 'overlay opacity while tab-focused');
     expectEqual(found.ring, 1, ':focus-visible ring opacity');
-    return `Tab → ${found.label} (overlay 1, ring 1)`;
+    return `Tab → ${found.kind} ${found.label} (overlay 1, ring 1)`;
   });
 
   await check('flags: hovering a mark shows the same overlay', async () => {
@@ -1230,6 +1241,78 @@ try {
     await overview.mouse.move(2, 2);
     expectEqual(await opacity(), 0, 'overlay hidden after the pointer leaves');
     return `${target} overlay 0 → 1 → 0 on hover`;
+  });
+
+  await check('points: every plain dot is named, focusable and reveals its label', async () => {
+    const details = [];
+    for (const paneNumber of [1, 7, 8]) {
+      await openPane(paneNumber, DEFAULT_METHOD);
+      expectEqual(
+        await pane(paneNumber).locator('.chart-point').count(),
+        61,
+        `pane ${paneNumber} plain points`,
+      );
+      expectEqual(
+        await pane(paneNumber).locator('.point-overlay').count(),
+        61,
+        `pane ${paneNumber} point overlays`,
+      );
+      const mark = pane(paneNumber).locator('.chart-point').first();
+      const target = await mark.getAttribute('data-iso3');
+      const label = await mark.getAttribute('aria-label');
+      const role = await mark.getAttribute('role');
+      const tabindex = await mark.getAttribute('tabindex');
+      expectMatch(label ?? '', /, score \d+\.\d{2}$/, `${target} announced label`);
+      expectEqual(role, 'img', `${target} role`);
+      expectEqual(tabindex, '0', `${target} tabindex`);
+
+      const overlay = pane(paneNumber).locator(
+        `.point-overlay[data-overlay="${target}"]`,
+      );
+      const opacity = () =>
+        overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
+      expectEqual(await opacity(), 0, `${target} overlay hidden before focus`);
+      await mark.focus();
+      expectEqual(await opacity(), 1, `${target} overlay after focus`);
+      const text = (await overlay.textContent()).replace(/\s+/g, ' ').trim();
+      expectEqual(text, label, `${target} overlay text`);
+      await mark.blur();
+      expectEqual(await opacity(), 0, `${target} overlay hidden after blur`);
+
+      // Hit circles overlap in the dense part of the scatter, so hover the
+      // first point whose own hit circle is actually on top at its centre.
+      await mark.scrollIntoViewIfNeeded();
+      const spot = await pane(paneNumber).evaluate(() => {
+        for (const group of document.querySelectorAll('.chart-point')) {
+          const box = group.getBoundingClientRect();
+          const x = box.left + box.width / 2;
+          const y = box.top + box.height / 2;
+          const hit = document.elementFromPoint(x, y);
+          if (hit && group.contains(hit)) {
+            return { iso3: group.dataset.iso3, x, y };
+          }
+        }
+        return null;
+      });
+      expect(spot, `pane ${paneNumber}: no point could be hovered`);
+      await overview.mouse.move(spot.x, spot.y);
+      const hovered = pane(paneNumber).locator(
+        `.point-overlay[data-overlay="${spot.iso3}"]`,
+      );
+      expectEqual(
+        await hovered.evaluate((node) => Number(getComputedStyle(node).opacity)),
+        1,
+        `${spot.iso3} overlay on hover`,
+      );
+      await overview.mouse.move(2, 2);
+      expectEqual(
+        await hovered.evaluate((node) => Number(getComputedStyle(node).opacity)),
+        0,
+        `${spot.iso3} overlay after hover`,
+      );
+      details.push(`${paneNumber}:${target}/${spot.iso3}`);
+    }
+    return details.join(' · ');
   });
 
   await check('flags: one sprite symbol per distinct flag, defined once per page', async () => {
@@ -2230,6 +2313,72 @@ try {
     );
     expect(prohibited.length === 0, 'aria-prohibited-attr on the missing-data page');
     return '0 axe violations';
+  });
+
+  await check('colour: page head, footer and pillar cards carry the structural washes', async () => {
+    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(overview);
+    const overviewColours = await overview.evaluate(() => {
+      const strip = document.querySelector('.pillar-strip');
+      return {
+        head: getComputedStyle(document.querySelector('.page-head')).backgroundColor,
+        headPadding: getComputedStyle(document.querySelector('.page-head')).paddingLeft,
+        bar: getComputedStyle(document.querySelector('.carousel__bar')).backgroundColor,
+        barPadding: getComputedStyle(document.querySelector('.carousel__bar')).paddingLeft,
+        footer: getComputedStyle(document.querySelector('.site-footer')).backgroundColor,
+        footerText: getComputedStyle(document.querySelector('.site-footer__status')).color,
+        stripHeight: strip ? strip.getBoundingClientRect().height : 0,
+        stripImage: strip ? getComputedStyle(strip).backgroundImage : '',
+      };
+    });
+    expectEqual(overviewColours.head, 'rgb(239, 233, 221)', 'page-head wash');
+    expectEqual(overviewColours.headPadding, '24px', 'page-head inset');
+    expectEqual(overviewColours.bar, 'rgb(239, 233, 221)', 'carousel bar wash');
+    expectEqual(overviewColours.barPadding, '16px', 'carousel bar inset');
+    expectEqual(overviewColours.footer, 'rgb(39, 45, 79)', 'navy footer');
+    expectEqual(overviewColours.footerText, 'rgb(250, 248, 245)', 'footer text');
+    expectEqual(overviewColours.stripHeight, 4, 'pillar strip height');
+    expectMatch(overviewColours.stripImage, /rgb\(15, 118, 110\)/, 'strip HARNESS stop');
+    expectMatch(overviewColours.stripImage, /rgb\(184, 74, 0\)/, 'strip SUSTAINABILITY stop');
+
+    await overview.goto(`${server.base}/country/IND`, { waitUntil: 'load' });
+    await settle(overview);
+    const countryColours = await overview.evaluate(() => ({
+      head: getComputedStyle(document.querySelector('.country-masthead')).backgroundColor,
+      headPadding: getComputedStyle(document.querySelector('.country-masthead')).paddingLeft,
+      cards: Object.fromEntries(
+        [...document.querySelectorAll('.pillar-card')].map((card) => [
+          card.dataset.pillar,
+          getComputedStyle(card).backgroundColor,
+        ]),
+      ),
+    }));
+    expectEqual(countryColours.head, 'rgb(239, 233, 221)', 'country masthead wash');
+    expectEqual(countryColours.headPadding, '24px', 'country masthead inset');
+    const cards = countryColours.cards;
+    expectEqual(cards.CONNECT, 'rgb(233, 234, 240)', 'CONNECT tint');
+    expectEqual(cards.HARNESS, 'rgb(230, 240, 238)', 'HARNESS tint');
+    expectEqual(cards.SUSTAINABILITY, 'rgb(248, 235, 227)', 'SUSTAINABILITY tint');
+
+    await overview.goto(`${server.base}/methodology`, { waitUntil: 'load' });
+    await settle(overview);
+    const methodology = await overview.evaluate(() => ({
+      edge: getComputedStyle(
+        document.querySelector('.pillar-details[data-pillar="HARNESS"]'),
+      ).borderLeftColor,
+      tickWidth: getComputedStyle(
+        document.querySelector('.method-section h2'),
+        '::before',
+      ).width,
+      tickColour: getComputedStyle(
+        document.querySelector('.method-section h2'),
+        '::before',
+      ).backgroundColor,
+    }));
+    expectEqual(methodology.edge, 'rgb(15, 118, 110)', 'methodology pillar edge');
+    expectEqual(methodology.tickWidth, '40px', 'section tick width');
+    expectEqual(methodology.tickColour, 'rgb(255, 94, 0)', 'section tick colour');
+    return 'sand head · navy footer · weighted pillar strip · five pillar tints';
   });
 
   await check('Partial data chip carries coverage in text', async () => {

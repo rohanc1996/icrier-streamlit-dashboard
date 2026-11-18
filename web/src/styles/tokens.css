@@ -22,6 +22,15 @@
   --rule: #e3e0da;
   --border: #878d96;
 
+  /* Structural wash: colour that groups a region rather than a data mark.
+   * Body ink clears AA on this ground (14.5:1), muted ink 5.3:1. */
+  --wash-warm: #efe9dd;
+  --wash-accent: #fff0e6;
+
+  /* Footer: the one dark surface. Text pairs measured against #272d4f. */
+  --footer-fg: #faf8f5;
+  --footer-fg-muted: #c9cfdd;
+
   /* Missing data: warm grey + hatch; words carry the state. */
   --missing-fill: #e6e3dd;
   --missing-hatch: #7d838c;

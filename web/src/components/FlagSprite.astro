@@ -14,13 +14,19 @@
  * stylesheet. Pure CSS: the base mark is `.flag-mark--us`, the last-child
  * overlay layer holds `.flag-overlay--us`, and a general sibling combinator
  * reaches it.
+ *
+ * The same pattern covers plain points: `pointIso3s` produces one pair for
+ * `.chart-point--aus` → `.point-overlay--aus`, so every dot in the point plots
+ * reveals a label without a flag sprite of its own.
  */
 interface Props {
   /** Alpha-2 codes to include. Union across methods, sorted. */
   iso2s: string[];
+  /** Alpha-3 codes for every plain point that gets a hover overlay. */
+  pointIso3s?: string[];
 }
 
-const { iso2s } = Astro.props;
+const { iso2s, pointIso3s = [] } = Astro.props;
 
 const files = import.meta.glob('../assets/flags/*.svg', {
   query: '?raw',
@@ -58,6 +64,16 @@ const revealCss = symbols
       `.flag-mark--${iso2}:focus ~ .flag-overlay--${iso2} { opacity: 1; }`,
   )
   .join('\n');
+
+const pointRevealCss = pointIso3s
+  .map((iso3) => {
+    const key = iso3.toLowerCase();
+    return (
+      `.chart-point--${key}:hover ~ .point-overlay--${key},\n` +
+      `.chart-point--${key}:focus ~ .point-overlay--${key} { opacity: 1; }`
+    );
+  })
+  .join('\n');
 ---
 
 <svg class="flag-sprite" aria-hidden="true" focusable="false" width="0" height="0">
@@ -69,4 +85,4 @@ const revealCss = symbols
     }
   </defs>
 </svg>
-<style is:global set:html={revealCss}></style>
+<style is:global set:html={`${revealCss}\n${pointRevealCss}`}></style>

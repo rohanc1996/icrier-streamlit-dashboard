@@ -102,7 +102,15 @@ first, rank 1 last — so the best score is on top. Every flag is focusable and
 reveals a 22px flag plus a "country, score" label when hovered or focused; the
 reveal is CSS-only (a general sibling combinator from `.flag-mark--us` to the
 overlay layer that closes the SVG), so a buried mark stays reachable by
-keyboard and by tap. Everything below the top 10 stays a plain dot.
+keyboard and by tap.
+
+Everything below the top 10 is a dot, and every dot is interactive too: a
+transparent hit circle expands the small mark, the group is focusable, and the
+same CSS pattern (`.chart-point--aus` → `.point-overlay--aus`) reveals a ring
+and the same "country, score" chip. The rule is generated for every point in
+`FlagSprite.astro` from `overviewPointIso3s()`; no per-point markup or sprite
+file is needed, because the overlay shows the label without a flag image.
+Dots come before flags in document order, so flags still paint on top.
 
 Pane 2 draws a flag at every stem tip — all 15 rows — at 15px (13px at
 ≤640px). Those flags are decorative: the row already prints the country name
@@ -200,6 +208,16 @@ Design tokens and the type scale are in `src/styles/tokens.css` and
 `src/styles/global.css`. The structure follows `docs/ai-index-ia.md` §6; the
 palette is ICRIER's, with orange reserved for fills, rules and marks — never
 text (`--accent-ink` is the only orange text token, and only where sanctioned).
+
+Cream is the page ground, not the only surface. `--wash-warm` (warm sand) sits
+on the page head, the carousel control bar and the country masthead, with the
+orange rules doing the punctuation. `--wash-accent` (pale orange) sits behind
+the active nav item. The footer is the one dark surface, `--brand` navy with
+`--footer-fg` / `--footer-fg-muted` text. A 4px five-pillar strip closes the
+header; its hard stops are built from each pillar's published weight, not five
+equal slices. Colour that means "pillar" stays in the five pillar tokens: the
+country page cards take their pillar's tint, and methodology rows take a tinted
+gradient plus a pillar-colour left edge. Data marks themselves stay neutral.
 
 The ICRIER mark in the header lockup is vendored to
 `web/public/brand/icrier-logo.png` by `node scripts/fetch-brand.mjs`, with the

@@ -2,6 +2,8 @@ import { formatComposite } from '../../lib/format';
 import type { ScatterChartModel, ScatterPointModel } from '../../lib/overview-types';
 import FlagMark from './FlagMark';
 import FlagOverlay from './FlagOverlay';
+import PointMark from './PointMark';
+import PointOverlay from './PointOverlay';
 
 /** Flag radius, in px, at desktop size; the ring adds 1.5px around it. */
 const FLAG_RADIUS = 9;
@@ -114,16 +116,20 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
         )}
 
         {dots.map((point) => (
-          <circle
+          <PointMark
             key={point.iso3}
-            data-scatter={point.iso3}
-            data-below={point.belowThreshold ? 'true' : undefined}
-            className={`scatter__dot${
+            iso3={point.iso3}
+            xPct={point.xPct}
+            y={point.y}
+            radius={point.belowThreshold ? 5 : 4}
+            label={markName(point)}
+            dotClassName={`scatter__dot${
               point.belowThreshold ? ' scatter__dot--below' : ''
             }`}
-            cx={`${point.xPct}%`}
-            cy={point.y}
-            r={point.belowThreshold ? 5 : 4}
+            data={{
+              'data-scatter': point.iso3,
+              'data-below': point.belowThreshold ? 'true' : undefined,
+            }}
           />
         ))}
 
@@ -193,7 +199,18 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
           {coverage ? 'share of the indicator set present' : 'GDP 2025, current US$ (log scale)'}
         </text>
 
-        {/* Last in the SVG on purpose: the revealed label sits above every mark. */}
+        {/* Last in the SVG on purpose: the revealed labels sit above every mark. */}
+        {dots.map((point) => (
+          <PointOverlay
+            key={`point-overlay-${point.iso3}`}
+            iso3={point.iso3}
+            xPct={point.xPct}
+            y={point.y}
+            label={markName(point)}
+            right={point.xPct <= 74}
+            labelY={Math.max(12, Math.min(model.height - 6, point.y + 4))}
+          />
+        ))}
         {flags.map((point) => (
           <FlagOverlay
             key={`overlay-${point.iso3}`}

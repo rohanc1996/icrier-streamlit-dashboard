@@ -1,5 +1,6 @@
 ---
 import CountrySearch from './CountrySearch.tsx';
+import { pillars } from '../lib/data';
 
 interface Props {
   countries: Array<{ iso3: string; name: string; fullName: string }>;
@@ -15,6 +16,27 @@ const overviewCurrent = path === '/';
 const rankingsCurrent = path === '/rankings' || path.startsWith('/country/');
 const methodologyCurrent = path === '/methodology';
 const aboutCurrent = path === '/about';
+
+// The header strip is the same five pillar colours the charts use, sliced by
+// each pillar's share of the index. Built from the framework so an edition
+// with different weights (or a renamed pillar) cannot drift from the CSS.
+const PILLAR_COLOURS: Record<string, string> = {
+  CONNECT: 'var(--pillar-connect)',
+  HARNESS: 'var(--pillar-harness)',
+  INNOVATE: 'var(--pillar-innovate)',
+  PROTECT: 'var(--pillar-protect)',
+  SUSTAINABILITY: 'var(--pillar-sustainability)',
+};
+const totalWeight = pillars.reduce((total, pillar) => total + pillar.weight, 0) || 1;
+let cursor = 0;
+const pillarStops = pillars
+  .map((pillar) => {
+    const from = (cursor / totalWeight) * 100;
+    cursor += pillar.weight;
+    const to = (cursor / totalWeight) * 100;
+    return `${PILLAR_COLOURS[pillar.id] ?? 'var(--ink-muted)'} ${from.toFixed(2)}% ${to.toFixed(2)}%`;
+  })
+  .join(', ');
 ---
 
 <header class="site-header">
@@ -47,4 +69,9 @@ const aboutCurrent = path === '/about';
       defaultScale={defaultScale}
     />
   </div>
+  <div
+    class="pillar-strip"
+    style={`background: linear-gradient(90deg, ${pillarStops})`}
+    aria-hidden="true"
+  />
 </header>

@@ -2,6 +2,8 @@ import { formatComposite } from '../../lib/format';
 import type { FieldChartModel, FieldPointModel } from '../../lib/overview-types';
 import FlagMark from './FlagMark';
 import FlagOverlay from './FlagOverlay';
+import PointMark from './PointMark';
+import PointOverlay from './PointOverlay';
 
 /** Flag radius, in px, at desktop size: an 18px flag. */
 const FLAG_RADIUS = 9;
@@ -90,17 +92,21 @@ export default function FieldChart({ model }: { model: FieldChartModel }) {
       </text>
 
       {dots.map((point) => (
-        <circle
+        <PointMark
           key={point.iso3}
-          data-dot={point.iso3}
-          data-field={point.iso3}
-          data-score={point.score}
-          className={
+          iso3={point.iso3}
+          xPct={point.xPct}
+          y={point.cy}
+          radius={point.isIndia ? 5.5 : 4.5}
+          label={markName(point)}
+          dotClassName={
             point.isIndia ? 'field-chart__dot field-chart__dot--india' : 'field-chart__dot'
           }
-          cx={`${point.xPct}%`}
-          cy={point.cy}
-          r={point.isIndia ? 5.5 : 4.5}
+          data={{
+            'data-dot': point.iso3,
+            'data-field': point.iso3,
+            'data-score': point.score,
+          }}
         />
       ))}
 
@@ -142,7 +148,18 @@ export default function FieldChart({ model }: { model: FieldChartModel }) {
         />
       ))}
 
-      {/* Last in the SVG on purpose: the revealed label sits above every mark. */}
+      {/* Last in the SVG on purpose: the revealed labels sit above every mark. */}
+      {dots.map((point) => (
+        <PointOverlay
+          key={`point-overlay-${point.iso3}`}
+          iso3={point.iso3}
+          xPct={point.xPct}
+          y={point.cy}
+          label={markName(point)}
+          right={point.xPct <= 74}
+          labelY={Math.max(12, Math.min(model.height - 6, point.cy + 4))}
+        />
+      ))}
       {flags.map((point) => (
         <FlagOverlay
           key={`overlay-${point.iso3}`}

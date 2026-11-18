@@ -143,13 +143,22 @@ a:hover {
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-4) var(--space-8);
-  padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--rule);
+  padding: var(--space-6);
+  background: var(--wash-warm);
+  border-bottom: 3px solid var(--accent);
   margin-bottom: var(--space-6);
 }
 
 .page-head__main {
   max-width: var(--measure);
+}
+
+/* Country profiles use a shorter masthead with the same wash as page-head. */
+.country-masthead {
+  padding: var(--space-6);
+  background: var(--wash-warm);
+  border-bottom: 3px solid var(--accent);
+  margin-bottom: var(--space-4);
 }
 
 .page-head__meta {
@@ -721,6 +730,18 @@ details > :not(summary) {
     padding-bottom: var(--space-16);
   }
 
+  .page-head {
+    padding: var(--space-4);
+  }
+
+  .country-masthead {
+    padding: var(--space-4);
+  }
+
+  .carousel__bar {
+    padding: var(--space-2) var(--space-3);
+  }
+
   th,
   td {
     padding-left: 8px;
@@ -760,7 +781,19 @@ details > :not(summary) {
   top: 0;
   z-index: 100;
   background: var(--paper);
+  border-top: 3px solid var(--accent);
   border-bottom: 1px solid var(--rule);
+}
+
+/* Five-pillar signature: one hard stop per pillar, width weighted by its share
+ * of the index. The gradient itself is built from the data in Header.astro. */
+.pillar-strip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  pointer-events: none;
 }
 
 .site-header__inner {
@@ -823,6 +856,8 @@ details > :not(summary) {
 }
 
 .site-nav a[aria-current='page'] {
+  padding-inline: var(--space-2);
+  background: var(--wash-accent);
   color: var(--brand);
   font-weight: 600;
   border-bottom-color: var(--accent);
@@ -1133,7 +1168,7 @@ details > :not(summary) {
   gap: var(--space-2);
   min-width: 0;
   padding: var(--space-4);
-  background: transparent;
+  background: var(--pillar-tint);
   border: 0;
   border-top: 4px solid var(--pillar-fill, var(--ink));
   border-left: 1px solid var(--rule);
@@ -1524,6 +1559,24 @@ details > :not(summary) {
   margin: 0 0 var(--space-4);
 }
 
+.method-section h2::before,
+.pillar-section > h2::before {
+  content: '';
+  display: inline-block;
+  width: 40px;
+  height: 3px;
+  margin-right: var(--space-3);
+  background: var(--accent);
+  vertical-align: 0.35em;
+}
+
+@media (max-width: 640px) {
+  .method-section h2::before,
+  .pillar-section > h2::before {
+    width: 28px;
+  }
+}
+
 .method-section h3 {
   margin: var(--space-6) 0 var(--space-2);
   font-family: var(--font-body);
@@ -1544,6 +1597,9 @@ details > :not(summary) {
 
 .pillar-details {
   margin-bottom: var(--space-2);
+  padding-left: var(--space-3);
+  background: linear-gradient(90deg, var(--pillar-tint), transparent 72%);
+  border-left: 3px solid var(--pillar-fill);
 }
 
 .pillar-details summary {
@@ -1716,8 +1772,9 @@ details > :not(summary) {
 /* ---------- Site footer ---------- */
 .site-footer {
   margin-top: var(--space-24);
-  padding: var(--space-6) 0 var(--space-8);
-  border-top: 1px solid var(--rule);
+  padding: var(--space-8) 0;
+  background: var(--brand);
+  border-top: 3px solid var(--accent);
 }
 
 .site-footer__inner {
@@ -1730,7 +1787,7 @@ details > :not(summary) {
 
 .site-footer__status {
   margin: 0;
-  color: var(--ink);
+  color: var(--footer-fg);
   font-size: 13px;
   line-height: 20px;
   font-weight: 600;
@@ -1738,9 +1795,17 @@ details > :not(summary) {
 
 .site-footer__note {
   margin: 0;
-  color: var(--ink-muted);
+  color: var(--footer-fg-muted);
   font-size: 12px;
   line-height: 18px;
+}
+
+.site-footer .method-note {
+  color: var(--footer-fg-muted);
+}
+
+.site-footer .method-note__status {
+  color: var(--footer-fg);
 }
 
 /* ---------- Overview carousel ---------- */
@@ -1760,7 +1825,8 @@ details > :not(summary) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2) var(--space-4);
-  padding: var(--space-2) 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--wash-warm);
   border-bottom: 1px solid var(--rule);
 }
 
@@ -1884,7 +1950,7 @@ details > :not(summary) {
 .pane__number {
   grid-row: 1 / span 2;
   margin: 0;
-  color: var(--ink-muted);
+  color: var(--accent-ink);
   font-family: var(--font-display);
   font-size: 22px;
   line-height: 28px;
@@ -2835,6 +2901,53 @@ details > :not(summary) {
 }
 
 .flag-overlay__label {
+  fill: var(--ink);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* Plain points carry the same reveal as a flag: a focusable group, a transparent
+ * hit target, and a ring + label that live in the overlay layer. */
+.chart-point {
+  cursor: pointer;
+}
+
+.chart-point:focus {
+  outline: none;
+}
+
+.chart-point__hit {
+  fill: transparent;
+}
+
+.chart-point__focus {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.chart-point:focus-visible .chart-point__focus {
+  opacity: 1;
+}
+
+.point-overlay {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.point-overlay__ring {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 1.5;
+}
+
+.point-overlay__label {
   fill: var(--ink);
   font-family: var(--font-body);
   font-size: 12px;
