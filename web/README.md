@@ -30,7 +30,7 @@ missing, the build still runs and the two built panes are derived from
 
 | Route | Page |
 | --- | --- |
-| `/` | **Overview** — the eight-pane carousel |
+| `/` | **Overview** — the seven-pane carousel and the global filter bar |
 | `/rankings` | Rankings table, filter, sort, pillar columns, scale switch |
 | `/country/[iso3]` | Country profile with the L1–L3 pillar → sub-pillar → indicator drilldown |
 | `/methodology` | The seven spec sections, live counts and both scaling methods |
@@ -42,21 +42,17 @@ the Rankings tab current.
 ## The overview carousel
 
 `/` is one pane at a time — not a scroll-snap strip. `src/components/
-OverviewCarousel.tsx` is the only stateful part; the eight panes live in
-`src/lib/overview.ts` and are rendered by Astro at build time, then hydrated.
+OverviewExplorer.tsx` is the stateful part; it renders `FilterBar` and the seven
+panes from `src/lib/site.ts`, from `data/derived/web/editions.json`.
 
-- Prev/next chevrons, a `3 / 8` counter and a dot stepper; Home/End and ←/→
+- Prev/next chevrons, a `3 / 7` counter and a dot stepper; Home/End and ←/→
   also move. Focus is never moved for you.
-- **The scale toggle re-scores the whole carousel.** Both methods are built at
-  build time; the island only chooses a block. The default is the payload's
-  `meta.defaultMethod` (z-score), so `?scale` is absent by default and
-  `?scale=minmax` selects the alternative. The URL is the source of truth and
-  changes use `replaceState`; `?scale=z` normalises to absent.
-- **Pane 6 is exempt** because it compares the two methods, and its caption
-  says so.
-- `?pane=3` and `?scale=minmax` are shareable and survive a reload, together.
-  The default pane is never written to the URL, the same convention as
-  `?scale=` on `/rankings`.
+- **The filter bar drives every pane.** Score basis, one or more years, country
+grouping, a two-country comparison and normalization are read from the URL by
+`src/lib/site.ts`. `?pane=3&year=2025,2026&basis=absolute&group=g20` is a
+shareable view.
+- **Pane 6 is exempt from the method toggle** because it compares the two
+  methods, and its caption says so.
 - `role="group"`, `aria-roledescription="carousel"`, an `aria-label`, and a
   polite live region that announces "Pane 3 of 8: Anatomy of a score".
 - No autoplay. `prefers-reduced-motion: reduce` removes the pane transition.
@@ -64,30 +60,28 @@ OverviewCarousel.tsx` is the only stateful part; the eight panes live in
   shows", the chart, a **View as table** disclosure and a method-note line
   (edition · method · N).
 
-The eight panes, in order: The field; The podium and the pack; Anatomy of a
-score; India's five verdicts; Movement; The same index, two scales; Scale and
-score; How much stands behind a score.
+The seven panes, in order: The field; Every score, ranked; Anatomy of a score;
+Five verdicts; Rank tracker; Two scales, one index; Scale and score.
 
-**Built now (all eight panes):** the field (71 dots, median tick, India
-marked), the top-15 lollipop, the weighted composition of the top 10, India's
-five pillar verdicts against all 71 ranks, the score dumbbell across editions,
-the diverging bars between the two scaling methods, the GDP scatter on a log
-axis, and the coverage scatter. Every table fallback carries the same numbers
-as its chart. Every chart is produced at build time: geometry comes from `d3`
-scale maths and `src/lib/overview.ts`, and Astro prerenders the SVG into the
-HTML.
+**Built now (all seven panes):** the field, every score ranked with an explicit
+top-N control, the weighted composition of every country (all by default),
+the selected country's five pillar verdicts, the multi-year rank tracker, the
+sortable robustness table that replaces the diverging bars, and the GDP scatter
+on a log axis. Every table fallback carries the same numbers as its chart.
+Every chart is produced at build time: geometry comes from `d3` scale maths and
+`src/lib/site.ts`, and Astro prerenders the SVG into the HTML.
 
-- **Pane 5 encodes score, not rank.** Ranks are positions in a country pool
-  that changed composition between editions (59 → 71 countries, and 2025 used
-  a smaller indicator set), so a rank slope reads as performance when it is
-  mostly composition. The rank columns stay in the table.
-- **Pane 6 states its headline in the pane** — how many of the 71 change rank
-  between min–max and z-score — and the bars run from a zero line.
+- **Pane 5 is ranks only.** It covers the countries scored in every selected
+  edition, re-ranked within that subset, and says that the methodology,
+  indicators and weights changed between editions.
+- **Pane 6 is a table, not a bar chart.** It sorts by the smallest absolute
+  rank difference by default and states that individual indicator ranks cannot
+  move (z-score is monotone with min–max); only the composite can.
 - **Pane 7 uses a log GDP axis** with magnitude ticks ($50bn … $30tn). The
-  Absolute edition scores absolute volumes, so the relationship is partly
-  definitional; the caption says so.
-- **Pane 8 marks the countries below 80% coverage** and states the unscored
-  sub-pillar cell count. Coverage is a caveat on a rank, not a penalty.
+  Absolute edition scores volumes, so the relationship is partly
+  definitional; the caption says so, and GDP does not follow the year control.
+- **The old coverage pane is removed.** Coverage survives as a download column
+  and a caveat on the rankings page.
 
 `d3` is pinned to **7.9.2** and used at build time only — no chart runtime
 library ships to the browser. Pane 5 reads `movement.years` from the data, so a
@@ -140,33 +134,26 @@ there is no overlay to reveal.
 
 ## Data contract for `/`
 
-`data/derived/web/overview.json` (produced by the data agent):
+`data/derived/web/editions.json` (produced by `pipeline/export_editions.py`):
 
 ```
-meta          { edition, generated, methods, defaultMethod, countries, gdpYear, gdpSource }
-methods       {
-  full_minmax: { field, top15, composition, india, movement, sizeVsScore, coverage, correlation },
-  z:           { ... same structure ... }
-}
-scaleMovement { pairs, movers: [{ iso3, country, rankFull, rankZ, delta }] }
+meta      { years, methods, defaultMethod, defaults, basisAvailability,
+            groups, groupLabels, editionCountryCount, gdpYear, leaves, edition }
+editions  { "<year>": { "<basis>": {
+              methods: { full_minmax: PaneData, z: PaneData },
+              robustness: [{ iso3, country, rankFull, rankZ, delta }],
+              countryCount, scoredCount } } }
+tracker   { "<method>": { "2025,2026": { years, countries[{ iso3, ranks }], count } } }
+downloads [{ label, href, note }]
 ```
 
-Per method: `field { median, min, max, values[] }`, `top15[]`,
-`composition[]` (pillars with `contribution`), `india { pillars[], best, worst }`,
-`movement { years, countries: [{ iso3, country, ranks, scores }] }`,
-`sizeVsScore[]`, `coverage[]`, and `correlation { pearson, spearman,
-pearsonExTop2, spearmanExTop2, n }`. `scaleMovement` sits outside `methods{}`
-because it compares them.
+`PaneData` carries `field { values, median, min, max }`, `composition[]`
+(all countries, each pillar with `contribution`), `verdicts { pillars, countries }`
+and `sizeVsScore[]`. Ranks are exported by the engine; the site never derives
+one. `tracker` carries **ranks only** — no score appears in it, by construction.
 
 Scores are 0–1. `src/lib/format.ts` is the one place that multiplies by 100:
-2 dp for composites, 1 dp for indicator and pillar scores. `india.best` and
-`india.worst` are objects (`{ id, rank }`), and `composition[].contribution`
-is used as exported — never recomputed.
-
-Pane 5 needs a score per edition; the method block carries
-`movement.countries[].scores`, with `src/data/series.json` as the fallback and
-the ranks in the two files compared at build time so the dumbbells and the
-table cannot drift apart.
+2 dp for composites, 1 dp for indicator and pillar scores.
 
 ## Verify (headless WebKit)
 
@@ -176,25 +163,23 @@ npm run verify     # node scripts/verify.mjs
 ```
 
 `scripts/verify.mjs` serves `dist/` itself on a free port, drives Playwright's
-WebKit engine headless at 1400×1000, 390×844 and 320×800, and asserts:
+WebKit engine headless at 1400×1000, 1366×768, 390×844 and 320×800, and asserts:
 
-- `/` renders exactly 8 carousel panes with one visible; next/prev, ←/→,
-  Home/End and `?pane=` change it; the live region and counter follow.
-- Every pane draws a real chart and a real table; no placeholder is left.
-- Pane 1 draws 71 dots plus a median tick and an India mark; pane 2 draws 15
-  lollipop rows; pane 5 draws one dumbbell per movement country with the five
-  largest score changes marked and the live caveat count; pane 6 draws 10
-  diverging rows and states its 64-of-71 headline; pane 7 draws 71 points on a
-  log axis with magnitude ticks and India labelled; pane 8 draws 71 points and
-  marks the 9 below 80% coverage. Every table matches its chart.
-- `/rankings` defaults to z-score; the movement column compares against the
-  other method and is labelled accordingly ("Rank vs min–max" / "Rank vs z").
-- The scale toggle drives every overview pane (pane 6 excepted), and
-  `?pane=4&scale=minmax` restores both the pane and the method.
-- The profile drilldown, `?open=`, the methodology page and 320px layout.
-- axe-core on eighteen page states (both methods), the orange-never-text guard
-  on `/`, both scales, panes 4–8, `/rankings` and `/country/IND`, and no
-  horizontal scroll at 390px for both overview scales and panes 3–8.
+- `/` renders exactly 7 panes with one visible; next/prev, ←/→, Home/End and
+  `?pane=` change it; the live region and counter follow.
+- The filter bar reports the active view in text, a deep link restores basis,
+  years, group, comparison and pane, and “Reset view” clears the query string.
+- A basis with no file for the selected year is disabled with a reason.
+- Pane 2 and pane 3 default to all countries and only cut on an explicit
+  top-N choice.
+- Pane 5 is ranks only and uses the 38-country 2025→2026 intersection.
+- Pane 6 sorts by the smallest absolute difference by default and each header
+  sorts.
+- Downloads resolve to non-empty CSVs.
+- `/rankings` defaults to min–max; the movement column is labelled against the
+  other method.
+- axe-core on eighteen page states; no horizontal overflow at 390px or at
+  1366×768.
 
 Screenshots and `report.json` land in `.verify/` (gitignored). Violations are
 printed for triage and do not fail the run; behaviour checks do.

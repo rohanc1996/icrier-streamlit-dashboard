@@ -276,1243 +276,249 @@ try {
       n,
     );
 
-  await check('/ renders 8 carousel panes, exactly one visible', async () => {
-    const total = await overview.locator('[data-pane]').count();
-    expectEqual(total, 8, 'pane count');
-    const visible = await overview.locator('[data-pane]:not([hidden])').count();
-    expectEqual(visible, 1, 'visible panes');
-    expectEqual(await livePane(), '1', 'visible pane');
-    expectEqual(await counterText(), '1 / 8', 'counter');
-    return '8 panes in the DOM, pane 1 visible';
+  await check('/ renders seven panes, exactly one visible', async () => {
+    const panes = await overview.locator('.carousel__pane').count();
+    expectEqual(panes, 7, 'carousel pane count');
+    expectEqual(await overview.locator('.carousel__pane:not([hidden])').count(), 1, 'visible panes');
+    expectEqual(await overview.locator('[data-pane="8"]').count(), 0, 'pane 8 still present');
+    return '7 panes, pane 1 visible';
   });
 
-  await check('carousel is a labelled group with a roledescription', async () => {
-    const group = overview.locator('[aria-roledescription="carousel"]');
-    await group.waitFor();
-    const label = await group.getAttribute('aria-label');
-    expect(label && label.length > 8, `missing aria-label: ${label}`);
-    return `role=group, "${label}"`;
+  await check('the filter bar names the active view in text', async () => {
+    const text = (await overview.locator('.filterbar__selection').innerText()).replace(/\s+/g, ' ');
+    expectMatch(text, /Combined \(50–50\)/, 'basis in summary');
+    expectMatch(text, /2026/, 'year in summary');
+    expectMatch(text, /All countries/, 'group in summary');
+    expectMatch(text, /Min–max/, 'normalization in summary');
+    return JSON.stringify(text.trim());
   });
 
-  await check('pane 1: 61 dots + 10 flags, India marked, median tick', async () => {
-    const flagged = topFlagIso3s(DEFAULT_METHOD).length;
-    const dots = await pane(1).locator('circle[data-dot]').count();
-    const flags = await pane(1).locator('.flag-mark').count();
-    expectEqual(dots, 71 - flagged, 'field dots');
-    expectEqual(flags, flagged, 'field flags');
-    expectEqual(await pane(1).locator('[data-field]').count(), 71, 'every country marked');
-    expectEqual(await pane(1).locator('.field-chart__ring').count(), 1, 'India marks');
-    expectEqual(await pane(1).locator('.field-chart__median').count(), 1, 'median tick');
-    const label = await pane(1).locator('.field-chart').getAttribute('aria-label');
-    expectMatch(label, /71 CHIPS scores/, 'chart label');
-    expectMatch(label, /India is 3rd/, 'India in chart label');
-    return `${dots} dots, ${flags} flags, 1 India mark, median tick; "${label.slice(0, 60)}…"`;
+  await check('pane 1 draws every scored country and the median', async () => {
+    const dots = await overview.locator('.field-chart__dot').count();
+    const flags = await overview.locator('.field-chart .flag-mark').count();
+    expectEqual(dots + flags, 71, 'field marks');
+    expectEqual(await overview.locator('.field-chart__median').count(), 1, 'median line');
+    return `${dots} dots + ${flags} flags, median tick`;
   });
 
-  await check('pane 1 has a View as table fallback with 71 rows', async () => {
-    const details = pane(1).locator('details[data-pane-table]');
-    expectEqual(await details.count(), 1, 'details count');
-    expectMatch((await details.locator('summary').innerText()).trim(), /View as table/, 'summary');
-    const rows = await pane(1).locator('table tbody tr').count();
-    expectEqual(rows, 71, 'table rows');
-    await details.locator('summary').click();
-    expectEqual(await details.getAttribute('open'), '', 'disclosure open');
-    const first = (await pane(1).locator('table tbody tr').first().innerText()).replace(/\s+/g, ' ');
-    const usa = countryIn(DEFAULT_METHOD, 'USA');
-    expectMatch(first, new RegExp(`1 USA ${scoreText(usa.score).replace('.', '\\.')}`), 'first row');
-    await details.locator('summary').click();
-    expectEqual(await details.getAttribute('open'), null, 'disclosure closed again');
-    return `71 table rows; opened and closed the disclosure; first row ${first}`;
+  await check('pane 1 has a View data disclosure with 71 rows', async () => {
+    await pane(1).locator('details.pane__table summary').click();
+    const rows = await pane(1).locator('details.pane__table tbody tr').count();
+    expectEqual(rows, 71, 'pane 1 table rows');
+    return '71 rows';
   });
 
-  await check('overview defaults to z-score: pane 1 USA at 80.91', async () => {
-    expectEqual(DEFAULT_METHOD, 'z', 'payload default method');
-    const checked = await overview
-      .locator('input[name="overview-scale"]:checked')
-      .inputValue();
-    expectEqual(checked, DEFAULT_METHOD, 'checked scale');
-    expect(
-      !overview.url().includes('scale='),
-      `URL should not carry scale= by default: ${overview.url()}`,
-    );
-    // USA is rank 1, so it is a flag now; the score hook is the same.
-    const mark = Number(await pane(1).locator('[data-field="USA"]').getAttribute('data-score'));
-    expectEqual(scoreText(mark), '80.91', 'pane 1 USA mark score');
-    return `z active, no ?scale; USA mark ${scoreText(mark)}`;
-  });
-
-  await check('scale toggle: pane 1 USA 80.91 → 67.27 → 80.91', async () => {
-    await overview.getByRole('radio', { name: 'Min–max' }).check();
-    await settle(overview);
-    expectMatch(overview.url(), /[?&]scale=minmax(&|$)/, 'URL after toggle');
-    const minmax = Number(
-      await pane(1).locator('[data-field="USA"]').getAttribute('data-score'),
-    );
-    expectEqual(scoreText(minmax), '67.27', 'pane 1 USA under min–max');
-
-    await overview.getByRole('radio', { name: 'Z-score' }).check();
-    await settle(overview);
-    expect(!overview.url().includes('scale='), `scale=z should normalise away: ${overview.url()}`);
-    const back = Number(
-      await pane(1).locator('[data-field="USA"]').getAttribute('data-score'),
-    );
-    expectEqual(scoreText(back), '80.91', 'pane 1 USA back under z');
-    return '80.91 → 67.27 → 80.91; ?scale=minmax appears then drops';
-  });
-
-  const spanText = (methodId) => {
-    const top15 = [...block(methodId).top15].sort((a, b) => a.rank - b.rank);
-    return `Places 4–13 span ${scoreText(top15[3].score)} → ${scoreText(top15[12].score)}`;
-  };
-  const indiaRankOf = (methodId, pillar) =>
-    block(methodId).india.pillars.find((item) => item.id === pillar).rank;
-  const rhoText = (methodId) =>
-    `ρ Spearman ${block(methodId).correlation.spearman.toFixed(4)}`;
-  const highlighted = async () =>
-    (
-      await overview
-        .locator('[data-dumbbell][data-highlighted="true"]')
-        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-dumbbell')))
-    )
-      .sort()
-      .join(',');
-
-  await check('scale toggle re-scores panes 2, 4, 5 and 7 together', async () => {
-    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
-    await settle(overview);
-
-    const read = async () => ({
-      zSpan: (await pane(2).locator('.pane__caption').textContent()).replace(/\s+/g, ' '),
-      zSust: await pane(4)
-        .locator('[data-verdict="SUSTAINABILITY"] .verdict__rank-value')
-        .getAttribute('data-rank'),
-      zRho: (await pane(7).locator('.pane__caption').textContent()).replace(/\s+/g, ' '),
-      zDots: await highlighted(),
-    });
-
-    const first = await read();
-    expectMatch(first.zSpan, new RegExp(spanText(DEFAULT_METHOD)), 'pane 2 span (z)');
-    expectEqual(Number(first.zSust), indiaRankOf(DEFAULT_METHOD, 'SUSTAINABILITY'), 'pane 4 SUSTAINABILITY (z)');
-    expectMatch(first.zRho, new RegExp(rhoText(DEFAULT_METHOD).replace('.', '\\.')), 'pane 7 ρ (z)');
-    expectEqual(Number(first.zSust), 42, 'z SUSTAINABILITY rank');
-
-    await overview.getByRole('radio', { name: 'Min–max' }).check();
-    await settle(overview);
-
-    const second = await read();
-    expectMatch(second.zSpan, new RegExp(spanText(OTHER_METHOD)), 'pane 2 span (min–max)');
-    expectEqual(Number(second.zSust), indiaRankOf(OTHER_METHOD, 'SUSTAINABILITY'), 'pane 4 SUSTAINABILITY (min–max)');
-    expectMatch(second.zRho, new RegExp(rhoText(OTHER_METHOD).replace('.', '\\.')), 'pane 7 ρ (min–max)');
-    expectEqual(Number(second.zSust), 66, 'min–max SUSTAINABILITY rank');
-    expect(second.zDots !== first.zDots, `pane 5 highlight set did not change: ${first.zDots}`);
-
-    expect(first.zSpan !== second.zSpan, 'pane 2 span text unchanged');
-    expect(first.zRho !== second.zRho, 'pane 7 caption unchanged');
-    return `span "${spanText(DEFAULT_METHOD)}" → "${spanText(OTHER_METHOD)}"; SUST 42 → 66; ` +
-      `ρ ${block(DEFAULT_METHOD).correlation.spearman} → ${block(OTHER_METHOD).correlation.spearman}; ` +
-      `highlighted ${first.zDots} → ${second.zDots}`;
-  });
-
-  await check('pane 6 is exempt: its numbers do not change with the toggle', async () => {
-    const before = {
-      headline: (await pane(6).locator('.pane__callout').textContent()).replace(/\s+/g, ' '),
-      first: await pane(6).locator('[data-diverge]').first().getAttribute('data-delta'),
-      rows: await pane(6).locator('[data-diverge]').count(),
-    };
-    await overview.getByRole('radio', { name: 'Z-score' }).check();
-    await settle(overview);
-    const after = {
-      headline: (await pane(6).locator('.pane__callout').textContent()).replace(/\s+/g, ' '),
-      first: await pane(6).locator('[data-diverge]').first().getAttribute('data-delta'),
-      rows: await pane(6).locator('[data-diverge]').count(),
-    };
-    expectEqual(after.headline, before.headline, 'pane 6 headline');
-    expectEqual(after.first, before.first, 'pane 6 largest delta');
-    expectEqual(after.rows, before.rows, 'pane 6 row count');
-    const caption = (await pane(6).locator('.pane__caption').textContent()).replace(/\s+/g, ' ');
-    expectMatch(caption, /always shows both methods/, 'pane 6 caption note');
-    return `${before.rows} rows, headline "${before.headline.slice(0, 60)}…" stable; caption notes the exemption`;
-  });
-
-  await check('?pane=4&scale=minmax reloads pane 4 open with min–max active', async () => {
-    await overview.goto(`${server.base}/?pane=4&scale=minmax`, { waitUntil: 'load' });
-    await settle(overview);
-    await waitPane(4);
-    expectEqual(await livePane(), '4', 'visible pane');
-    expectEqual(await counterText(), '4 / 8', 'counter');
-    const checked = await overview
-      .locator('input[name="overview-scale"]:checked')
-      .inputValue();
-    expectEqual(checked, OTHER_METHOD, 'checked scale after reload');
-    const rank = await pane(4)
-      .locator('[data-verdict="SUSTAINABILITY"] .verdict__rank-value')
-      .getAttribute('data-rank');
-    expectEqual(Number(rank), 66, 'SUSTAINABILITY rank under min–max');
-    expectMatch(overview.url(), /pane=4/, 'pane param kept');
-    expectMatch(overview.url(), /scale=minmax/, 'scale param kept');
-    return 'pane 4 open, min–max active, SUSTAINABILITY 66';
-  });
-
-  await overview.goto(`${server.base}/`, { waitUntil: 'load' });
-  await settle(overview);
-  await shot(overview, 'desktop-overview-z.png', true);
-
-  await overview.getByRole('radio', { name: 'Min–max' }).check();
-  await settle(overview);
-  await shot(overview, 'desktop-overview-minmax.png', true);
-
-  await check('Next moves to pane 2, writes ?pane=2 and announces it', async () => {
-    await overview.getByRole('button', { name: 'Next pane' }).click();
-    await waitPane(2);
-    expectEqual(await livePane(), '2', 'visible pane');
-    expectMatch(overview.url(), /[?&]pane=2(&|$)/, 'URL');
-    expectEqual(await counterText(), '2 / 8', 'counter');
-    expectEqual(
-      await announcement(),
-      'Pane 2 of 8: The podium and the pack',
-      'live region',
-    );
-    return `pane 2; ${new URL(overview.url()).search}; "${await announcement()}"`;
-  });
-
-  await check('pane 2: 15 lollipop rows, a line and a flag each', async () => {
-    const rows = await pane(2).locator('[data-lollipop]').count();
-    expectEqual(rows, 15, 'lollipop rows');
-    expectEqual(await pane(2).locator('.lollipop__line').count(), 15, 'lines');
-    expectEqual(await pane(2).locator('.lollipop__row .flag-mark').count(), 15, 'flags');
-    expectEqual(await pane(2).locator('.lollipop__dot').count(), 0, 'tip dots replaced');
-    const text = (await pane(2).innerText()).replace(/\s+/g, ' ');
-    expectMatch(text, /Places 4–13 span/, 'span annotation');
-    return '15 rows, 15 lines, 15 flags; 4–13 annotation present';
-  });
-
-  await check('pane 2 has a View as table fallback with 15 rows', async () => {
-    const rows = await pane(2).locator('table tbody tr').count();
-    expectEqual(rows, 15, 'table rows');
-    return '15 table rows';
-  });
-
-  await shot(overview, 'desktop-overview-pane2.png', true);
-
-  /* ---------------------------------------------------------- pane 3 */
-  await overview.goto(`${server.base}/?pane=3`, { waitUntil: 'load' });
-  await settle(overview);
-  await waitPane(3);
-
-  await check('pane 3: 10 stacked bars, 5 segments each, matching overview.json', async () => {
-    const bars = pane(3).locator('[data-composition-country]');
-    expectEqual(await bars.count(), 10, 'bar count');
-    expectEqual(await pane(3).locator('rect[data-segment]').count(), 50, 'segment count');
-
-    const top = [...block(DEFAULT_METHOD).composition].sort((a, b) => a.rank - b.rank)[0];
-    const row = pane(3).locator(`[data-composition-country="${top.iso3}"]`);
-    const contributions = await row
-      .locator('rect[data-segment]')
-      .evaluateAll((elements) =>
-        elements.map((element) => Number(element.getAttribute('data-contribution'))),
-      );
-    expectEqual(contributions.length, top.pillars.length, 'top bar segments');
-    const expected = top.pillars.map((pillar) => pillar.contribution);
-    expected.forEach((value, index) => {
-      expect(
-        Math.abs(contributions[index] - value) <= 1e-6,
-        `segment ${index} is ${contributions[index]}, payload has ${value}`,
-      );
-    });
-    const expectedSum = expected.reduce((sum, value) => sum + value, 0);
-    const drawnTotal = contributions.reduce((sum, value) => sum + value, 0);
-    expect(
-      Math.abs(drawnTotal - expectedSum) <= 1e-6,
-      `segments sum to ${drawnTotal}, payload sums to ${expectedSum}`,
-    );
-    const total = Number(await row.getAttribute('data-total'));
-    expect(
-      Math.abs(total - expectedSum) <= 1e-6,
-      `bar total ${total} does not agree with ${expectedSum}`,
-    );
-    const printed = (await row.locator('.composition__value').innerText()).trim();
-    expectEqual(printed, (top.score * 100).toFixed(2), 'printed score');
-    expectEqual(
-      await pane(3).locator('.composition__legend-item').count(),
-      5,
-      'legend items',
-    );
-    return `${top.iso3}: 5 segments, sum ${drawnTotal.toFixed(6)}, printed ${printed}, legend 5`;
-  });
-
-  await check('pane 3 has a View as table with 50 country-pillar rows', async () => {
-    const top = block(DEFAULT_METHOD).composition[0];
-    const rows = await pane(3).locator('table tbody tr').count();
-    expectEqual(rows, 50, 'table rows');
-    // The disclosure is closed, so read textContent, not rendered innerText.
-    const headers = (await pane(3).locator('thead th').allTextContents()).map((text) =>
-      text.trim(),
-    );
-    expectEqual(headers.join('|'), 'Rank|Country|Pillar|Contribution|Score', 'columns');
-    const cells = (
-      await pane(3).locator('table tbody tr').first().locator('td').allTextContents()
-    ).map((text) => text.trim());
-    const expectedCells = [
-      '1',
-      'USA',
-      top.pillars[0].id,
-      (top.pillars[0].contribution * 100).toFixed(2),
-      (top.score * 100).toFixed(2),
-    ];
-    expectEqual(cells.join('|'), expectedCells.join('|'), 'first row');
-    return `50 rows; ${headers.join(' · ')}`;
-  });
-
-  await shot(overview, 'desktop-overview-pane3.png', true);
-
-  /* ---------------------------------------------------------- pane 4 */
-  await overview.goto(`${server.base}/?pane=4`, { waitUntil: 'load' });
-  await settle(overview);
-  await waitPane(4);
-
-  await check('pane 4: 5 verdict rows, CONNECT rank 3, SUSTAINABILITY rank 42', async () => {
-    const rows = pane(4).locator('[data-verdict]');
-    expectEqual(await rows.count(), 5, 'verdict rows');
-    expectEqual(
-      await pane(4).locator('circle.verdict__dot').count(),
-      5 * OVERVIEW.meta.countries,
-      'strip dots',
-    );
-
-    const marker = (pillar) =>
-      pane(4).locator(`[data-verdict="${pillar}"] .verdict__marker`);
-
-    const india = block(DEFAULT_METHOD).india;
-    const best = india.best;
-    const worst = india.worst;
-    const bestText = await pane(4).locator(`[data-verdict="${best.id}"]`).innerText();
-    expectEqual(Number(await marker(best.id).getAttribute('data-rank')), best.rank, 'best rank');
-    expectMatch(bestText.replace(/\s+/g, ' '), new RegExp(`${best.rank}\\s+of ${OVERVIEW.meta.countries}`), 'best row');
-
-    const worstText = await pane(4).locator(`[data-verdict="${worst.id}"]`).innerText();
-    expectEqual(Number(await marker(worst.id).getAttribute('data-rank')), worst.rank, 'worst rank');
-    expectMatch(worstText.replace(/\s+/g, ' '), new RegExp(`${worst.rank}\\s+of ${OVERVIEW.meta.countries}`), 'worst row');
-
-    expectEqual(best.id, 'CONNECT', 'strongest pillar id');
-    expectEqual(worst.id, 'SUSTAINABILITY', 'weakest pillar id');
-    expectEqual(best.rank, 3, 'CONNECT rank under z');
-    expectEqual(worst.rank, 42, 'SUSTAINABILITY rank under z');
-    return `${best.id} ${best.rank} · ${worst.id} ${worst.rank}; 355 strip dots`;
-  });
-
-  await check('pane 4 has a View as table with 5 pillar rows', async () => {
-    const rows = await pane(4).locator('table tbody tr').count();
-    expectEqual(rows, 5, 'table rows');
-    const first = (await pane(4).locator('table tbody tr').first().textContent()).replace(
-      /\s+/g,
-      ' ',
-    );
-    return `5 rows; first ${first.trim()}`;
-  });
-
-  await shot(overview, 'desktop-overview-pane4.png', true);
-
-  /* ---------------------------------------------------------- pane 5 */
-  await overview.goto(`${server.base}/?pane=5`, { waitUntil: 'load' });
-  await settle(overview);
-  await waitPane(5);
-
-  await check('pane 5: one dumbbell per country, caveat carries the live count', async () => {
-    const count = block(DEFAULT_METHOD).movement.countries.length;
-    const years = block(DEFAULT_METHOD).movement.years;
-    expectEqual(
-      await pane(5).locator('[data-dumbbell]').count(),
-      count,
-      'dumbbell rows',
-    );
-    const points = await pane(5).locator('[data-dumbbell-point]').count();
-    expectEqual(points, count * years.length, 'dumbbell endpoints');
-
-    const caveat = (await pane(5).locator('.movement-chart__caveat').innerText()).replace(
-      /\s+/g,
-      ' ',
-    );
-    expectMatch(
-      caveat,
-      new RegExp(`\\b${count} of ${OVERVIEW.meta.countries} countries`),
-      'caveat text',
-    );
-    expectMatch(caveat, /scored in both editions/, 'caveat editions');
-
-    // The five largest |Δ score|, computed from the same payload the build uses.
-    const expected = block(DEFAULT_METHOD).movement.countries
-      .map((country) => ({ ...country, delta: scoreDelta(DEFAULT_METHOD, country.iso3, years) }))
-      .filter((country) => country.delta !== null)
-      .sort(
-        (a, b) =>
-          Math.abs(b.delta) - Math.abs(a.delta) || a.country.localeCompare(b.country),
-      )
-      .slice(0, 5)
-      .map((country) => country.iso3)
-      .sort();
-    const actual = (
-      await pane(5)
-        .locator('[data-dumbbell][data-highlighted="true"]')
-        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-dumbbell')))
-    ).sort();
-    expectEqual(actual.join(','), expected.join(','), 'highlighted set (largest |Δ score|)');
-
-    const paneText = (await pane(5).innerText()).replace(/\s+/g, ' ');
-    expect(!/Rank 1 is at the top/i.test(paneText), 'rank axis label is still present');
-    return `${count} dumbbells, ${points} endpoints; marked ${expected.join(', ')}; ${caveat}`;
-  });
-
-  await check('pane 5: a null edition breaks the line (synthetic)', async () => {
-    const cases = [
-      {
-        name: 'gap between two scores',
-        years: [2025, 2026, 2027],
-        ranks: { 2025: 5, 2026: null, 2027: 9 },
-        expected: 0,
-      },
-      {
-        name: 'trailing null',
-        years: [2025, 2026, 2027],
-        ranks: { 2025: 5, 2026: 6, 2027: null },
-        expected: 1,
-      },
-      {
-        name: 'leading null',
-        years: [2025, 2026],
-        ranks: { 2025: null, 2026: 3 },
-        expected: 0,
-      },
-      {
-        name: 'all present, three editions',
-        years: [2025, 2026, 2027],
-        ranks: { 2025: 5, 2026: 6, 2027: 4 },
-        expected: 2,
-      },
-    ];
-    const results = [];
-    for (const item of cases) {
-      const runs = movementRuns(item.years, item.ranks);
-      expectEqual(runs.length, item.expected, item.name);
-      for (const run of runs) {
-        expect(
-          run.fromRank !== null && run.toRank !== null,
-          `${item.name}: a segment touches a null`,
-        );
-        expect(run.toYear > run.fromYear, `${item.name}: year order`);
-      }
-      results.push(`${item.name} ${runs.length}`);
-    }
-    return results.join(' · ');
-  });
-
-  await check('pane 5 table: score and rank per edition, Δ points and Δ rank', async () => {
-    const disclosure = pane(5).locator('details[data-pane-table]');
-    await disclosure.locator('summary').click();
-    const movement = block(DEFAULT_METHOD).movement;
-    const rows = await pane(5).locator('table tbody tr').count();
-    expectEqual(rows, movement.countries.length, 'table rows');
-    const years = movement.years;
-    const headers = (await pane(5).locator('thead th').allTextContents()).map((text) =>
-      text.trim(),
-    );
-    expectEqual(
-      headers.join('|'),
-      [
-        'Country',
-        ...years.map((year) => `${year} score`),
-        'Δ points',
-        ...years.map((year) => `${year} rank`),
-        'Δ rank',
-      ].join('|'),
-      'columns',
-    );
-    const saudi = movement.countries.find((row) => row.iso3 === 'SAU');
-    const firstScore = saudi.scores[String(years[0])];
-    const lastScore = saudi.scores[String(years[years.length - 1])];
-    const deltaPoints = Math.round((lastScore - firstScore) * 1000) / 10;
-    const deltaRank = saudi.ranks[String(years[years.length - 1])] - saudi.ranks[String(years[0])];
-    const expected = [
-      (firstScore * 100).toFixed(2),
-      (lastScore * 100).toFixed(2),
-      deltaPoints > 0 ? `+${deltaPoints.toFixed(1)}` : `−${Math.abs(deltaPoints).toFixed(1)}`,
-      String(saudi.ranks[String(years[years.length - 1])]),
-      deltaRank > 0 ? `+${deltaRank}` : `−${Math.abs(deltaRank)}`,
-    ];
-    const saudiRow = pane(5).locator('table tbody tr', { hasText: 'Saudi Arabia' });
-    const cells = (await saudiRow.locator('td').allInnerTexts()).map((text) => text.trim());
-    expectEqual(cells[1], expected[0], 'Saudi first-edition score');
-    expectEqual(cells[2], expected[1], 'Saudi last-edition score');
-    expectEqual(cells[3], expected[2], 'Saudi Δ points');
-    expectEqual(cells[5], expected[3], 'Saudi last-edition rank');
-    expectEqual(cells[6], expected[4], 'Saudi Δ rank');
-    await disclosure.locator('summary').click();
-    return `${rows} rows; ${headers.join(' · ')}; Saudi ${cells.slice(1).join(' / ')}`;
-  });
-
-  await shot(overview, 'desktop-overview-pane5.png', true);
-
-  /* ---------------------------------------------------------- pane 6 */
-  await overview.goto(`${server.base}/?pane=6`, { waitUntil: 'load' });
-  await settle(overview);
-  await waitPane(6);
-
-  await check('pane 6: 10 diverging rows, the largest is Saudi Arabia at 19', async () => {
-    expectEqual(
-      await pane(6).locator('[data-diverge]').count(),
-      10,
-      'diverging rows',
-    );
-    const largest = pane(6).locator('[data-diverge]').first();
-    expectEqual(await largest.getAttribute('data-diverge'), 'SAU', 'largest row');
-    expectEqual(Number(await largest.getAttribute('data-delta')), -19, 'largest delta');
-    const text = (await largest.innerText()).replace(/\s+/g, ' ');
-    expectMatch(text, /55 → 36/, 'both ranks');
-    return `10 rows; largest SAU ${text.trim()}`;
-  });
-
-  await check('pane 6 states the 64-of-71 headline in the pane', async () => {
-    const text = (await pane(6).innerText()).replace(/\s+/g, ' ');
-    expectMatch(text, /64 of 71 countries change rank/, 'headline');
-    expectMatch(text, /Saudi Arabia moves 19 places/i, 'largest mover');
-    const changed = OVERVIEW.scaleMovement.movers.filter((row) => row.delta !== 0).length;
-    expectEqual(changed, 64, 'payload changed count');
-    return '64 of 71 · Saudi Arabia moves 19 places';
-  });
-
-  await check('pane 6 table: all 71 countries with both ranks and Δ rank', async () => {
-    const disclosure = pane(6).locator('details[data-pane-table]');
-    await disclosure.locator('summary').click();
-    const rows = await pane(6).locator('table tbody tr').count();
-    expectEqual(rows, OVERVIEW.scaleMovement.movers.length, 'table rows');
-    const headers = (await pane(6).locator('thead th').allTextContents()).map((text) =>
-      text.trim(),
-    );
-    expectMatch(headers.join('|'), /Min–max rank\|Z-score rank\|Δ rank/, 'columns');
-    const saudi = pane(6).locator('table tbody tr', { hasText: 'Saudi Arabia' });
-    const cells = (await saudi.locator('td').allInnerTexts()).map((text) => text.trim());
-    expectEqual(cells.slice(1).join(' / '), '55 / 36 / −19', 'Saudi row');
-    await disclosure.locator('summary').click();
-    return `${rows} rows; ${headers.join(' · ')}`;
-  });
-
-  await shot(overview, 'desktop-overview-pane6.png', true);
-
-  /* ---------------------------------------------------------- pane 7 */
-  await overview.goto(`${server.base}/?pane=7`, { waitUntil: 'load' });
-  await settle(overview);
-  await waitPane(7);
-
-  const xTickNodes = () =>
-    pane(7).locator('.scatter-chart--sizeScore text.chart__tick-label');
-
-  await check('pane 7: 71 points on a log GDP axis with magnitude tick labels', async () => {
-    expectEqual(await pane(7).locator('[data-scatter]').count(), 71, 'points');
-    const texts = (await xTickNodes().allTextContents()).map((text) => text.trim());
-    const money = texts.filter((text) => /^\$\d+(?:\.\d+)?(?:bn|tn)$/.test(text));
-    expectEqual(money.length, 4, 'GDP tick labels');
-    expect(money.includes('$50bn') && money.includes('$5tn'), `unexpected ticks ${texts}`);
-    expect(
-      !texts.some((text) => /^\d{6,}$/.test(text)),
-      `raw numbers used as tick labels: ${texts}`,
-    );
-
-    // Equal decade gaps are what a log axis does; a linear axis would not.
-    const positions = await xTickNodes().evaluateAll((nodes) =>
-      nodes
-        .filter((node) => /^\$\d/.test((node.textContent || '').trim()))
-        .map((node) => Number.parseFloat(node.getAttribute('x'))),
-    );
-    const sorted = [...new Set(positions)].sort((a, b) => a - b);
-    expectEqual(sorted.length, 4, 'distinct tick positions');
-    const gaps = sorted.slice(1).map((value, index) => value - sorted[index]);
-    expect(
-      Math.abs(gaps[0] - gaps[1]) < 2,
-      `tick gaps are not logarithmic: ${JSON.stringify(gaps)}`,
-    );
-    return `${money.join(' · ')}; gaps ${gaps.map((gap) => gap.toFixed(1)).join('/')}`;
-  });
-
-  await check('pane 7 names India, the USA, China and a smaller high scorer', async () => {
-    const labels = (
-      await pane(7).locator('.scatter-chart--sizeScore text.chart__label').allTextContents()
-    ).map((text) => text.trim());
-    for (const name of ['India', 'United States', 'China']) {
-      expect(labels.includes(name), `${name} is not labelled (${labels.join(', ')})`);
-    }
-    expect(labels.length >= 4, `expected a fourth label, got ${labels.join(', ')}`);
-    return labels.join(' · ');
-  });
-
-  await check('pane 7 table: all 71 countries with compact GDP', async () => {
-    const disclosure = pane(7).locator('details[data-pane-table]');
-    await disclosure.locator('summary').click();
-    const rows = await pane(7).locator('table tbody tr').count();
-    expectEqual(rows, 71, 'table rows');
-    const usa = pane(7).locator('table tbody tr', { hasText: 'United States' });
-    const cells = (await usa.locator('td').allInnerTexts()).map((text) => text.trim());
-    expectMatch(cells[3], /^\$\d+(?:\.\d+)?(?:bn|tn)$/, 'compact GDP');
-    await disclosure.locator('summary').click();
-    return `${rows} rows; USA ${cells.slice(0, 4).join(' / ')}`;
-  });
-
-  await shot(overview, 'desktop-overview-pane7.png', true);
-
-  /* ---------------------------------------------------------- pane 8 */
-  await overview.goto(`${server.base}/?pane=8`, { waitUntil: 'load' });
-  await settle(overview);
-  await waitPane(8);
-
-  await check('pane 8: 71 points, 9 marked below 80% coverage', async () => {
-    expectEqual(await pane(8).locator('[data-scatter]').count(), 71, 'points');
-    expectEqual(
-      await pane(8).locator('[data-scatter][data-below="true"]').count(),
-      9,
-      'below-threshold marks',
-    );
-    const expected = block(DEFAULT_METHOD).coverage.filter((row) => row.coverage < 0.8).length;
-    expectEqual(expected, 9, 'payload below-threshold count');
-    const text = (await pane(8).innerText()).replace(/\s+/g, ' ');
-    expectMatch(text, /9 of 71 countries sit below 80% coverage/, 'callout');
-    expectMatch(text, /26 country × sub-pillar cells are unscored/, 'unscored cells');
-    return '71 points, 9 marked, 26 unscored cells in the pane';
-  });
-
-  await check('pane 8 table: all 71 countries with coverage', async () => {
-    const disclosure = pane(8).locator('details[data-pane-table]');
-    await disclosure.locator('summary').click();
-    const rows = await pane(8).locator('table tbody tr').count();
-    expectEqual(rows, 71, 'table rows');
-    const headers = (await pane(8).locator('thead th').allInnerTexts()).map((text) =>
-      text.trim(),
-    );
-    expectMatch(headers.join('|'), /Coverage\|Indicators/, 'columns');
-    await disclosure.locator('summary').click();
-    return `${rows} rows; ${headers.join(' · ')}`;
-  });
-
-  await shot(overview, 'desktop-overview-pane8.png', true);
-
-  /* ---------------------------------------------------------- flags */
-  const paneMethodUrl = (paneNumber, methodId) =>
-    `${server.base}/?pane=${paneNumber}${methodId === DEFAULT_METHOD ? '' : `&scale=${methodId}`}`;
-
-  const openPane = async (paneNumber, methodId) => {
-    await overview.goto(paneMethodUrl(paneNumber, methodId), { waitUntil: 'load' });
-    await settle(overview);
-    await waitPane(paneNumber);
-  };
-
-  const flagMarks = (paneNumber) => pane(paneNumber).locator('.flag-mark');
-  const flagOrder = (paneNumber) =>
-    flagMarks(paneNumber).evaluateAll((nodes) => nodes.map((node) => node.dataset.iso3));
-
-  await check('pane 1: exactly 10 flag marks per method, the top 10, rank 1 last', async () => {
-    const details = [];
-    for (const methodId of METHOD_IDS) {
-      await openPane(1, methodId);
-      const expected = topFlagIso3s(methodId);
-      expectEqual(await flagMarks(1).count(), 10, `${methodId} flag marks`);
-      // Everything below the top 10 stays a dot; every country is still marked.
-      expectEqual(await pane(1).locator('circle[data-dot]').count(), 61, `${methodId} dots`);
-      expectEqual(await pane(1).locator('[data-field]').count(), 71, `${methodId} marks`);
-
-      const order = await flagOrder(1);
-      expectEqual(
-        [...order].sort().join(','),
-        [...expected].sort().join(','),
-        `${methodId} flagged set`,
-      );
-      // Paint order is document order: rank 10 first, rank 1 last.
-      expectEqual(order[0], expected[9], `${methodId} first-painted flag (rank 10)`);
-      expectEqual(order[order.length - 1], expected[0], `${methodId} rank 1 is last`);
-
-      const marks = await flagMarks(1).evaluateAll((nodes) =>
-        nodes.map((node) => ({
-          iso3: node.dataset.iso3,
-          label: node.getAttribute('aria-label'),
-          tabindex: node.getAttribute('tabindex'),
-          title: node.querySelector('title')?.textContent ?? '',
-        })),
-      );
-      for (const mark of marks) {
-        const row = countryIn(methodId, mark.iso3);
-        const name = row.shortName || row.country;
-        expectEqual(mark.label, `${name}, score ${scoreText(row.score)}`, `${mark.iso3} label`);
-        expectMatch(mark.label, new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}, score `), `${mark.iso3} name`);
-        expectEqual(mark.title, mark.label, `${mark.iso3} <title>`);
-        expectEqual(mark.tabindex, '0', `${mark.iso3} tabindex`);
-      }
-      details.push(`${methodId}: ${expected[0]} on top, ${expected[9]} beneath`);
-    }
-    return details.join(' · ');
-  });
-
-  await check('pane 1: focusing a buried mark reveals its labelled overlay', async () => {
-    await openPane(1, DEFAULT_METHOD);
-    const expected = topFlagIso3s(DEFAULT_METHOD);
-    const buried = expected[9]; // rank 10, painted first, under the stack
-    const overlay = pane(1).locator(`.flag-overlay[data-overlay="${buried}"]`);
-    const opacity = () =>
-      overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
-    expectEqual(await opacity(), 0, 'overlay hidden before focus');
-    await pane(1).locator(`.flag-mark[data-iso3="${buried}"]`).focus();
-    expectEqual(await opacity(), 1, 'overlay opacity after focus');
-    const text = (await overlay.textContent()).replace(/\s+/g, ' ').trim();
-    const row = countryIn(DEFAULT_METHOD, buried);
-    expectEqual(text, `${row.shortName || row.country}, score ${scoreText(row.score)}`, 'overlay text');
-    await pane(1).locator(`.flag-mark[data-iso3="${buried}"]`).blur();
-    expectEqual(await opacity(), 0, 'overlay hidden again after blur');
-    return `rank 10 "${buried}" → "${text}" (opacity 0 → 1 → 0)`;
-  });
-
-  await check('pane 2: 15 flags per method, each centred on its stem tip', async () => {
-    const details = [];
-    for (const methodId of METHOD_IDS) {
-      await openPane(2, methodId);
-      const expected = top15Iso3s(methodId);
-      expectEqual(
-        await pane(2).locator('.lollipop__row .flag-mark').count(),
-        TOP15_COUNT,
-        `${methodId} flags`,
-      );
-      expectEqual(await pane(2).locator('.lollipop__dot').count(), 0, `${methodId} tip dots`);
-
-      const rows = await pane(2).evaluate(() => {
-        const items = [...document.querySelectorAll('[data-lollipop]')];
-        return items.map((row) => {
-          const track = row.querySelector('.lollipop__track');
-          const line = row.querySelector('.lollipop__line');
-          const mark = row.querySelector('.flag-mark');
-          const use = mark?.querySelector('use');
-          const trackBox = track.getBoundingClientRect();
-          const flagBox = use?.getBoundingClientRect();
-          // The stem tip is the line's x2 at y=9; percentages resolve against
-          // the track's viewport width, which is its layout width in px.
-          const pct = Number.parseFloat(line.getAttribute('x2'));
-          const tip = {
-            x: trackBox.left + (pct / 100) * trackBox.width,
-            y: trackBox.top + 9,
-          };
-          return {
-            iso3: row.dataset.lollipop,
-            hidden: mark?.getAttribute('aria-hidden'),
-            tabindex: mark?.hasAttribute('tabindex'),
-            name: row.querySelector('.lollipop__name')?.textContent?.trim() ?? '',
-            diameter: flagBox ? Number(flagBox.width.toFixed(2)) : 0,
-            centre: flagBox
-              ? {
-                  x: flagBox.x + flagBox.width / 2,
-                  y: flagBox.y + flagBox.height / 2,
-                }
-              : null,
-            tip,
-          };
-        });
-      });
-
-      expectEqual(rows.map((row) => row.iso3).join(','), expected.join(','), `${methodId} rows`);
-      for (const row of rows) {
-        expect(row.centre, `${row.iso3} has no flag`);
-        const dx = Math.abs(row.centre.x - row.tip.x);
-        const dy = Math.abs(row.centre.y - row.tip.y);
-        expect(
-          dx <= 1 && dy <= 1,
-          `${row.iso3} flag centre is ${dx.toFixed(2)},${dy.toFixed(2)}px from the stem tip`,
-        );
-        expectEqual(row.hidden, 'true', `${row.iso3} aria-hidden`);
-        expectEqual(row.tabindex, false, `${row.iso3} takes no tab stop`);
-        expect(row.name.length > 1, `${row.iso3} row lost its name text`);
-      }
-
-      // No overlap: consecutive flag centres must clear the flag diameter.
-      const centres = rows.map((row) => row.centre.y).sort((a, b) => a - b);
-      let tightest = Infinity;
-      for (let index = 1; index < centres.length; index += 1) {
-        tightest = Math.min(tightest, centres[index] - centres[index - 1]);
-      }
-      const diameter = rows[0].diameter;
-      expect(diameter >= 14.5 && diameter <= 15.5, `${methodId} desktop flag ${diameter}px`);
-      expect(
-        tightest >= diameter,
-        `${methodId} flags overlap: tightest gap ${tightest.toFixed(2)}px < ${diameter}px`,
-      );
-      details.push(
-        `${methodId}: ${TOP15_COUNT} flags at ${diameter}px, tightest gap ${tightest.toFixed(2)}px`,
-      );
-    }
-    return details.join(' · ');
-  });
-
-  await check('pane 1 and 2 render with flags in both methods', async () => {
-    await openPane(1, DEFAULT_METHOD);
-    await shot(overview, 'desktop-overview-pane1.png', true);
-    const buried = topFlagIso3s(DEFAULT_METHOD)[9];
-    await pane(1).locator(`.flag-mark[data-iso3="${buried}"]`).focus();
-    await shot(overview, 'desktop-overview-pane1-flag-focus.png', true);
-    await openPane(1, OTHER_METHOD);
-    await shot(overview, 'desktop-overview-pane1-minmax.png', true);
-    await openPane(2, DEFAULT_METHOD);
-    await shot(overview, 'desktop-overview-pane2.png', true);
-    await openPane(2, OTHER_METHOD);
-    await shot(overview, 'desktop-overview-pane2-minmax.png', true);
-    return `pane 1 z + min–max (one overlay), pane 2 z + min–max`;
-  });
-
-  await check('pane 1: flags that touch a dot are reported, not nudged', async () => {
-    const details = [];
-    for (const methodId of METHOD_IDS) {
-      await openPane(1, methodId);
-      const report = await pane(1).evaluate(() => {
-        const hits = (a, b) =>
-          a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-        const dots = [...document.querySelectorAll('.field-chart circle[data-dot]')].map((dot) => ({
-          iso3: dot.dataset.dot,
-          box: dot.getBoundingClientRect(),
-        }));
-        const flags = [...document.querySelectorAll('.field-chart .flag-mark')].map((mark) => ({
-          iso3: mark.dataset.iso3,
-          box: mark.querySelector('use').getBoundingClientRect(),
-        }));
-        const dotOverlaps = flags
-          .map((flag) => ({
-            iso3: flag.iso3,
-            hits: dots.filter((dot) => hits(flag.box, dot.box)).map((dot) => dot.iso3),
-          }))
-          .filter((flag) => flag.hits.length > 0)
-          .map((flag) => `${flag.iso3}→${flag.hits.join('+')}`);
-        const flagOverlaps = [];
-        for (let i = 0; i < flags.length; i += 1) {
-          for (let j = i + 1; j < flags.length; j += 1) {
-            if (hits(flags[i].box, flags[j].box)) {
-              flagOverlaps.push(`${flags[i].iso3}×${flags[j].iso3}`);
-            }
-          }
-        }
-        return { dotOverlaps, flagOverlaps };
-      });
-      // Position accuracy wins: the flags stay on their exact data position even
-      // when a neighbour sits under them. This records the cost rather than
-      // nudging the mark off its data point.
-      const dotText =
-        report.dotOverlaps.length === 0
-          ? 'no flag over a dot'
-          : `${report.dotOverlaps.length} flag/dot: ${report.dotOverlaps.join(', ')}`;
-      const flagText =
-        report.flagOverlaps.length === 0
-          ? 'no flag over a flag'
-          : `${report.flagOverlaps.length} flag/flag: ${report.flagOverlaps.join(', ')}`;
-      details.push(`${methodId} → ${dotText} · ${flagText}`);
-    }
-    return details.join(' | ');
-  });
-
-  for (const paneNumber of [7, 8]) {
-    await check(`pane ${paneNumber}: exactly 10 flag marks follow the top 10 by score`, async () => {
-      const details = [];
-      for (const methodId of METHOD_IDS) {
-        await openPane(paneNumber, methodId);
-        expectEqual(await flagMarks(paneNumber).count(), 10, `${methodId} flag marks`);
-        // The dot count still accounts for every country, flags included.
-        expectEqual(
-          await pane(paneNumber).locator('[data-scatter]').count(),
-          71,
-          `${methodId} marks`,
-        );
-        const order = await flagOrder(paneNumber);
-        const expected = topFlagIso3s(methodId);
-        expectEqual(
-          [...order].sort().join(','),
-          [...expected].sort().join(','),
-          `${methodId} flagged set`,
-        );
-        // Paint order is document order: rank 10 first, rank 1 last.
-        expectEqual(order[0], expected[9], `${methodId} first-painted flag (rank 10)`);
-        expectEqual(
-          order[order.length - 1],
-          expected[0],
-          `${methodId} last-painted flag (rank 1)`,
-        );
-        details.push(`${methodId}: ${expected[0]} on top, ${expected[9]} beneath`);
-      }
-      return details.join(' · ');
-    });
-
-    await check(`pane ${paneNumber}: each flag announces the country and score`, async () => {
-      for (const methodId of METHOD_IDS) {
-        await openPane(paneNumber, methodId);
-        const marks = await flagMarks(paneNumber).evaluateAll((nodes) =>
-          nodes.map((node) => ({
-            iso3: node.dataset.iso3,
-            label: node.getAttribute('aria-label'),
-            role: node.getAttribute('role'),
-            tabindex: node.getAttribute('tabindex'),
-            title: node.querySelector('title')?.textContent ?? '',
-            ring: (() => {
-              const ring = node.querySelector('.flag-mark__ring').getBoundingClientRect();
-              const flag = node.querySelector('use').getBoundingClientRect();
-              return {
-                dx: flag.x + flag.width / 2 - (ring.x + ring.width / 2),
-                dy: flag.y + flag.height / 2 - (ring.y + ring.height / 2),
-              };
-            })(),
-          })),
-        );
-        expectEqual(marks.length, 10, `${methodId} marks`);
-        for (const mark of marks) {
-          const source = (block(methodId).coverage ?? []).find(
-            (row) => row.iso3 === mark.iso3,
-          ) ?? countryIn(methodId, mark.iso3);
-          expect(source, `${mark.iso3} missing from the payload`);
-          const name = mark.label?.split(', score ')[0] ?? '';
-          expect(
-            source.country.startsWith(name) || name === source.country,
-            `${mark.iso3} aria-label name "${name}" does not match ${source.country}`,
-          );
-          expectEqual(mark.label, `${name}, score ${scoreText(source.score)}`, `${mark.iso3} aria-label`);
-          expectEqual(mark.title, mark.label, `${mark.iso3} <title>`);
-          expectEqual(mark.role, 'img', `${mark.iso3} role`);
-          expectEqual(mark.tabindex, '0', `${mark.iso3} tabindex`);
-          // The mark is centred on the data position: flag and ring agree.
-          expect(
-            Math.abs(mark.ring.dx) < 0.75 && Math.abs(mark.ring.dy) < 0.75,
-            `${mark.iso3} flag is off-centre by ${mark.ring.dx.toFixed(2)},${mark.ring.dy.toFixed(2)}px`,
-          );
-        }
-      }
-      return '10 labelled, focusable marks per method, all centred on the data position';
-    });
-  }
-
-  await check('Tab reaches a mark, announces it and shows the overlay', async () => {
-    await openPane(7, DEFAULT_METHOD);
-    // The carousel bar is the last stop before the pane; one Tab moves into the
-    // chart. Plain points are focusable now, so the first stop may be either a
-    // dot or a flag — both must announce themselves and reveal their overlay.
-    await overview.getByRole('button', { name: 'Next pane' }).focus();
-    let found = null;
-    for (let attempt = 0; attempt < 6 && !found; attempt += 1) {
-      await overview.keyboard.press('Tab');
-      found = await overview.evaluate(() => {
-        const element = document.activeElement;
-        if (!element) return null;
-        const kind = element.classList?.contains('flag-mark')
-          ? 'flag'
-          : element.classList?.contains('chart-point')
-            ? 'point'
-            : null;
-        if (!kind) return null;
-        const iso3 = element.dataset.iso3;
-        const overlay = document.querySelector(
-          `[data-pane="7"] .${kind === 'flag' ? 'flag-overlay' : 'point-overlay'}` +
-            `[data-overlay="${iso3}"]`,
-        );
-        return {
-          kind,
-          label: element.getAttribute('aria-label'),
-          iso3,
-          overlay: overlay ? Number(getComputedStyle(overlay).opacity) : null,
-          ring: Number(
-            getComputedStyle(
-              element.querySelector(kind === 'flag' ? '.flag-mark__focus' : '.chart-point__focus'),
-            ).opacity,
-          ),
-        };
-      });
-    }
-    expect(found, 'Tab never reached a chart mark');
-    expect(found.label, 'chart mark has no announced label');
-    expectMatch(found.label, /score \d+\.\d{2}$/, 'announced label');
-    expectEqual(found.overlay, 1, 'overlay opacity while tab-focused');
-    expectEqual(found.ring, 1, ':focus-visible ring opacity');
-    return `Tab → ${found.kind} ${found.label} (overlay 1, ring 1)`;
-  });
-
-  await check('flags: hovering a mark shows the same overlay', async () => {
-    await openPane(8, DEFAULT_METHOD);
-    const expected = topFlagIso3s(DEFAULT_METHOD);
-    // Rank 2, near the top of the stack and not buried by anything later.
-    const target = expected[1];
-    const overlay = pane(8).locator(`.flag-overlay[data-overlay="${target}"]`);
-    const opacity = () =>
-      overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
-    expectEqual(await opacity(), 0, 'overlay hidden before hover');
-    await pane(8).locator(`.flag-mark[data-iso3="${target}"]`).hover();
-    expectEqual(await opacity(), 1, 'overlay opacity while hovered');
-    await overview.mouse.move(2, 2);
-    expectEqual(await opacity(), 0, 'overlay hidden after the pointer leaves');
-    return `${target} overlay 0 → 1 → 0 on hover`;
-  });
-
-  await check('points: every plain dot is named, focusable and reveals its label', async () => {
-    const details = [];
-    for (const paneNumber of [1, 7, 8]) {
-      await openPane(paneNumber, DEFAULT_METHOD);
-      expectEqual(
-        await pane(paneNumber).locator('.chart-point').count(),
-        61,
-        `pane ${paneNumber} plain points`,
-      );
-      expectEqual(
-        await pane(paneNumber).locator('.point-overlay').count(),
-        61,
-        `pane ${paneNumber} point overlays`,
-      );
-      const mark = pane(paneNumber).locator('.chart-point').first();
-      const target = await mark.getAttribute('data-iso3');
-      const label = await mark.getAttribute('aria-label');
-      const role = await mark.getAttribute('role');
-      const tabindex = await mark.getAttribute('tabindex');
-      expectMatch(label ?? '', /, score \d+\.\d{2}$/, `${target} announced label`);
-      expectEqual(role, 'img', `${target} role`);
-      expectEqual(tabindex, '0', `${target} tabindex`);
-
-      const overlay = pane(paneNumber).locator(
-        `.point-overlay[data-overlay="${target}"]`,
-      );
-      const opacity = () =>
-        overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
-      expectEqual(await opacity(), 0, `${target} overlay hidden before focus`);
-      await mark.focus();
-      expectEqual(await opacity(), 1, `${target} overlay after focus`);
-      const text = (await overlay.textContent()).replace(/\s+/g, ' ').trim();
-      expectEqual(text, label, `${target} overlay text`);
-      await mark.blur();
-      expectEqual(await opacity(), 0, `${target} overlay hidden after blur`);
-
-      // Hit circles overlap in the dense part of the scatter, so hover the
-      // first point whose own hit circle is actually on top at its centre.
-      await mark.scrollIntoViewIfNeeded();
-      const spot = await pane(paneNumber).evaluate(() => {
-        for (const group of document.querySelectorAll('.chart-point')) {
-          const box = group.getBoundingClientRect();
-          const x = box.left + box.width / 2;
-          const y = box.top + box.height / 2;
-          const hit = document.elementFromPoint(x, y);
-          if (hit && group.contains(hit)) {
-            return { iso3: group.dataset.iso3, x, y };
-          }
-        }
-        return null;
-      });
-      expect(spot, `pane ${paneNumber}: no point could be hovered`);
-      await overview.mouse.move(spot.x, spot.y);
-      const hovered = pane(paneNumber).locator(
-        `.point-overlay[data-overlay="${spot.iso3}"]`,
-      );
-      expectEqual(
-        await hovered.evaluate((node) => Number(getComputedStyle(node).opacity)),
-        1,
-        `${spot.iso3} overlay on hover`,
-      );
-      await overview.mouse.move(2, 2);
-      expectEqual(
-        await hovered.evaluate((node) => Number(getComputedStyle(node).opacity)),
-        0,
-        `${spot.iso3} overlay after hover`,
-      );
-      details.push(`${paneNumber}:${target}/${spot.iso3}`);
-    }
-    return details.join(' · ');
-  });
-
-  await check('flags: one sprite symbol per distinct flag, defined once per page', async () => {
-    await openPane(7, DEFAULT_METHOD);
-    const sprite = await overview.evaluate(() => {
-      const svgs = document.querySelectorAll('svg.flag-sprite');
-      const ids = [...document.querySelectorAll('symbol[id^="flag-"]')].map((node) => node.id);
-      return {
-        sprites: svgs.length,
-        ids,
-        duplicates: ids.length - new Set(ids).size,
-        hidden: [...svgs].every((node) => node.getAttribute('aria-hidden') === 'true'),
-      };
-    });
-    expectEqual(sprite.sprites, 1, 'sprite roots on the page');
-    expectEqual(sprite.duplicates, 0, 'duplicate symbol ids');
-    expect(sprite.hidden, 'sprite is not hidden from assistive tech');
-    // The sprite must carry the union panes 1, 2, 7 and 8 draw in both
-    // methods — pane 2's 15 rows included, not just the top 10.
-    const expected = new Set();
-    for (const methodId of METHOD_IDS) {
-      for (const iso3 of methodFlags(methodId)) expected.add(iso2For(iso3));
-    }
-    const want = [...expected].sort().map((iso2) => `flag-${iso2}`);
-    expectEqual([...sprite.ids].sort().join(','), want.join(','), 'symbol set');
-    expectEqual(sprite.ids.length, expected.size, 'one symbol per distinct flag');
-    // 45 marks on the page (10 + 15 + 10 + 10) but one symbol each.
-    expectEqual(await flagMarks(1).count(), 10, 'pane 1 marks');
-    expectEqual(await flagMarks(2).count(), 15, 'pane 2 marks');
-    expectEqual(await flagMarks(7).count(), 10, 'pane 7 marks');
-    expectEqual(await flagMarks(8).count(), 10, 'pane 8 marks');
-    return `${sprite.ids.length} symbols (${want.length} expected) for 45 marks in four panes`;
-  });
-
-  await check('flags: focusing a buried mark reveals its labelled overlay', async () => {
-    await openPane(7, DEFAULT_METHOD);
-    const expected = topFlagIso3s(DEFAULT_METHOD);
-    const buried = expected[9]; // rank 10, painted first, under the stack
-    const mark = pane(7).locator(`.flag-mark[data-iso3="${buried}"]`);
-    const overlay = pane(7).locator(`.flag-overlay[data-overlay="${buried}"]`);
-    const opacity = () =>
-      overlay.evaluate((node) => Number(getComputedStyle(node).opacity));
-    expectEqual(await opacity(), 0, 'overlay hidden before focus');
-    const pointer = await overlay.evaluate((node) => getComputedStyle(node).pointerEvents);
-    expectEqual(pointer, 'none', 'hidden overlay blocks pointer events');
-
-    await mark.focus();
-    expectEqual(await opacity(), 1, 'overlay opacity after focus');
-    const text = (await overlay.textContent()).replace(/\s+/g, ' ').trim();
-    const row = countryIn(DEFAULT_METHOD, buried);
-    const name = text.split(', score ')[0];
-    expect(
-      row.country.startsWith(name),
-      `overlay name "${name}" does not match ${row.country}`,
-    );
-    expectEqual(text, `${name}, score ${scoreText(row.score)}`, 'overlay label text');
-    expect(
-      text.length > 6 && !text.startsWith('score'),
-      `overlay label is not real text: "${text}"`,
-    );
-
-    await mark.blur();
-    expectEqual(await opacity(), 0, 'overlay hidden again after blur');
-    return `rank 10 "${buried}" → "${text}" (opacity 0 → 1 → 0)`;
-  });
-
-  await check('min–max views of pane 8 render and screenshot', async () => {
-    await openPane(8, OTHER_METHOD);
-    expectEqual(
-      await overview.locator('input[name="overview-scale"]:checked').inputValue(),
-      OTHER_METHOD,
-      'pane 8 scale',
-    );
-    const order = await flagOrder(8);
-    expectEqual(order[order.length - 1], topFlagIso3s(OTHER_METHOD)[0], 'min–max top flag');
-    await shot(overview, 'desktop-overview-pane8-minmax.png', true);
-    return `min–max: ${order.join(' ← ')}`;
-  });
-
-  await check('overlay visible: focused flag screenshot', async () => {
-    await openPane(7, DEFAULT_METHOD);
-    const buried = topFlagIso3s(DEFAULT_METHOD)[9];
-    await pane(7).locator(`.flag-mark[data-iso3="${buried}"]`).focus();
-    await shot(overview, 'desktop-overview-pane7-flag-focus.png', true);
-    return `focused ${buried}`;
-  });
-
-  await check('min–max views of panes 4, 5 and 7 render and screenshot', async () => {
-    const widths = [];
-    for (const n of [4, 5, 7]) {
-      await overview.goto(`${server.base}/?pane=${n}&scale=minmax`, { waitUntil: 'load' });
-      await settle(overview);
-      await waitPane(n);
-      await shot(overview, `desktop-overview-pane${n}-minmax.png`, true);
-      const checked = await overview
-        .locator('input[name="overview-scale"]:checked')
-        .inputValue();
-      expectEqual(checked, OTHER_METHOD, `pane ${n} scale`);
-      widths.push(`${n}:${checked}`);
-    }
-    return widths.join(' ');
-  });
-
-  await check('Prev returns to pane 1 and drops ?pane from the URL', async () => {
+  await check('pane 2 defaults to all countries, not a silent top N', async () => {
     await overview.goto(`${server.base}/?pane=2`, { waitUntil: 'load' });
     await settle(overview);
-    await waitPane(2);
-    await overview.getByRole('button', { name: 'Previous pane' }).click();
-    await waitPane(1);
-    expect(!overview.url().includes('pane='), `URL still carries pane=: ${overview.url()}`);
-    expectEqual(await counterText(), '1 / 8', 'counter');
-    return `${new URL(overview.url()).pathname}${new URL(overview.url()).search}`;
+    const rows = await pane(2).locator('.rank-bars__row').count();
+    expectEqual(rows, 71, 'rank bar rows');
+    expectEqual(await pane(2).locator('#rank-bar-count').inputValue(), 'all', 'default top-N');
+    return '71 rows, show = All countries';
   });
 
-  await check('arrow keys move panes; Home and End jump to the ends', async () => {
-    await overview.getByRole('button', { name: 'Next pane' }).click();
-    await waitPane(2);
-    await overview.keyboard.press('ArrowRight');
-    await waitPane(3);
-    await overview.keyboard.press('ArrowLeft');
-    await waitPane(2);
-    await overview.keyboard.press('End');
-    await waitPane(8);
-    const last = await livePane();
-    await overview.keyboard.press('Home');
-    await waitPane(1);
-    expectEqual(last, '8', 'End pane');
-    return '→ 3, ← 2, End 8, Home 1';
-  });
-
-  await check('?pane=5 reloads with pane 5 open and announced', async () => {
-    await overview.goto(`${server.base}/?pane=5`, { waitUntil: 'load' });
+  await check('pane 2 top-N control cuts explicitly', async () => {
+    await pane(2).locator('#rank-bar-count').selectOption('10');
     await settle(overview);
-    await waitPane(5);
-    expectEqual(await counterText(), '5 / 8', 'counter');
-    expectEqual(await announcement(), 'Pane 5 of 8: Movement', 'live region');
-    const current = await overview.locator('.carousel__dot[aria-current="true"]').getAttribute('aria-label');
-    expectMatch(current, /pane 5: Movement/, 'active dot');
-    return '?pane=5 → pane 5, "Pane 5 of 8: Movement"';
+    const rows = await pane(2).locator('.rank-bars__row').count();
+    expectEqual(rows, 10, 'rows after Top 10');
+    await pane(2).locator('#rank-bar-count').selectOption('all');
+    return 'Top 10 → 10 rows, then back to all';
   });
 
-  await check('moving panes does not steal focus', async () => {
-    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+  await check('pane 3 defaults to all and its control cuts explicitly', async () => {
+    await overview.goto(`${server.base}/?pane=3`, { waitUntil: 'load' });
     await settle(overview);
-    const next = overview.getByRole('button', { name: 'Next pane' });
-    // WebKit (like Safari) does not focus a button on a mouse click, so move
-    // the pane the way a keyboard user would: activate the focused button.
-    await next.focus();
-    await next.press('Enter');
-    await waitPane(2);
-    const focused = await overview.evaluate(
-      () => document.activeElement?.getAttribute('aria-label') ?? null,
-    );
-    expectEqual(focused, 'Next pane', 'focused element');
-    return 'focus stayed on the Next button';
-  });
-
-  await check('no autoplay: the pane does not change on its own', async () => {
-    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+    expectEqual(await pane(3).locator('.composition__row').count(), 71, 'composition rows');
+    await pane(3).locator('#composition-count').selectOption('10');
     await settle(overview);
-    const before = await livePane();
-    await overview.waitForTimeout(900);
-    expectEqual(await livePane(), before, 'pane after 900ms');
-    expect(!overview.url().includes('pane='), 'URL grew a pane parameter');
-    return 'still on pane 1 after 900ms';
+    expectEqual(await pane(3).locator('.composition__row').count(), 10, 'rows after Top 10');
+    await pane(3).locator('#composition-count').selectOption('all');
+    return '71 → 10 → 71';
   });
 
-  await check('prefers-reduced-motion removes the pane transition', async () => {
-    const reduced = await newPage(desktopViewport);
-    await reduced.emulateMedia({ reducedMotion: 'reduce' });
-    await reduced.goto(`${server.base}/`, { waitUntil: 'load' });
-    await settle(reduced);
-    const name = await reduced
-      .locator('[data-pane="1"]')
-      .evaluate((element) => getComputedStyle(element).animationName);
-    expectEqual(name, 'none', 'animation-name');
-    await reduced.close();
-    return 'animation-name: none';
+  await check('pane 4 follows the comparison country', async () => {
+    await overview.goto(`${server.base}/?pane=4&compare=USA`, { waitUntil: 'load' });
+    await settle(overview);
+    const headline = await pane(4).locator('.verdicts__headline').innerText();
+    expectMatch(headline, /United States/, 'verdict headline');
+    expectEqual(await pane(4).locator('.verdicts__row').count(), 5, 'verdict rows');
+    return headline.trim().split('\n')[0];
   });
 
-  await check('every pane has a View as table disclosure', async () => {
-    const details = await overview.locator('details[data-pane-table]').count();
-    expectEqual(details, 8, 'disclosure count');
-    const summaries = await overview.locator('details[data-pane-table] > summary').allInnerTexts();
-    const bad = summaries.filter((text) => !/View as table/.test(text));
-    expect(bad.length === 0, `summaries without the label: ${JSON.stringify(bad)}`);
-    return '8 disclosures, all labelled View as table';
+  await check('pane 5 is ranks only — no score is compared across years', async () => {
+    await overview.goto(`${server.base}/?pane=5&year=2025,2026`, { waitUntil: 'load' });
+    await settle(overview);
+    const headers = (await pane(5).locator('table thead').innerText()).replace(/\s+/g, ' ');
+    expect(!/score/i.test(headers), `tracker header mentions score: ${headers}`);
+    expectMatch(headers, /2025 rank/, '2025 rank column');
+    expectMatch(headers, /2026 rank/, '2026 rank column');
+    const callout = await pane(5).locator('.pane__callout').innerText();
+    expectMatch(callout, /method, indicators and weights changed/i, 'caveat');
+    return headers.trim();
   });
 
-  await check('all eight panes carry a real chart and a real table', async () => {
-    expectEqual(await overview.locator('.pane__placeholder').count(), 0, 'placeholders');
-    const fallbacks = await overview.locator('.pane__table-fallback').count();
-    expectEqual(fallbacks, 0, 'table fallbacks');
-    const counts = [];
-    for (let n = 1; n <= 8; n += 1) {
-      const rows = await pane(n).locator('table tbody tr').count();
-      expect(rows > 0, `pane ${n} has no table rows`);
-      counts.push(`${n}:${rows}`);
+  await check('pane 5 re-ranks the 38-country intersection within the subset', async () => {
+    const rows = await pane(5).locator('.tracker__table tbody tr').count();
+    expectEqual(rows, 38, 'tracker rows');
+    const first = (await pane(5).locator('.tracker__table tbody tr').first().innerText())
+      .split(/\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    expectEqual(first[0], 'USA', 'first row by latest rank');
+    expectEqual(first[1], '2', 'USA 2025 rank');
+    expectEqual(first[2], '1', 'USA 2026 rank');
+    return `${rows} rows; first ${first.join(' ')}`;
+  });
+
+  await check('pane 6 defaults to the smallest absolute rank difference', async () => {
+    await overview.goto(`${server.base}/?pane=6`, { waitUntil: 'load' });
+    await settle(overview);
+    const deltas = await pane(6).locator('.delta-pill').allInnerTexts();
+    const numbers = deltas.map((text) => Math.abs(Number(text.replace('−', '-'))));
+    expect(numbers[0] === 0, `first delta is ${deltas[0]}, not 0`);
+    for (let i = 1; i < numbers.length; i += 1) {
+      expect(numbers[i] >= numbers[i - 1], `deltas not ascending at ${i}: ${deltas[i]}`);
     }
-    return `no placeholders; table rows ${counts.join(' ')}`;
+    return `${deltas.length} rows, first three ${deltas.slice(0, 3).join(' / ')}`;
+  });
+
+  await check('pane 6 headers sort the table', async () => {
+    await pane(6).getByRole('button', { name: /Difference/ }).click();
+    await settle(overview);
+    const deltas = await pane(6).locator('.delta-pill').allInnerTexts();
+    const numbers = deltas.map((text) => Math.abs(Number(text.replace('−', '-'))));
+    expect(numbers[0] >= numbers[numbers.length - 1], 'descending sort failed');
+    return `largest first: ${deltas[0]}`;
+  });
+
+  await check('pane 6 states individual ranks do not move', async () => {
+    const note = await pane(6).locator('.micro.hint').last().innerText();
+    expectMatch(note, /monotone transform/i, 'monotonicity caption');
+    return 'caption present';
+  });
+
+  await check('pane 7 draws all 71 countries on a GDP axis', async () => {
+    await overview.goto(`${server.base}/?pane=7`, { waitUntil: 'load' });
+    await settle(overview);
+    const points = await pane(7).locator('[data-scatter]').count();
+    expectEqual(points, 71, 'scatter marks');
+    expectEqual(await pane(7).locator('.scatter-chart--sizeScore').count(), 1, 'size scatter');
+    return '71 marks';
+  });
+
+  await check('deep link restores basis, years, group, comparison and pane', async () => {
+    await overview.goto(
+      `${server.base}/?year=2025,2026&basis=absolute&group=g20&compare=IND,USA&pane=2`,
+      { waitUntil: 'load' },
+    );
+    await settle(overview);
+    const summary = (await overview.locator('.filterbar__selection').innerText()).replace(/\s+/g, ' ');
+    expectMatch(summary, /Absolute/, 'basis');
+    expectMatch(summary, /2025 and 2026/, 'years');
+    expectMatch(summary, /G20/, 'group');
+    expectMatch(summary, /comparing IND vs USA/, 'comparison');
+    expectEqual(await livePane(), '2', 'active pane');
+    const rows = await pane(2).locator('.rank-bars__row').count();
+    expectEqual(rows, 19, 'G20 rows');
+    return JSON.stringify(summary.trim());
+  });
+
+  await check('a basis with no file for the year is disabled, not hidden', async () => {
+    await overview.goto(`${server.base}/?year=2025&basis=relative`, { waitUntil: 'load' });
+    await settle(overview);
+    const relative = overview.getByRole('radio', { name: 'Relative' });
+    expect(await relative.isDisabled(), 'Relative is enabled for 2025');
+    const summary = await overview.locator('.filterbar__selection').innerText();
+    expectMatch(summary, /Absolute/, 'basis fell back to Absolute');
+    return 'Relative disabled on 2025, Absolute active';
+  });
+
+  await check('downloads are real CSV links', async () => {
+    const links = await overview.locator('.downloads a').evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('href')),
+    );
+    expect(links.length >= 3, `only ${links.length} download links`);
+    for (const href of links) {
+      const response = await overview.request.get(`${server.base}${href}`);
+      expectEqual(response.status(), 200, `download ${href}`);
+      const body = await response.text();
+      expect(body.split('\n').length > 3, `download ${href} is empty`);
+    }
+    return `${links.length} CSVs resolve`;
+  });
+
+  for (let paneNumber = 1; paneNumber <= 7; paneNumber += 1) {
+    await overview.goto(`${server.base}/?pane=${paneNumber}`, { waitUntil: 'load' });
+    await settle(overview);
+    await shot(overview, `desktop-overview-pane${paneNumber}.png`, true);
+  }
+
+  await check('Reset view returns to the defaults', async () => {
+    await overview.goto(`${server.base}/?pane=2&group=g20&basis=absolute`, { waitUntil: 'load' });
+    await settle(overview);
+    await overview.locator('.filterbar__reset').click();
+    await settle(overview);
+    const summary = await overview.locator('.filterbar__selection').innerText();
+    expectMatch(summary, /Combined \(50–50\)/, 'basis after reset');
+    expectMatch(summary, /All countries/, 'group after reset');
+    expectEqual(new URL(overview.url()).search, '', 'query string after reset');
+    return 'back to combined / 2026 / all / min–max';
+  });
+
+  await check('arrow keys move panes and Home/End jump to the ends', async () => {
+    await overview.goto(`${server.base}/`, { waitUntil: 'load' });
+    await settle(overview);
+    await overview.keyboard.press('ArrowRight');
+    await settle(overview);
+    expectEqual(await livePane(), '2', 'after ArrowRight');
+    await overview.keyboard.press('End');
+    await settle(overview);
+    expectEqual(await livePane(), '7', 'after End');
+    await overview.keyboard.press('Home');
+    await settle(overview);
+    expectEqual(await livePane(), '1', 'after Home');
+    return '→ 2, End 7, Home 1';
+  });
+
+  /* -------------------------------------------------------- mobile: overview */
+  const mobile = await newPage(mobileViewport);
+  await mobile.goto(`${server.base}/`, { waitUntil: 'load' });
+  await settle(mobile);
+
+  await check('mobile: the bar is a collapsed Filters panel', async () => {
+    const details = mobile.locator('details.filterbar');
+    expectEqual(await details.count(), 1, 'compact details');
+    expectEqual(await details.getAttribute('open'), null, 'panel open by default');
+    const overflow = await mobile.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expectEqual(overflow, 0, 'horizontal overflow');
+    return 'collapsed, no horizontal scroll';
+  });
+
+  await check('mobile: opening Filters reveals the controls', async () => {
+    await mobile.locator('details.filterbar > summary').click();
+    await settle(mobile);
+    expect(await mobile.getByRole('radio', { name: 'Combined (50–50)' }).isVisible(), 'basis control hidden');
+    expect(await mobile.getByRole('checkbox', { name: '2026' }).isVisible(), 'year control hidden');
+    await shot(mobile, 'mobile-overview-filters.png', true);
+    return 'controls visible';
+  });
+
+  await check('mobile: each pane has no horizontal scroll', async () => {
+    const results = [];
+    for (let n = 1; n <= 7; n += 1) {
+      await mobile.goto(`${server.base}/?pane=${n}`, { waitUntil: 'load' });
+      await settle(mobile);
+      const overflow = await mobile.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      results.push(`${n}:${overflow}`);
+      expectEqual(overflow, 0, `pane ${n} overflow`);
+      await shot(mobile, `mobile-overview-pane${n}.png`, true);
+    }
+    return results.join(' ');
   });
 
   /* ------------------------------------------------- desktop: `/rankings` */
@@ -1533,70 +539,67 @@ try {
     return '71 links';
   });
 
-  await check('/rankings defaults to z-score with no scale param', async () => {
+  await check('/rankings defaults to min–max with no scale param', async () => {
     const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, DEFAULT_METHOD, 'checked scale');
-    expectEqual(checked, 'z', 'default method is z');
+    expectEqual(checked, 'full_minmax', 'checked scale');
     expect(!page.url().includes('scale='), `URL should not carry scale=, got ${page.url()}`);
-    return 'z, no scale param';
+    return 'min–max, no scale param';
   });
 
-  await check('Saudi Arabia row (z): rank 36, score 46.20', async () => {
+  await check('Saudi Arabia row (min–max): rank 55, score 18.03', async () => {
     const text = await saudiRow(page).innerText();
-    const cells = await saudiRow(page).locator('td').allInnerTexts();
-    expectEqual(num(cells[0]), 36, 'rank');
-    expectEqual(num(cells[2]), 46.2, 'score');
-    return `${cells[0].trim()} / ${cells[2].trim()} (${text.split('\n')[1]})`;
-  });
-
-  await check('movement header names the other method: Rank vs min–max', async () => {
-    const header = await page.locator('thead th.movement-col abbr').innerText();
-    expectEqual(header.trim(), 'Rank vs min–max', 'movement header (z active)');
-    return header.trim();
-  });
-
-  await shot(page, 'desktop-rankings-z.png', true);
-
-  await check('click Min–max → URL gains scale=minmax, Saudi rank 55', async () => {
-    await page.getByRole('radio', { name: 'Min–max' }).check();
-    await settle(page);
-    expectMatch(page.url(), /[?&]scale=minmax(&|$)/, 'URL');
     const cells = await saudiRow(page).locator('td').allInnerTexts();
     expectEqual(num(cells[0]), 55, 'rank');
     expectEqual(num(cells[2]), 18.03, 'score');
-    const header = await page.locator('thead th.movement-col abbr').innerText();
-    expectEqual(header.trim(), 'Rank vs z', 'movement header (min–max active)');
-    return `${page.url().replace(server.base, '')} · 55 / 18.03 · "${header.trim()}"`;
+    return `${cells[0].trim()} / ${cells[2].trim()} (${text.split('\n')[1]})`;
   });
 
-  await check('min–max: rank-movement cell reads −19 against z', async () => {
-    const cell = saudiRow(page).locator('td.movement-col');
-    await cell.waitFor();
-    const text = await cell.innerText();
-    expectMatch(text.replace(/\s+/g, ' '), /−19/, 'movement cell text');
-    return JSON.stringify(text.replace(/\s+/g, ' ').trim());
+  await check('movement header names the other method: Rank vs z', async () => {
+    const header = await page.locator('thead th.movement-col abbr').innerText();
+    expectEqual(header.trim(), 'Rank vs z', 'movement header (min–max active)');
+    return header.trim();
   });
 
   await shot(page, 'desktop-rankings-minmax.png', true);
 
-  await check('reload /rankings?scale=minmax keeps min–max active', async () => {
-    await page.goto(`${server.base}/rankings?scale=minmax`, { waitUntil: 'load' });
+  await check('click Z-score → URL gains scale=z, Saudi rank 36', async () => {
+    await page.getByRole('radio', { name: 'Z-score' }).check();
     await settle(page);
-    const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, OTHER_METHOD, 'checked scale after reload');
+    expectMatch(page.url(), /[?&]scale=z(&|$)/, 'URL');
     const cells = await saudiRow(page).locator('td').allInnerTexts();
-    expectEqual(num(cells[0]), 55, 'rank after reload');
-    return 'min–max active, rank 55';
+    expectEqual(num(cells[0]), 36, 'rank');
+    expectEqual(num(cells[2]), 46.2, 'score');
+    const header = await page.locator('thead th.movement-col abbr').innerText();
+    expectEqual(header.trim(), 'Rank vs min–max', 'movement header (z active)');
+    return `${page.url().replace(server.base, '')} · 36 / 46.20 · "${header.trim()}"`;
   });
 
-  await check('switch back to Z-score drops scale from the URL', async () => {
-    await page.getByRole('radio', { name: 'Z-score' }).check();
+  await check('z: rank-movement cell reads +19 against min–max', async () => {
+    const cell = saudiRow(page).locator('td.movement-col');
+    await cell.waitFor();
+    const text = await cell.innerText();
+    expectMatch(text.replace(/\s+/g, ' '), /\+19/, 'movement cell text');
+    return JSON.stringify(text.replace(/\s+/g, ' ').trim());
+  });
+
+  await shot(page, 'desktop-rankings-z.png', true);
+
+  await check('reload /rankings?scale=z keeps z-score active', async () => {
+    await page.goto(`${server.base}/rankings?scale=z`, { waitUntil: 'load' });
+    await settle(page);
+    const checked = await page.locator('input[name="scale"]:checked').inputValue();
+    expectEqual(checked, 'z', 'checked scale after reload');
+    const cells = await saudiRow(page).locator('td').allInnerTexts();
+    expectEqual(num(cells[0]), 36, 'rank after reload');
+    return 'z active, rank 36';
+  });
+
+  await check('switch back to Min–max drops scale from the URL', async () => {
+    await page.getByRole('radio', { name: 'Min–max' }).check();
     await settle(page);
     expect(!page.url().includes('scale='), `URL still carries scale=: ${page.url()}`);
     const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, 'z', 'checked scale');
-    const header = await page.locator('thead th.movement-col abbr').innerText();
-    expectEqual(header.trim(), 'Rank vs min–max', 'movement header back to z');
+    expectEqual(checked, 'full_minmax', 'checked scale');
     return `${new URL(page.url()).pathname}${new URL(page.url()).search}`;
   });
 
@@ -2019,7 +1022,7 @@ try {
   await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
   await settle(mobileOverview);
 
-  await check('390px: overview carousel has no horizontal scroll', async () => {
+  await check('390px: overview has no horizontal scroll', async () => {
     const [scrollWidth, innerWidth, bodyScroll] = await mobileOverview.evaluate(() => [
       document.documentElement.scrollWidth,
       window.innerWidth,
@@ -2032,140 +1035,31 @@ try {
     return `${scrollWidth} <= ${innerWidth}`;
   });
 
-  await check('390px: carousel controls stay usable (≥24px targets)', async () => {
-    const sizes = await mobileOverview.evaluate(() =>
-      [...document.querySelectorAll('.carousel__button, .carousel__dot')].map((element) => {
-        const box = element.getBoundingClientRect();
+  await check('390px: the filter bar collapses and its targets stay usable', async () => {
+    const details = mobileOverview.locator('details.filterbar');
+    expectEqual(await details.count(), 1, 'compact filter panel');
+    expectEqual(await details.getAttribute('open'), null, 'panel starts closed');
+    await details.locator('> summary').click();
+    await settle(mobileOverview);
+    const sizes = await mobileOverview.evaluate(() => {
+      const controls = Array.from(
+        document.querySelectorAll(
+          '.filterbar select, .filterbar button, .segmented__option span, details.filterbar > summary',
+        ),
+      ).filter((el) => el.getClientRects().length > 0);
+      return controls.map((el) => {
+        const box = el.getBoundingClientRect();
         return { w: Math.round(box.width), h: Math.round(box.height) };
-      }),
-    );
-    const small = sizes.filter((box) => box.w < 24 || box.h < 24);
-    expect(small.length === 0, `targets below 24px: ${JSON.stringify(small)}`);
-    expect(sizes.length === 10, `expected 10 controls, found ${sizes.length}`);
-    return `${sizes.length} controls, smallest ${Math.min(...sizes.map((b) => Math.min(b.w, b.h)))}px`;
-  });
-
-  await check('390px: the scale toggle has two ≥24px targets', async () => {
-    const sizes = await mobileOverview.evaluate(() =>
-      [...document.querySelectorAll('.carousel__scale .segmented__option span')].map(
-        (element) => {
-          const box = element.getBoundingClientRect();
-          return { text: element.textContent.trim(), w: Math.round(box.width), h: Math.round(box.height) };
-        },
-      ),
-    );
-    expectEqual(sizes.length, 2, 'scale options');
-    const small = sizes.filter((box) => box.w < 24 || box.h < 24);
-    expect(small.length === 0, `scale targets below 24px: ${JSON.stringify(small)}`);
-    const checked = await mobileOverview
-      .locator('input[name="overview-scale"]:checked')
-      .inputValue();
-    expectEqual(checked, DEFAULT_METHOD, 'default scale on mobile');
-    return sizes.map((box) => `${box.text} ${box.w}×${box.h}`).join(' · ');
-  });
-
-  await check('390px: min–max overview has no horizontal scroll', async () => {
-    await mobileOverview.goto(`${server.base}/?scale=minmax`, { waitUntil: 'load' });
-    await settle(mobileOverview);
-    const [scrollWidth, innerWidth] = await mobileOverview.evaluate(() => [
-      document.documentElement.scrollWidth,
-      window.innerWidth,
-    ]);
-    expect(
-      scrollWidth <= innerWidth,
-      `scrollWidth ${scrollWidth} > innerWidth ${innerWidth}`,
-    );
-    await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
-    await settle(mobileOverview);
-    return `${scrollWidth} <= ${innerWidth}`;
-  });
-
-  await check('390px: flags shrink to 14px and stay on the data position', async () => {
-    await mobileOverview.goto(`${server.base}/?pane=7`, { waitUntil: 'load' });
-    await settle(mobileOverview);
-    const info = await mobileOverview.evaluate(() => {
-      const scope = '[data-pane="7"]:not([hidden])';
-      const mark = document.querySelector(`${scope} .flag-mark`);
-      const flag = mark.querySelector('use').getBoundingClientRect();
-      const ring = mark.querySelector('.flag-mark__ring').getBoundingClientRect();
-      return {
-        w: Number(flag.width.toFixed(2)),
-        h: Number(flag.height.toFixed(2)),
-        dx: Number((flag.x + flag.width / 2 - (ring.x + ring.width / 2)).toFixed(2)),
-        dy: Number((flag.y + flag.height / 2 - (ring.y + ring.height / 2)).toFixed(2)),
-      };
+      });
     });
-    expectEqual(info.w, 14, 'mobile flag width');
-    expectEqual(info.h, 14, 'mobile flag height');
-    expect(info.dx === 0 && info.dy === 0, `flag off centre by ${info.dx},${info.dy}px`);
-    await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
-    await settle(mobileOverview);
-    return `14×14 px, centred (${info.dx}, ${info.dy})`;
+    const small = sizes.filter((size) => size.h > 0 && size.h < 24);
+    expect(small.length === 0, `${small.length} controls under 24px`);
+    return `${sizes.length} controls, smallest height ${Math.min(...sizes.map((s) => s.h).filter((h) => h > 0))}px`;
   });
 
-  await check('390px: pane 1 flags 14px, pane 2 flags 13px, both on position', async () => {
-    const measured = {};
-    for (const paneNumber of [1, 2]) {
-      await mobileOverview.goto(`${server.base}/?pane=${paneNumber}`, { waitUntil: 'load' });
-      await settle(mobileOverview);
-      measured[paneNumber] = await mobileOverview.evaluate((n) => {
-        const pane = document.querySelector(`[data-pane="${n}"]:not([hidden])`);
-        const marks = [...pane.querySelectorAll('.flag-mark')];
-        const sizes = marks.map((mark) => {
-          const use = mark.querySelector('use').getBoundingClientRect();
-          return {
-            w: Number(use.width.toFixed(2)),
-            h: Number(use.height.toFixed(2)),
-            cy: use.y + use.height / 2,
-          };
-        });
-        const centres = sizes.map((size) => size.cy).sort((a, b) => a - b);
-        let gap = Infinity;
-        for (let index = 1; index < centres.length; index += 1) {
-          gap = Math.min(gap, centres[index] - centres[index - 1]);
-        }
-        return { count: marks.length, sizes, gap: Number(gap.toFixed(2)) };
-      }, paneNumber);
-    }
-
-    expectEqual(measured[1].count, 10, 'pane 1 mobile flags');
-    expect(measured[1].sizes.every((size) => size.w === 14 && size.h === 14), 'pane 1 is 14px');
-    expectEqual(measured[2].count, 15, 'pane 2 mobile flags');
-    expect(measured[2].sizes.every((size) => size.w === 13 && size.h === 13), 'pane 2 is 13px');
-
-    // Centring on the stem tip, at 13px, in the pane that changed size most.
-    await mobileOverview.goto(`${server.base}/?pane=2`, { waitUntil: 'load' });
-    await settle(mobileOverview);
-    const tip = await mobileOverview.evaluate(() => {
-      const row = document.querySelector('[data-pane="2"]:not([hidden]) [data-lollipop]');
-      const track = row.querySelector('.lollipop__track');
-      const line = row.querySelector('.lollipop__line');
-      const use = row.querySelector('.flag-mark use').getBoundingClientRect();
-      const box = track.getBoundingClientRect();
-      const pct = Number.parseFloat(line.getAttribute('x2'));
-      return {
-        dx: Number((use.x + use.width / 2 - (box.left + (pct / 100) * box.width)).toFixed(2)),
-        dy: Number((use.y + use.height / 2 - (box.top + 9)).toFixed(2)),
-      };
-    });
-    expect(tip.dx === 0 && tip.dy === 0, `mobile flag off centre by ${tip.dx},${tip.dy}px`);
-
-    await mobileOverview.goto(`${server.base}/`, { waitUntil: 'load' });
-    await settle(mobileOverview);
-    return `pane 1 14px · pane 2 13px, gap ${measured[2].gap}px, centred (${tip.dx}, ${tip.dy})`;
-  });
-
-  await shot(mobileOverview, 'mobile-overview.png', true);
-
-  await mobileOverview.getByRole('button', { name: 'Next pane' }).click();
-  await mobileOverview.waitForFunction(
-    () => document.querySelector('[data-pane="2"]')?.hasAttribute('hidden') === false,
-  );
-  await shot(mobileOverview, 'mobile-overview-pane2.png', true);
-
-  await check('390px: panes 1–8 have no horizontal scroll', async () => {
+  await check('390px: all seven panes render without horizontal scroll', async () => {
     const widths = [];
-    for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    for (let n = 1; n <= 7; n += 1) {
       await mobileOverview.goto(`${server.base}/?pane=${n}`, { waitUntil: 'load' });
       await settle(mobileOverview);
       const [scrollWidth, innerWidth] = await mobileOverview.evaluate(() => [
@@ -2182,6 +1076,27 @@ try {
     return widths.join(' · ');
   });
 
+  /* ------------------------------------------------------- 1366 × 768 */
+  const laptop = await newPage({ width: 1366, height: 768 });
+  await laptop.goto(`${server.base}/`, { waitUntil: 'load' });
+  await settle(laptop);
+
+  await check('1366×768: no pane is clipped or scrolls sideways', async () => {
+    const widths = [];
+    for (let n = 1; n <= 7; n += 1) {
+      await laptop.goto(`${server.base}/?pane=${n}`, { waitUntil: 'load' });
+      await settle(laptop);
+      const [scrollWidth, innerWidth] = await laptop.evaluate(() => [
+        document.documentElement.scrollWidth,
+        window.innerWidth,
+      ]);
+      expect(scrollWidth <= innerWidth, `pane ${n} overflows at 1366px`);
+      widths.push(`${n}:${scrollWidth}`);
+    }
+    await shot(laptop, 'laptop-overview-1366.png', true);
+    return widths.join(' ');
+  });
+
   /* ------------------------------------------------------------------ axe */
   for (const label of [
     '/',
@@ -2191,11 +1106,10 @@ try {
     '/?pane=5',
     '/?pane=6',
     '/?pane=7',
-    '/?pane=8',
-    '/?pane=4&scale=minmax',
-    '/?pane=5&scale=minmax',
-    '/?pane=7&scale=minmax',
-    '/?pane=8&scale=minmax',
+    '/?pane=4&scale=z',
+    '/?pane=5&scale=z',
+    '/?pane=7&scale=z',
+    '/?year=2025,2026&basis=absolute&group=g20&pane=5',
     '/rankings',
     '/rankings?scale=minmax',
     '/country/IND',
@@ -2259,24 +1173,23 @@ try {
     return '0 axe violations';
   });
 
-  await check('axe: overview panes 3–8 have no violations in both methods', async () => {
+  await check('axe: overview panes 3–7 have no violations in both methods', async () => {
     for (const page of [
       '/?pane=3',
       '/?pane=4',
       '/?pane=5',
       '/?pane=6',
       '/?pane=7',
-      '/?pane=8',
-      '/?pane=4&scale=minmax',
-      '/?pane=5&scale=minmax',
-      '/?pane=7&scale=minmax',
-      '/?pane=8&scale=minmax',
+      '/?pane=4&scale=z',
+      '/?pane=5&scale=z',
+      '/?pane=7&scale=z',
+      '/?year=2025,2026&basis=absolute&group=g20&pane=5',
     ]) {
       const entry = axeReport.find((item) => item.page === page);
       expect(entry, `${page} axe entry missing`);
       expectEqual(entry.violations.length, 0, `${page} violations`);
     }
-    return '0 axe violations on panes 3–8 (z and min–max)';
+    return '0 axe violations on panes 3–7 (both methods, tracker view)';
   });
 
   await check('axe: /rankings?scale=minmax has no violations', async () => {
@@ -2400,7 +1313,6 @@ try {
       '/?pane=5',
       '/?pane=6',
       '/?pane=7',
-      '/?pane=8',
       '/rankings',
       '/country/IND',
     ]) {
