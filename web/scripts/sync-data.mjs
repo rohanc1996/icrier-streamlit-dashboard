@@ -51,6 +51,56 @@ await rm(target, { recursive: true, force: true });
 await mkdir(target, { recursive: true });
 await cp(source, target, { recursive: true });
 
+// Raw-data downloads are served as static files, so they live in public/.
+const downloadsSource = path.join(source, 'downloads');
+const downloadsTarget = path.join(webRoot, 'public', 'data');
+await rm(downloadsTarget, { recursive: true, force: true });
+try {
+  await cp(downloadsSource, downloadsTarget, { recursive: true });
+  console.log('[sync-data] copied downloads -> public/data');
+} catch {
+  console.warn('[sync-data] no downloads/ folder yet — run pipeline/export_editions.py');
+}
+
+// editions.json is the filter bar's payload: every year × basis × method.
+const editionsPath = path.join(source, 'editions.json');
+try {
+  const editions = JSON.parse(await readFile(editionsPath, 'utf8'));
+  const problems = [];
+  if (!Array.isArray(editions.meta?.years) || editions.meta.years.length === 0) {
+    problems.push('missing meta.years');
+  }
+  if (!editions.meta?.basisAvailability) problems.push('missing meta.basisAvailability');
+  if (!editions.meta?.groups) problems.push('missing meta.groups');
+  if (!editions.editions) problems.push('missing editions{}');
+  if (!editions.tracker) problems.push('missing tracker{}');
+  for (const [year, bases] of Object.entries(editions.editions ?? {})) {
+    for (const [basis, block] of Object.entries(bases)) {
+      if (!block?.methods?.full_minmax?.field?.values) {
+        problems.push(`editions.${year}.${basis}.methods.full_minmax.field.values missing`);
+      }
+      if (!Array.isArray(block?.robustness)) {
+        problems.push(`editions.${year}.${basis}.robustness missing`);
+      }
+    }
+  }
+  if (problems.length > 0) {
+    console.error('[sync-data] editions.json is not the editions contract:');
+    for (const problem of problems) console.error(`[sync-data]   - ${problem}`);
+    process.exit(1);
+  }
+  console.log(
+    `[sync-data] editions.json: years ${editions.meta.years.join(', ')} · ` +
+      `bases ${Object.entries(editions.meta.basisAvailability)
+        .map(([year, list]) => `${year}:${list.join('/')}`)
+        .join(' ')}`,
+  );
+} catch (error) {
+  console.error('[sync-data] Could not read editions.json — run pipeline/export_editions.py');
+  console.error(`[sync-data] ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
+}
+
 // overview.json feeds the `/` carousel. It is produced alongside chips.json
 // and is optional in this wave: without it the site derives the two built
 // panes from chips.json and says so in the build log.
