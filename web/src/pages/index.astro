@@ -1,53 +1,45 @@
 ---
 import BaseLayout from '../components/BaseLayout.astro';
 import FlagSprite from '../components/FlagSprite.astro';
-import OverviewCarousel from '../components/OverviewCarousel.tsx';
-import { meta } from '../lib/data';
-import { buildOverviewView, overviewFlagIso2s, overviewPointIso3s } from '../lib/overview';
+import OverviewExplorer from '../components/OverviewExplorer.tsx';
+import { allFlagIso2s, allPointIso3s, meta } from '../lib/site';
 
-const overview = buildOverviewView();
-const field = overview.field;
-const flagIso2s = overviewFlagIso2s();
-const pointIso3s = overviewPointIso3s();
+const flagIso2s = allFlagIso2s();
+const pointIso3s = allPointIso3s();
+const edition = meta.edition;
 ---
 
 <BaseLayout
-  title={`CHIPS ${meta.edition} overview · SIDE`}
-  description={`Eight views of the SIDE ${meta.edition} CHIPS index: the field, the top 15, how a score is built, India's five pillars, movement between editions, two scaling methods, GDP and coverage.`}
-  noteScale={overview.defaultMethod}
+  title={`CHIPS ${edition} overview · SIDE`}
+  description={`Seven views of the SIDE ${edition} CHIPS index: the field, every score, how a score is built, the selected country's pillars, rank movement, two normalizations, GDP and score.`}
+  noteScale={meta.defaultMethod}
 >
   <div class="container page">
     <FlagSprite iso2s={flagIso2s} pointIso3s={pointIso3s} />
     <header class="page-head">
       <div class="page-head__main">
-        <h1 class="display-l">CHIPS {meta.edition}</h1>
+        <h1 class="display-l">CHIPS {edition}</h1>
         <p class="body-l lede">
-          A digital-economy score for {meta.countries} countries, from {meta.leaves} indicators
-          in five areas. Eight views, one index.
+          A digital-economy score for {meta.editionCountryCount[edition]} countries, from{' '}
+          {meta.leaves} indicators in five areas. Seven views, one index.
         </p>
         <p class="body-s">
-          <a href="/rankings">All {meta.countries} ranks →</a>
+          <a href="/rankings">All ranks →</a>
           {' · '}
           <a href="/methodology#values-to-100">How the score works →</a>
         </p>
       </div>
       <p class="body-s page-head__meta">
-        Edition {meta.edition} · {field.count} countries
+        Edition {edition} · {meta.editionCountryCount[edition]} countries
       </p>
     </header>
 
     <p class="body-s hint overview-intro">
-      Move between panes with the arrows, the dots, or the ← and → keys. Every pane has a
-      “View as table” disclosure with the same numbers as its chart. The scale control
-      re-scores every pane; pane 6 is the exception, because it compares the two methods.
+      Use the filters to choose a score basis, one or more years, and a country
+      grouping. Every pane follows, and the address bar keeps the view: copy the URL
+      to share it. Move between panes with the arrows, the dots, or the ← and → keys.
     </p>
 
-    <OverviewCarousel
-      client:load
-      panes={overview.panes}
-      methods={overview.methods}
-      defaultMethod={overview.defaultMethod}
-      label={`Overview of the CHIPS ${meta.edition} index`}
-    />
+    <OverviewExplorer client:load label={`Overview of the CHIPS ${edition} index`} />
   </div>
 </BaseLayout>

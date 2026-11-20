@@ -23,6 +23,8 @@ export interface PointMarkProps {
   dotClassName: string;
   /** `data-*` hooks spread onto the visible dot, not the group. */
   data?: Record<string, string | number | boolean | undefined>;
+  /** Outside the selected country group: drawn muted, still reachable. */
+  muted?: boolean;
 }
 
 export default function PointMark({
@@ -33,13 +35,14 @@ export default function PointMark({
   label,
   dotClassName,
   data,
+  muted = false,
 }: PointMarkProps) {
   const key = iso3.toLowerCase();
   const hitRadius = Math.max(radius + 5, 9);
 
   return (
     <g
-      className={`chart-point chart-point--${key}`}
+      className={`chart-point chart-point--${key}${muted ? ' is-muted' : ''}`}
       data-point={iso3}
       data-iso3={iso3}
       tabIndex={0}

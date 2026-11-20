@@ -102,6 +102,7 @@ export default function FieldChart({ model }: { model: FieldChartModel }) {
           dotClassName={
             point.isIndia ? 'field-chart__dot field-chart__dot--india' : 'field-chart__dot'
           }
+          muted={point.inSelection === false}
           data={{
             'data-dot': point.iso3,
             'data-field': point.iso3,
@@ -139,6 +140,7 @@ export default function FieldChart({ model }: { model: FieldChartModel }) {
           y={point.cy}
           radius={FLAG_RADIUS}
           label={markName(point)}
+          muted={point.inSelection === false}
           data={{
             'data-field': point.iso3,
             'data-iso3': point.iso3,

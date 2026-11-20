@@ -13,6 +13,7 @@ import {
 } from '../lib/data';
 import { formatComposite, formatScore, formatPercent } from '../lib/format';
 import { methodLabel } from '../lib/scale';
+import { payload } from '../lib/site';
 
 const toc = [
   { id: 'what-chips-is', label: 'What CHIPS is' },
@@ -365,21 +366,25 @@ const ranges = scaleIds.map((id) => ({
         </section>
 
         <section id="download-cite" class="method-section">
-          <h2 class="display-m">Download & cite</h2>
+          <h2 class="display-m">Download &amp; cite</h2>
           <p>
-            Downloads are placeholders in this local prototype: no file is attached yet.
-            They are shown so the shape of the published page is visible.
+            These are the prototype's own exports, generated from the repository's
+            scoring engine. They are pre-publication and are not a citable edition.
           </p>
           <ul class="download-list">
-            <li><span class="placeholder-item">Rankings CSV — coming in a later wave</span></li>
-            <li>
-              <span class="placeholder-item">
-                All {meta.leaves} × {meta.countries} CSV — coming in a later wave
-              </span>
-            </li>
-            <li><span class="placeholder-item">Framework JSON — coming in a later wave</span></li>
-            <li><span class="placeholder-item">Copy citation — coming in a later wave</span></li>
+            {payload.downloads.map((item) => (
+              <li>
+                <a href={item.href} download>{item.label}</a>
+                <span class="micro hint"> — {item.note}</span>
+              </li>
+            ))}
           </ul>
+          <p class="example-note">
+            Column definitions: <strong>rank</strong> is 1 = best;{' '}
+            <strong>score</strong> is 0–100; <strong>coverage</strong> is the share of the
+            index weight backed by an actual value; <strong>indicators present</strong> counts
+            the indicators with a value. Do not compare scores across editions — use ranks.
+          </p>
           <p>
             A citable edition needs the team's sign-off and a publication date. Neither
             exists yet, so this prototype does not offer a citation string.

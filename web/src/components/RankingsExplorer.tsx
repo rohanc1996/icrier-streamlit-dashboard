@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { readScaleParam, SCALE_EVENT, methodLabel, movementLabel, otherScale, writeScaleParam } from '../lib/scale';
+import {
+  GROUP_IDS,
+  GROUP_LABELS,
+  meta as siteMeta,
+  type GroupId,
+} from '../lib/site';
 import type { PillarLite, ScaleScores, ScoreRow, SortKey, SortState } from '../lib/types';
 import RankingsTable from './RankingsTable';
 import RankingsToolbar from './RankingsToolbar';
@@ -56,6 +62,8 @@ export default function RankingsExplorer({
   const [query, setQuery] = useState('');
   const [showPillars, setShowPillars] = useState(false);
   const [sort, setSort] = useState<SortState>({ key: 'rank', dir: 'asc' });
+  const [group, setGroup] = useState<GroupId>('all');
+  const [custom, setCustom] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
 
   const data = datasets[scale] ?? datasets[defaultScale];
@@ -77,17 +85,38 @@ export default function RankingsExplorer({
   // and can be shared (the same rule the IA spec sets for accordion state).
   useEffect(() => {
     setScale(readScaleParam(window.location.search, scaleIds, defaultScale));
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('group');
+    if (requested && (GROUP_IDS as readonly string[]).includes(requested)) {
+      setGroup(requested as GroupId);
+    }
+    const requestedCustom = (params.get('countries') ?? '')
+      .split(',')
+      .map((value) => value.trim().toUpperCase())
+      .filter((value) => /^[A-Z]{3}$/.test(value));
+    if (requestedCustom.length) setCustom(requestedCustom);
 
     function onPopState() {
       setScale(readScaleParam(window.location.search, scaleIds, defaultScale));
+      const next = new URLSearchParams(window.location.search).get('group');
+      setGroup(next && (GROUP_IDS as readonly string[]).includes(next) ? (next as GroupId) : 'all');
     }
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, [scaleIds, defaultScale]);
 
+  const groupSet = useMemo(() => {
+    if (group === 'custom') return new Set(custom);
+    const list = siteMeta.groups[group];
+    return list ? new Set(list) : null;
+  }, [group, custom]);
+
   const filtered = useMemo(
-    () => data.scores.filter((row) => matches(row, query)),
-    [data, query],
+    () =>
+      data.scores.filter(
+        (row) => matches(row, query) && (!groupSet || groupSet.has(row.iso3)),
+      ),
+    [data, query, groupSet],
   );
 
   const sorted = useMemo(() => sortRows(filtered, sort), [filtered, sort]);
@@ -106,6 +135,22 @@ export default function RankingsExplorer({
           ? ` the Rank vs ${movementLabel(against)} column shows the movement.`
           : '.'),
     );
+  }
+
+  function chooseGroup(next: GroupId) {
+    setGroup(next);
+    const url = new URL(window.location.href);
+    if (next === 'all') url.searchParams.delete('group');
+    else url.searchParams.set('group', next);
+    window.history.replaceState({}, '', url);
+    const count = data.scores.filter(
+      (row) =>
+        matches(row, query) &&
+        (next === 'custom'
+          ? custom.includes(row.iso3)
+          : !siteMeta.groups[next] || siteMeta.groups[next]!.includes(row.iso3)),
+    ).length;
+    setAnnouncement(`${count} of ${data.scores.length} countries shown.`);
   }
 
   function chooseQuery(next: string) {
@@ -155,6 +200,8 @@ export default function RankingsExplorer({
         showPillars={showPillars}
         onShowPillars={setShowPillars}
         caption={caption}
+        group={group}
+        onGroup={chooseGroup}
       />
 
       <p className="sr-only" aria-live="polite" aria-atomic="true">

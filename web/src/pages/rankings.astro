@@ -3,13 +3,13 @@ import BaseLayout from '../components/BaseLayout.astro';
 import RankingsExplorer from '../components/RankingsExplorer.tsx';
 import { defaultScale, indicatorCount, meta, methodComparison, pillars, scaleIds, scales } from '../lib/data';
 import { formatComposite } from '../lib/format';
-import { overviewDefaultScale } from '../lib/overview';
+import { meta as siteMeta } from '../lib/site';
 import { methodShortLabel } from '../lib/scale';
 import type { PillarLite, ScaleScores } from '../lib/types';
 
 // The site default is the overview payload's `meta.defaultMethod` (z-score);
 // `defaultScale` remains the edition default used by country profiles.
-const siteDefaultScale = overviewDefaultScale();
+const siteDefaultScale = siteMeta.defaultMethod;
 const profileScale = defaultScale;
 
 const datasets: Record<string, ScaleScores> = Object.fromEntries(
@@ -109,15 +109,13 @@ const scaleCaption = movement
 
     <section id="change-2025" tabindex="-1" class="change-section" aria-labelledby="change-heading">
       <h2 id="change-heading" class="display-m" style="margin-top: var(--space-12)">
-        Change since 2025
+        Rank movement between editions
       </h2>
       <p class="body-s hint">
-        Rank movement for the countries scored in both editions. Two columns only: the
-        2025 rank and the movement.
-      </p>
-      <p class="body-s hint">
-        Not part of this prototype build. The 2025 comparison series is not connected to
-        the table yet, so no change values are shown.
+        The table does not carry a change column: comparing scores across editions is not
+        supported, and a rank needs its own subset. The overview's
+        <a href="/?pane=5">rank tracker</a> compares ranks for the countries scored in
+        every selected edition, re-ranked within that subset.
       </p>
     </section>
   </div>

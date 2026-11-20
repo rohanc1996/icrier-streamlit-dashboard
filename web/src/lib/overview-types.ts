@@ -137,6 +137,8 @@ export interface FieldPointModel {
   /** Vertical centre in SVG user units (px). */
   cy: number;
   isIndia: boolean;
+  /** False when the point is outside the selected country group (shown muted). */
+  inSelection?: boolean;
   /**
    * Set only for the top 10 by score in the active method, which are drawn as
    * flags instead of dots. 1 is the best score; 10 paints first so 1 sits on
@@ -352,6 +354,8 @@ export interface ScatterPointModel {
   labelXPct?: number;
   labelY?: number;
   labelAnchor?: 'start' | 'middle' | 'end';
+  /** False when the point is outside the selected country group (shown muted). */
+  inSelection?: boolean;
 }
 
 export interface ScatterChartModel {

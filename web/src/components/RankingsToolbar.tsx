@@ -1,4 +1,5 @@
 import { methodShortLabel } from '../lib/scale';
+import { GROUP_IDS, GROUP_LABELS, type GroupId } from '../lib/site';
 
 interface RankingsToolbarProps {
   query: string;
@@ -13,6 +14,8 @@ interface RankingsToolbarProps {
   showPillars: boolean;
   onShowPillars: (value: boolean) => void;
   caption: string;
+  group: GroupId;
+  onGroup: (group: GroupId) => void;
 }
 
 export default function RankingsToolbar({
@@ -28,6 +31,8 @@ export default function RankingsToolbar({
   showPillars,
   onShowPillars,
   caption,
+  group,
+  onGroup,
 }: RankingsToolbarProps) {
   return (
     <div className="panel toolbar">
@@ -50,6 +55,23 @@ export default function RankingsToolbar({
         </div>
 
         <div className="toolbar__controls">
+          <div className="field toolbar__group">
+            <label className="label" htmlFor="country-group">
+              Select country grouping
+            </label>
+            <select
+              id="country-group"
+              value={group}
+              onChange={(event) => onGroup(event.target.value as GroupId)}
+            >
+              {GROUP_IDS.filter((id) => id !== 'custom').map((id) => (
+                <option value={id} key={id}>
+                  {GROUP_LABELS[id]}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <fieldset className="toolbar__group">
             <legend className="toolbar__legend">Emphasis</legend>
             <div className="segmented">

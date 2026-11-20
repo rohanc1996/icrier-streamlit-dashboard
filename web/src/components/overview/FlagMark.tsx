@@ -29,6 +29,8 @@ export interface FlagMarkProps {
   label?: string;
   /** `data-*` hooks used by the verifier; spread onto the group. */
   data?: Record<string, string | number | boolean | undefined>;
+  /** Outside the selected country group: drawn muted, still reachable. */
+  muted?: boolean;
 }
 
 export default function FlagMark({
@@ -38,13 +40,14 @@ export default function FlagMark({
   radius,
   label,
   data,
+  muted = false,
 }: FlagMarkProps) {
   const decorative = label === undefined;
 
   return (
     <g
       {...data}
-      className={`flag-mark flag-mark--${iso2}`}
+      className={`flag-mark flag-mark--${iso2}${muted ? ' is-muted' : ''}`}
       tabIndex={decorative ? undefined : 0}
       role={decorative ? undefined : 'img'}
       aria-label={decorative ? undefined : label}

@@ -126,6 +126,7 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
             dotClassName={`scatter__dot${
               point.belowThreshold ? ' scatter__dot--below' : ''
             }`}
+            muted={point.inSelection === false}
             data={{
               'data-scatter': point.iso3,
               'data-below': point.belowThreshold ? 'true' : undefined,
@@ -141,6 +142,7 @@ export default function ScatterChart({ model }: { model: ScatterChartModel }) {
             y={point.y}
             radius={FLAG_RADIUS}
             label={markName(point)}
+            muted={point.inSelection === false}
             data={{
               'data-scatter': point.iso3,
               'data-iso3': point.iso3,
