@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ALL_COUNTRIES,
   BASIS_LABELS,
@@ -43,15 +43,18 @@ function ControlGroup({
 
 export default function FilterBar({ filters, onChange, onReset, summary }: FilterBarProps) {
   const [open, setOpen] = useState(false);
-  const [compact, setCompact] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const query = window.matchMedia('(max-width: 900px)');
-    const apply = () => setCompact(query.matches);
-    apply();
-    query.addEventListener('change', apply);
-    return () => query.removeEventListener('change', apply);
-  }, []);
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open]);
 
   const availableBasis = meta.basisAvailability[filters.year] ?? ['absolute'];
   function set(patch: Partial<Filters>) {
@@ -235,38 +238,51 @@ export default function FilterBar({ filters, onChange, onReset, summary }: Filte
     </div>
   );
 
-  const active = (
-    <div className="filterbar__active">
-      <p className="filterbar__selection" aria-live="polite">
-        <span className="filterbar__selection-label">Showing</span> {summary}
-      </p>
-      <button type="button" className="filterbar__reset" onClick={onReset}>
-        Reset view
-      </button>
-    </div>
-  );
-
-  if (compact) {
-    return (
-      <details
-        className="filterbar filterbar--compact"
-        open={open}
-        onToggle={(event) => setOpen((event.target as HTMLDetailsElement).open)}
-      >
-        <summary>
-          Filters
-          <span className="filterbar__summary-text"> — {summary}</span>
-        </summary>
-        {active}
-        {body}
-      </details>
-    );
-  }
-
   return (
-    <section className="filterbar" aria-label="View filters">
-      {active}
-      {body}
+    <section className={`filterbar${open ? ' is-open' : ''}`} aria-label="View filters">
+      <div className="filterbar__bar">
+        <p className="filterbar__selection" aria-live="polite">
+          <span className="filterbar__selection-label">Showing</span>{' '}
+          <span className="filterbar__summary">{summary}</span>
+        </p>
+        <div className="filterbar__actions">
+          <button
+            type="button"
+            className="filterbar__toggle"
+            ref={toggleRef}
+            aria-expanded={open}
+            aria-controls="view-filters-panel"
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? 'Close filters' : 'Edit filters'}
+          </button>
+          <button
+            type="button"
+            className="filterbar__reset"
+            onClick={() => {
+              onReset();
+              setOpen(false);
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="view-filters-panel"
+        className="filterbar__panel"
+        hidden={!open}
+        role="group"
+        aria-label="View filters panel"
+      >
+        {body}
+        <div className="filterbar__panel-actions">
+          <button type="button" className="filterbar__done" onClick={() => setOpen(false)}>
+            Done
+          </button>
+        </div>
+      </div>
     </section>
   );
 }

@@ -289,8 +289,38 @@ try {
     expectMatch(text, /Combined \(50–50\)/, 'basis in summary');
     expectMatch(text, /2026/, 'year in summary');
     expectMatch(text, /All countries/, 'group in summary');
-    expectMatch(text, /Min–max/, 'normalization in summary');
+    expectMatch(text, /Z-score/, 'normalization in summary');
     return JSON.stringify(text.trim());
+  });
+
+  await check('the bar is one compact row and pins below the header', async () => {
+    const height = (await overview.locator('.filterbar').boundingBox()).height;
+    expect(height <= 72, `filter bar is ${height}px tall`);
+    const expanded = await overview.locator('.filterbar__toggle').getAttribute('aria-expanded');
+    expectEqual(expanded, 'false', 'panel starts closed');
+
+    await overview.evaluate(() => window.scrollTo(0, 900));
+    await settle(overview);
+    const alignment = await overview.evaluate(() => {
+      const header = document.querySelector('.site-header')?.getBoundingClientRect();
+      const bar = document.querySelector('.filterbar')?.getBoundingClientRect();
+      return header && bar ? Math.round(bar.top - header.bottom) : null;
+    });
+    expect(alignment !== null && Math.abs(alignment) <= 2, `bar is ${alignment}px from the header`);
+    await overview.evaluate(() => window.scrollTo(0, 0));
+    return `${Math.round(height)}px; sticks ${alignment}px below the header`;
+  });
+
+  await check('Edit filters opens an overlay panel that Escape closes', async () => {
+    await overview.locator('.filterbar__toggle').click();
+    await settle(overview);
+    expect(await overview.locator('#view-filters-panel').isVisible(), 'panel did not open');
+    const height = (await overview.locator('.filterbar').boundingBox()).height;
+    expect(height <= 72, `open bar grew to ${height}px`);
+    await overview.keyboard.press('Escape');
+    await settle(overview);
+    expect(await overview.locator('#view-filters-panel').isHidden(), 'Escape did not close the panel');
+    return 'overlay open/close, bar height unchanged';
   });
 
   await check('pane 1 draws every scored country and the median', async () => {
@@ -361,14 +391,33 @@ try {
   await check('pane 5 re-ranks the 38-country intersection within the subset', async () => {
     const rows = await pane(5).locator('.tracker__table tbody tr').count();
     expectEqual(rows, 38, 'tracker rows');
-    const first = (await pane(5).locator('.tracker__table tbody tr').first().innerText())
-      .split(/\s+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    expectEqual(first[0], 'USA', 'first row by latest rank');
-    expectEqual(first[1], '2', 'USA 2025 rank');
-    expectEqual(first[2], '1', 'USA 2026 rank');
-    return `${rows} rows; first ${first.join(' ')}`;
+    const first = pane(5).locator('.tracker__table tbody tr').first();
+    const cells = (await first.locator('td').allInnerTexts()).map((value) =>
+      value.replace(/\s+/g, ' ').trim(),
+    );
+    expectEqual((await first.locator('th').innerText()).trim(), 'USA', 'first row by latest rank');
+    expect(cells[cells.length - 1].startsWith('1'), `USA latest rank is ${cells[cells.length - 1]}`);
+    return `${rows} rows; USA ${cells.join(' | ')}`;
+  });
+
+  await check('pane 5 draws every country in every selected year', async () => {
+    const lines = await pane(5).locator('[data-tracker]').count();
+    expectEqual(lines, 38, 'country paths');
+    const dots = await pane(5).locator('.tracker__dot').count();
+    expectEqual(dots, 76, 'rank dots (38 × 2 years)');
+    const labels = await pane(5).locator('.tracker__label').count();
+    expect(labels > 0, 'no highlighted labels');
+    return `${lines} paths, ${dots} dots, ${labels} labels`;
+  });
+
+  await check('pane 5 labels the movers at every year, not just the last', async () => {
+    const labels = await pane(5)
+      .locator('.tracker__label')
+      .evaluateAll((nodes) => nodes.map((node) => node.textContent ?? ''));
+    const years = await pane(5).locator('.tracker__year').allInnerTexts();
+    expect(years.length >= 2, `only ${years.length} year markers`);
+    expect(labels.every((text) => /\d/.test(text)), 'a label carries no rank');
+    return `${labels.length} labels across ${years.join(' / ')}`;
   });
 
   await check('pane 6 defaults to the smallest absolute rank difference', async () => {
@@ -427,7 +476,7 @@ try {
   await check('a basis with no file for the year is disabled, not hidden', async () => {
     await overview.goto(`${server.base}/?year=2025&basis=relative`, { waitUntil: 'load' });
     await settle(overview);
-    const relative = overview.getByRole('radio', { name: 'Relative' });
+    const relative = overview.locator('input[name="score-basis"][value="relative"]');
     expect(await relative.isDisabled(), 'Relative is enabled for 2025');
     const summary = await overview.locator('.filterbar__selection').innerText();
     expectMatch(summary, /Absolute/, 'basis fell back to Absolute');
@@ -486,20 +535,22 @@ try {
   await mobile.goto(`${server.base}/`, { waitUntil: 'load' });
   await settle(mobile);
 
-  await check('mobile: the bar is a collapsed Filters panel', async () => {
-    const details = mobile.locator('details.filterbar');
-    expectEqual(await details.count(), 1, 'compact details');
-    expectEqual(await details.getAttribute('open'), null, 'panel open by default');
+  await check('mobile: the bar is one compact row with a closed panel', async () => {
+    const bar = mobile.locator('.filterbar__bar');
+    const height = (await bar.boundingBox()).height;
+    expect(height <= 72, `bar is ${height}px tall`);
+    expect(await mobile.locator('#view-filters-panel').isHidden(), 'panel is visible by default');
     const overflow = await mobile.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expectEqual(overflow, 0, 'horizontal overflow');
-    return 'collapsed, no horizontal scroll';
+    return `${Math.round(height)}px bar, panel closed, no horizontal scroll`;
   });
 
-  await check('mobile: opening Filters reveals the controls', async () => {
-    await mobile.locator('details.filterbar > summary').click();
+  await check('mobile: opening Edit filters reveals the controls', async () => {
+    await mobile.locator('.filterbar__toggle').click();
     await settle(mobile);
+    expect(await mobile.locator('#view-filters-panel').isVisible(), 'panel did not open');
     expect(await mobile.getByRole('radio', { name: 'Combined (50–50)' }).isVisible(), 'basis control hidden');
     expect(await mobile.getByRole('checkbox', { name: '2026' }).isVisible(), 'year control hidden');
     await shot(mobile, 'mobile-overview-filters.png', true);
@@ -539,67 +590,67 @@ try {
     return '71 links';
   });
 
-  await check('/rankings defaults to min–max with no scale param', async () => {
+  await check('/rankings defaults to z-score with no scale param', async () => {
     const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, 'full_minmax', 'checked scale');
+    expectEqual(checked, 'z', 'checked scale');
     expect(!page.url().includes('scale='), `URL should not carry scale=, got ${page.url()}`);
-    return 'min–max, no scale param';
+    return 'z, no scale param';
   });
 
-  await check('Saudi Arabia row (min–max): rank 55, score 18.03', async () => {
+  await check('Saudi Arabia row (z): rank 36, score 46.20', async () => {
     const text = await saudiRow(page).innerText();
-    const cells = await saudiRow(page).locator('td').allInnerTexts();
-    expectEqual(num(cells[0]), 55, 'rank');
-    expectEqual(num(cells[2]), 18.03, 'score');
-    return `${cells[0].trim()} / ${cells[2].trim()} (${text.split('\n')[1]})`;
-  });
-
-  await check('movement header names the other method: Rank vs z', async () => {
-    const header = await page.locator('thead th.movement-col abbr').innerText();
-    expectEqual(header.trim(), 'Rank vs z', 'movement header (min–max active)');
-    return header.trim();
-  });
-
-  await shot(page, 'desktop-rankings-minmax.png', true);
-
-  await check('click Z-score → URL gains scale=z, Saudi rank 36', async () => {
-    await page.getByRole('radio', { name: 'Z-score' }).check();
-    await settle(page);
-    expectMatch(page.url(), /[?&]scale=z(&|$)/, 'URL');
     const cells = await saudiRow(page).locator('td').allInnerTexts();
     expectEqual(num(cells[0]), 36, 'rank');
     expectEqual(num(cells[2]), 46.2, 'score');
-    const header = await page.locator('thead th.movement-col abbr').innerText();
-    expectEqual(header.trim(), 'Rank vs min–max', 'movement header (z active)');
-    return `${page.url().replace(server.base, '')} · 36 / 46.20 · "${header.trim()}"`;
+    return `${cells[0].trim()} / ${cells[2].trim()} (${text.split('\n')[1]})`;
   });
 
-  await check('z: rank-movement cell reads +19 against min–max', async () => {
-    const cell = saudiRow(page).locator('td.movement-col');
-    await cell.waitFor();
-    const text = await cell.innerText();
-    expectMatch(text.replace(/\s+/g, ' '), /\+19/, 'movement cell text');
-    return JSON.stringify(text.replace(/\s+/g, ' ').trim());
+  await check('movement header names the other method: Rank vs min–max', async () => {
+    const header = await page.locator('thead th.movement-col abbr').innerText();
+    expectEqual(header.trim(), 'Rank vs min–max', 'movement header (z active)');
+    return header.trim();
   });
 
   await shot(page, 'desktop-rankings-z.png', true);
 
-  await check('reload /rankings?scale=z keeps z-score active', async () => {
-    await page.goto(`${server.base}/rankings?scale=z`, { waitUntil: 'load' });
+  await check('click Min–max → URL gains scale=minmax, Saudi rank 55', async () => {
+    await page.getByRole('radio', { name: 'Min–max' }).check();
     await settle(page);
-    const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, 'z', 'checked scale after reload');
+    expectMatch(page.url(), /[?&]scale=minmax(&|$)/, 'URL');
     const cells = await saudiRow(page).locator('td').allInnerTexts();
-    expectEqual(num(cells[0]), 36, 'rank after reload');
-    return 'z active, rank 36';
+    expectEqual(num(cells[0]), 55, 'rank');
+    expectEqual(num(cells[2]), 18.03, 'score');
+    const header = await page.locator('thead th.movement-col abbr').innerText();
+    expectEqual(header.trim(), 'Rank vs z', 'movement header (min–max active)');
+    return `${page.url().replace(server.base, '')} · 55 / 18.03 · "${header.trim()}"`;
   });
 
-  await check('switch back to Min–max drops scale from the URL', async () => {
-    await page.getByRole('radio', { name: 'Min–max' }).check();
+  await check('min–max: rank-movement cell reads −19 against z', async () => {
+    const cell = saudiRow(page).locator('td.movement-col');
+    await cell.waitFor();
+    const text = await cell.innerText();
+    expectMatch(text.replace(/\s+/g, ' '), /−19/, 'movement cell text');
+    return JSON.stringify(text.replace(/\s+/g, ' ').trim());
+  });
+
+  await shot(page, 'desktop-rankings-minmax.png', true);
+
+  await check('reload /rankings?scale=minmax keeps min–max active', async () => {
+    await page.goto(`${server.base}/rankings?scale=minmax`, { waitUntil: 'load' });
+    await settle(page);
+    const checked = await page.locator('input[name="scale"]:checked').inputValue();
+    expectEqual(checked, 'full_minmax', 'checked scale after reload');
+    const cells = await saudiRow(page).locator('td').allInnerTexts();
+    expectEqual(num(cells[0]), 55, 'rank after reload');
+    return 'min–max active, rank 55';
+  });
+
+  await check('switch back to Z-score drops scale from the URL', async () => {
+    await page.getByRole('radio', { name: 'Z-score' }).check();
     await settle(page);
     expect(!page.url().includes('scale='), `URL still carries scale=: ${page.url()}`);
     const checked = await page.locator('input[name="scale"]:checked').inputValue();
-    expectEqual(checked, 'full_minmax', 'checked scale');
+    expectEqual(checked, 'z', 'checked scale');
     return `${new URL(page.url()).pathname}${new URL(page.url()).search}`;
   });
 
@@ -1035,16 +1086,15 @@ try {
     return `${scrollWidth} <= ${innerWidth}`;
   });
 
-  await check('390px: the filter bar collapses and its targets stay usable', async () => {
-    const details = mobileOverview.locator('details.filterbar');
-    expectEqual(await details.count(), 1, 'compact filter panel');
-    expectEqual(await details.getAttribute('open'), null, 'panel starts closed');
-    await details.locator('> summary').click();
+  await check('390px: the filter bar stays one row and its targets stay usable', async () => {
+    const barHeight = (await mobileOverview.locator('.filterbar__bar').boundingBox()).height;
+    expect(barHeight <= 72, `bar is ${barHeight}px tall`);
+    await mobileOverview.locator('.filterbar__toggle').click();
     await settle(mobileOverview);
     const sizes = await mobileOverview.evaluate(() => {
       const controls = Array.from(
         document.querySelectorAll(
-          '.filterbar select, .filterbar button, .segmented__option span, details.filterbar > summary',
+          '.filterbar select, .filterbar button, .segmented__option span',
         ),
       ).filter((el) => el.getClientRects().length > 0);
       return controls.map((el) => {
