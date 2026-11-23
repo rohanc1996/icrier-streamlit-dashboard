@@ -1,7 +1,7 @@
 # HANDOVER — SIDE / CHIPS web prototype
 
 Status: local, pre-publication prototype. Nothing here is signed off or citable.
-Last updated: 20 November 2026.
+Last updated: 23 November 2026.
 
 This document covers the Astro site in `web/`. The Streamlit dashboard in
 `SIDE_dashboard/` is a separate, internal tool and is not described here.
@@ -65,7 +65,7 @@ and 2025. The bar shows the disabled option rather than hiding it.
 | 2 | Every score, ranked | `methods.*.field` | All countries by default; an explicit “show” control can cut to 25 or 10. |
 | 3 | Anatomy of a score | `methods.*.composition` | Weighted pillar contributions, all countries by default, explicit “show” control. |
 | 4 | Five verdicts | `methods.*.verdicts` | Follows the first comparison country (India if unset). Pillar ranks only. |
-| 5 | Rank tracker | `tracker[method][window]` | Ranks only. Countries scored in every selected year, re-ranked within that subset. |
+| 5 | Rank tracker | `tracker[method][window]` | Ranks only. A labelled rank ladder for every selected year, plus a table with each year's rank and the year-on-year move. Countries scored in every selected year, re-ranked within that subset. |
 | 6 | Two scales, one index | `robustness` | Sortable table; default order is smallest absolute rank difference. |
 | 7 | Scale and score | `methods.*.sizeVsScore` | GDP 2025 on a log axis. Does not follow the year selector. |
 
@@ -84,11 +84,13 @@ is read/written by `web/src/lib/site.ts`.
 | Country grouping | `group=all\|g20\|g20em\|custom` | `all` |
 | Custom group | `countries=IND,USA,…` | empty |
 | Two-country comparison | `compare=IND,USA` | empty |
-| Normalization | `scale=minmax\|z` | `minmax` |
+| Normalization | `scale=minmax\|z` | `z` |
 | Pane | `pane=1…7` | `1` |
 
 Defaults are omitted from the URL, so pasting a link restores exactly the
-non-default parts. “Reset view” clears the query string.
+non-default parts. “Reset” clears the query string. The bar itself is one
+compact row; “Edit filters” opens an overlay panel, so the charts are never
+pushed down.
 
 The normalization control sits inside “Advanced / methodology”. Whether public
 readers should see it is an open question; the single switch is

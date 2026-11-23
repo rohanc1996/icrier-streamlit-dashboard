@@ -167,16 +167,20 @@ WebKit engine headless at 1400×1000, 1366×768, 390×844 and 320×800, and asse
 
 - `/` renders exactly 7 panes with one visible; next/prev, ←/→, Home/End and
   `?pane=` change it; the live region and counter follow.
+- The filter bar is one compact row, pins below the header, and opens its
+  controls as an overlay that Escape closes.
 - The filter bar reports the active view in text, a deep link restores basis,
   years, group, comparison and pane, and “Reset view” clears the query string.
 - A basis with no file for the selected year is disabled with a reason.
 - Pane 2 and pane 3 default to all countries and only cut on an explicit
   top-N choice.
-- Pane 5 is ranks only and uses the 38-country 2025→2026 intersection.
+- Pane 5 is ranks only and uses the 38-country 2025→2026 intersection; its
+  rank ladder labels every selected year and the table carries each year's rank
+  and the year-on-year move.
 - Pane 6 sorts by the smallest absolute difference by default and each header
   sorts.
 - Downloads resolve to non-empty CSVs.
-- `/rankings` defaults to min–max; the movement column is labelled against the
+- `/rankings` defaults to z-score; the movement column is labelled against the
   other method.
 - axe-core on eighteen page states; no horizontal overflow at 390px or at
   1366×768.
