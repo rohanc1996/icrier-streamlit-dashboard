@@ -632,7 +632,7 @@ def main() -> None:
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "years": list(YEARS),
             "methods": list(METHODS),
-            "defaultMethod": "full_minmax",
+            "defaultMethod": "z",
             "defaults": {
                 "year": YEARS[-1],
                 "basis": "combined" if "combined" in availability[YEARS[-1]] else "absolute",
