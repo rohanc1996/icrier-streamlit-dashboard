@@ -3113,9 +3113,6 @@ details > :not(summary) {
  * ------------------------------------------------------------------------- */
 
 .filterbar {
-  position: sticky;
-  top: var(--header-offset, 56px);
-  z-index: 40;
   margin-top: var(--space-4);
   background: var(--wash-warm);
   border: 1px solid var(--rule);
@@ -3716,10 +3713,6 @@ details > :not(summary) {
 }
 
 @media (max-width: 640px) {
-  .filterbar {
-    position: static;
-  }
-
   .filterbar__bar {
     min-height: 56px;
     padding: 6px 8px;

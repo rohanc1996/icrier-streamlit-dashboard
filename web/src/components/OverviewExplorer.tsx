@@ -95,25 +95,6 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
   const [compositionTop, setCompositionTop] = useState('all');
   const [announcement, setAnnouncement] = useState('');
 
-  // Pin the filter bar below the site header, whose height changes when the
-  // nav wraps on narrow screens. Without this it sticks at top:0 and slides
-  // underneath the header.
-  useEffect(() => {
-    const header = document.querySelector<HTMLElement>('.site-header');
-    const apply = () => {
-      const height = header?.getBoundingClientRect().height ?? 56;
-      document.documentElement.style.setProperty('--header-offset', `${Math.round(height)}px`);
-    };
-    apply();
-    const observer = header ? new ResizeObserver(apply) : null;
-    if (header && observer) observer.observe(header);
-    window.addEventListener('resize', apply);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', apply);
-    };
-  }, []);
-
   const edition = payload.editions[filters.year] ?? {};
   const basis = edition[filters.basis] ? filters.basis : Object.keys(edition)[0];
   const block = edition[basis];

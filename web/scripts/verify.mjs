@@ -293,22 +293,36 @@ try {
     return JSON.stringify(text.trim());
   });
 
-  await check('the bar is one compact row and pins below the header', async () => {
+  await check('the bar is one compact row and scrolls with the page', async () => {
     const height = (await overview.locator('.filterbar').boundingBox()).height;
     expect(height <= 72, `filter bar is ${height}px tall`);
     const expanded = await overview.locator('.filterbar__toggle').getAttribute('aria-expanded');
     expectEqual(expanded, 'false', 'panel starts closed');
 
-    await overview.evaluate(() => window.scrollTo(0, 900));
+    const position = await overview
+      .locator('.filterbar')
+      .evaluate((element) => getComputedStyle(element).position);
+    expectEqual(position, 'static', 'filter bar position');
+
+    const initialTop = await overview
+      .locator('.filterbar')
+      .evaluate((element) => element.getBoundingClientRect().top);
+    await overview.evaluate(() =>
+      window.scrollTo({ top: 600, behavior: 'instant' }),
+    );
     await settle(overview);
-    const alignment = await overview.evaluate(() => {
-      const header = document.querySelector('.site-header')?.getBoundingClientRect();
-      const bar = document.querySelector('.filterbar')?.getBoundingClientRect();
-      return header && bar ? Math.round(bar.top - header.bottom) : null;
-    });
-    expect(alignment !== null && Math.abs(alignment) <= 2, `bar is ${alignment}px from the header`);
-    await overview.evaluate(() => window.scrollTo(0, 0));
-    return `${Math.round(height)}px; sticks ${alignment}px below the header`;
+    const scrolledTop = await overview
+      .locator('.filterbar')
+      .evaluate((element) => element.getBoundingClientRect().top);
+    expect(
+      initialTop - scrolledTop > 100,
+      `bar barely moved (${initialTop} → ${scrolledTop}); it is still sticky`,
+    );
+    await overview.evaluate(() =>
+      window.scrollTo({ top: 0, behavior: 'instant' }),
+    );
+    await settle(overview);
+    return `${Math.round(height)}px, static, scrolled out of view`;
   });
 
   await check('Edit filters expands in flow, pushing the pane down', async () => {

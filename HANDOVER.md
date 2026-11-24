@@ -90,7 +90,8 @@ is read/written by `web/src/lib/site.ts`.
 Defaults are omitted from the URL, so pasting a link restores exactly the
 non-default parts. “Reset” clears the query string. The bar itself is one
 compact row; “Edit filters” expands a panel in the page flow, so the content
-below moves down when it opens and back up when it closes.
+below moves down when it opens and back up when it closes. The bar scrolls
+with the page — it is deliberately not sticky.
 
 The normalization control sits inside “Advanced / methodology”. Whether public
 readers should see it is an open question; the single switch is
