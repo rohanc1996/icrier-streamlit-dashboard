@@ -3190,19 +3190,12 @@ details > :not(summary) {
 }
 
 .filterbar__panel {
-  position: absolute;
-  top: 100%;
-  left: -1px;
-  right: -1px;
-  z-index: 41;
   max-height: min(70vh, 640px);
   overflow-y: auto;
   padding: var(--space-3) var(--space-4) var(--space-4);
   background: var(--surface);
-  border: 1px solid var(--rule);
-  border-top: 0;
+  border-top: 1px solid var(--rule);
   border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: 0 12px 24px rgba(20, 24, 43, 0.12);
 }
 
 .filterbar__panel-actions {
@@ -3746,7 +3739,5 @@ details > :not(summary) {
 
   .filterbar__panel {
     max-height: 80vh;
-    left: 0;
-    right: 0;
   }
 }

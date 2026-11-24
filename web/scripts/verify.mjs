@@ -311,16 +311,35 @@ try {
     return `${Math.round(height)}px; sticks ${alignment}px below the header`;
   });
 
-  await check('Edit filters opens an overlay panel that Escape closes', async () => {
+  await check('Edit filters expands in flow, pushing the pane down', async () => {
+    // The previous check ends with scrollTo(0, 0); let any smooth scroll
+    // finish before measuring positions.
+    await overview.evaluate(() => window.scrollTo(0, 0));
+    await settle(overview);
+    const closedHeight = (await overview.locator('.filterbar').boundingBox()).height;
+    const closedTop = (await pane(1).boundingBox()).y;
     await overview.locator('.filterbar__toggle').click();
     await settle(overview);
     expect(await overview.locator('#view-filters-panel').isVisible(), 'panel did not open');
-    const height = (await overview.locator('.filterbar').boundingBox()).height;
-    expect(height <= 72, `open bar grew to ${height}px`);
+    const panelHeight = (await overview.locator('#view-filters-panel').boundingBox()).height;
+    const openHeight = (await overview.locator('.filterbar').boundingBox()).height;
+    const openTop = (await pane(1).boundingBox()).y;
+    expect(openHeight - closedHeight > 50, `bar grew only ${openHeight - closedHeight}px`);
+    expect(
+      Math.abs(openHeight - closedHeight - panelHeight) <= 2,
+      `bar grew ${openHeight - closedHeight}px but panel is ${panelHeight}px`,
+    );
+    expect(
+      Math.abs(openTop - closedTop - panelHeight) <= 2,
+      `pane moved ${openTop - closedTop}px but panel is ${panelHeight}px`,
+    );
+
     await overview.keyboard.press('Escape');
     await settle(overview);
     expect(await overview.locator('#view-filters-panel').isHidden(), 'Escape did not close the panel');
-    return 'overlay open/close, bar height unchanged';
+    const restored = (await pane(1).boundingBox()).y;
+    expect(Math.abs(restored - closedTop) <= 1, `pane did not return (${restored} vs ${closedTop})`);
+    return `panel ${Math.round(panelHeight)}px pushes the pane down and back`;
   });
 
   await check('pane 1 draws every scored country and the median', async () => {
