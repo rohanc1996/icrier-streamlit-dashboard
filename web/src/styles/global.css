@@ -3734,3 +3734,9 @@ details > :not(summary) {
     max-height: 80vh;
   }
 }
+
+.tracker__leader {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 0.8;
+}

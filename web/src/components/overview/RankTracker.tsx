@@ -9,29 +9,25 @@ interface RankTrackerProps {
   total: number;
 }
 
-type HighlightMode = 'movers' | 'compare' | 'none';
 type SortMode = 'latest' | 'change';
 
 const WIDTH = 900;
-const HEIGHT = 320;
 const LEFT = 56;
-const RIGHT = 200;
+const RIGHT = 230;
 const TOP = 26;
-const BOTTOM = 272;
 
 /**
  * Pane 5: every selected edition on one rank ladder.
  *
  * Scores are deliberately absent: the method, indicators and weights changed
- * between editions, so only position within a year is comparable. All
- * countries in the group are drawn as faint paths; the largest movers on each
- * transition and the comparison countries are labelled at *every* year, so a
- * reader can follow the shift rather than infer it from one end point. The
- * table below carries every country and every year.
+ * between editions, so only position within a year is comparable. Every country
+ * is drawn as a path and named once, at the right-hand edge, at its rank in the
+ * last selected year. The lines carry the year-to-year movement; a short leader
+ * connects a displaced label back to its final dot. The table below carries
+ * every year's rank and the move between them.
  */
 export default function RankTracker({ block, selected, compare, total }: RankTrackerProps) {
   const years = block.years;
-  const [highlight, setHighlight] = useState<HighlightMode>('movers');
   const [sortMode, setSortMode] = useState<SortMode>('latest');
 
   const rows = useMemo(
@@ -49,13 +45,11 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
   const lastYear = years[years.length - 1];
   const firstYear = years[0];
 
-  /** The largest movers on any transition, plus the comparison countries. */
-  const highlighted = useMemo(() => {
-    if (highlight === 'none') return new Set<string>();
-    if (highlight === 'compare') return new Set(compare);
-    const codes = new Set<string>(compare);
+  /** Largest movers on any transition: these keep the stronger line. */
+  const movers = useMemo(() => {
+    const codes = new Set<string>();
     for (const { from, to } of transitions) {
-      const movers = [...rows]
+      const list = [...rows]
         .map((row) => ({
           iso3: row.iso3,
           delta: Math.abs((row.ranks[String(to)] ?? 0) - (row.ranks[String(from)] ?? 0)),
@@ -63,10 +57,10 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
         .filter((row) => row.delta > 0)
         .sort((a, b) => b.delta - a.delta || a.iso3.localeCompare(b.iso3))
         .slice(0, 4);
-      for (const mover of movers) codes.add(mover.iso3);
+      for (const mover of list) codes.add(mover.iso3);
     }
     return codes;
-  }, [compare, highlight, rows, transitions]);
+  }, [rows, transitions]);
 
   const sorted = useMemo(() => {
     const list = [...rows];
@@ -87,32 +81,35 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
     return list;
   }, [rows, sortMode, firstYear, lastYear]);
 
+  // A 19-country group needs ~360px; the 38-country view grows so every label
+  // fits without overlap.
+  const height = Math.max(360, rows.length * 16 + 64);
+  const bottom = height - 52;
   const x = (index: number) =>
     years.length === 1
       ? LEFT + (WIDTH - LEFT - RIGHT) / 2
       : LEFT + (index / (years.length - 1)) * (WIDTH - LEFT - RIGHT);
-  const y = (rank: number) => TOP + ((rank - 1) / Math.max(1, maxRank - 1)) * (BOTTOM - TOP);
+  const y = (rank: number) => TOP + ((rank - 1) / Math.max(1, maxRank - 1)) * (bottom - TOP);
+  const lastX = x(years.length - 1);
 
-  // One label column per year; push labels apart so the highlighted group is
-  // readable at every edition, not only at the last one.
-  const labelY = useMemo(() => {
-    const placed: Record<string, Map<string, number>> = {};
-    for (const [index, year] of years.entries()) {
-      const column = new Map<string, number>();
-      let cursor = Number.NEGATIVE_INFINITY;
-      const entries = rows
-        .filter((row) => highlighted.has(row.iso3))
-        .sort((a, b) => (a.ranks[String(year)] ?? 0) - (b.ranks[String(year)] ?? 0));
-      for (const row of entries) {
-        const target = y(row.ranks[String(year)] ?? maxRank);
-        const value = Math.max(target, cursor + 13);
-        column.set(row.iso3, value);
-        cursor = value;
-      }
-      placed[String(year)] = column;
+  /** One label per country at the last year, pushed apart where ranks cluster. */
+  const labels = useMemo(() => {
+    const placed = new Map<string, number>();
+    let cursor = Number.NEGATIVE_INFINITY;
+    const ordered = rows
+      .filter((row) => row.ranks[String(lastYear)] !== undefined)
+      .sort(
+        (a, b) =>
+          a.ranks[String(lastYear)] - b.ranks[String(lastYear)] ||
+          a.country.localeCompare(b.country),
+      );
+    for (const row of ordered) {
+      const value = Math.max(y(row.ranks[String(lastYear)]), cursor + 14);
+      placed.set(row.iso3, value);
+      cursor = value;
     }
     return placed;
-  }, [highlighted, rows, years, maxRank]);
+  }, [rows, lastYear, maxRank, height]);
 
   const latestTransition = transitions[transitions.length - 1];
   const changedLatest = latestTransition
@@ -158,31 +155,15 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
         relative position within a year is comparable.
       </p>
 
-      <div className="tracker__controls pane-control">
-        <label htmlFor="tracker-highlight">Label</label>
-        <select
-          id="tracker-highlight"
-          value={highlight}
-          onChange={(event) => setHighlight(event.target.value as HighlightMode)}
-        >
-          <option value="movers">Largest movers + comparison</option>
-          <option value="compare">Comparison countries only</option>
-          <option value="none">No labels</option>
-        </select>
-        <span className="micro hint">
-          All {rows.length} countries are drawn; every rank is in the table.
-        </span>
-      </div>
-
       <div className="tracker__chart">
         <svg
           width="100%"
-          height={HEIGHT}
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          height={height}
+          viewBox={`0 0 ${WIDTH} ${height}`}
           role="img"
           aria-label={`Rank ladder for ${rows.length} countries across ${years.join(
             ', ',
-          )}. Rank 1 is best. Faint lines are all countries; highlighted lines are the largest movers and the comparison countries.`}
+          )}. Rank 1 is best. Every country is labelled at ${lastYear}, its last selected year.`}
         >
           {[1, Math.round(maxRank / 2), maxRank].map((rank) => (
             <g key={rank}>
@@ -190,7 +171,7 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
                 className="tracker__grid"
                 x1={LEFT}
                 y1={y(rank)}
-                x2={WIDTH - RIGHT + 120}
+                x2={lastX}
                 y2={y(rank)}
               />
               <text className="chart__tick-label" x={LEFT - 8} y={y(rank) + 4} textAnchor="end">
@@ -203,7 +184,7 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
               key={year}
               className="tracker__year"
               x={x(index)}
-              y={HEIGHT - 12}
+              y={height - 10}
               textAnchor="middle"
             >
               {year}
@@ -211,29 +192,30 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
           ))}
 
           {rows.map((row) => {
-            const isHighlighted = highlighted.has(row.iso3);
             const isCompared = compareSet.has(row.iso3);
+            const isMover = movers.has(row.iso3);
             const points = years
               .map((year, index) => ({ index, rank: row.ranks[String(year)] }))
               .filter((point) => point.rank !== undefined);
             const path = points
-              .map((point, i) => `${i === 0 ? 'M' : 'L'} ${x(point.index)} ${y(point.rank as number)}`)
+              .map(
+                (point, i) =>
+                  `${i === 0 ? 'M' : 'L'} ${x(point.index)} ${y(point.rank as number)}`,
+              )
               .join(' ');
-            const label = years
+            const trail = years
               .map((year) => `${year}: ${row.ranks[String(year)] ?? '—'}`)
               .join(', ');
+            const labelY = labels.get(row.iso3);
             return (
               <g
                 key={row.iso3}
-                className={`tracker__country${isHighlighted ? ' is-highlighted' : ''}${
+                className={`tracker__country${isMover ? ' is-highlighted' : ''}${
                   isCompared ? ' is-compared' : ''
                 }`}
                 data-tracker={row.iso3}
-                tabIndex={isHighlighted ? 0 : -1}
-                role="img"
-                aria-label={`${row.shortName || row.country}, ${label}`}
               >
-                <title>{`${row.shortName || row.country} — ${label}`}</title>
+                <title>{`${row.shortName || row.country} — ${trail}`}</title>
                 <path className="tracker__line" d={path} />
                 {points.map((point) => (
                   <circle
@@ -241,31 +223,37 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
                     className="tracker__dot"
                     cx={x(point.index)}
                     cy={y(point.rank as number)}
-                    r={isHighlighted ? 3.2 : 2}
+                    r={isCompared || isMover ? 3.2 : 2}
                   />
                 ))}
+                {labelY !== undefined && (
+                  <path
+                    className="tracker__leader"
+                    d={`M ${lastX + 2} ${y(row.ranks[String(lastYear)])} L ${
+                      lastX + 8
+                    } ${labelY} L ${lastX + 11} ${labelY}`}
+                  />
+                )}
               </g>
             );
           })}
 
           {rows.map((row) => {
-            if (!highlighted.has(row.iso3)) return null;
+            const labelY = labels.get(row.iso3);
+            const rank = row.ranks[String(lastYear)];
+            if (labelY === undefined || rank === undefined) return null;
             const isCompared = compareSet.has(row.iso3);
-            return years.map((year) => {
-              const rank = row.ranks[String(year)];
-              if (rank === undefined) return null;
-              return (
-                <text
-                  key={`${row.iso3}-${year}-label`}
-                  className={`tracker__label${isCompared ? ' is-compared' : ''}`}
-                  x={x(years.indexOf(year)) + 8}
-                  y={(labelY[String(year)]?.get(row.iso3) ?? y(rank)) + 4}
-                  textAnchor="start"
-                >
-                  {(row.shortName || row.country).slice(0, 18)} · {rank}
-                </text>
-              );
-            });
+            return (
+              <text
+                key={`${row.iso3}-label`}
+                className={`tracker__label${isCompared ? ' is-compared' : ''}`}
+                x={lastX + 12}
+                y={labelY + 4}
+                textAnchor="start"
+              >
+                {(row.shortName || row.country).slice(0, 20)} · {rank}
+              </text>
+            );
           })}
         </svg>
       </div>
@@ -280,6 +268,10 @@ export default function RankTracker({ block, selected, compare, total }: RankTra
           <option value="latest">Latest rank</option>
           <option value="change">Largest change</option>
         </select>
+        <span className="micro hint">
+          Every country is drawn and named at {lastYear}; the table carries every
+          year.
+        </span>
       </div>
 
       <div

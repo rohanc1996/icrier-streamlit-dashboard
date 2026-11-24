@@ -3,7 +3,6 @@ import FilterBar from './FilterBar';
 import CompositionChart from './overview/CompositionChart';
 import FieldChart from './overview/FieldChart';
 import PaneTable from './overview/PaneTable';
-import RankBars from './overview/RankBars';
 import RankTracker from './overview/RankTracker';
 import RobustnessTable from './overview/RobustnessTable';
 import ScatterChart from './overview/ScatterChart';
@@ -16,13 +15,11 @@ import {
   METHOD_LABELS,
   buildCompositionModel,
   buildFieldModel,
-  buildRankBars,
   buildSizeScatter,
   buildVerdictMarks,
   compositionTable,
   meta,
   payload,
-  rankBarTable,
   readFilters,
   selectionIso3s,
   selectionSummary,
@@ -41,8 +38,7 @@ interface OverviewExplorerProps {
 
 const PANE_TITLES = [
   'The field',
-  'Every score, ranked',
-  'Anatomy of a score',
+  'Every score, ranked and explained',
   'Five verdicts',
   'Rank tracker',
   'Two scales, one index',
@@ -51,19 +47,17 @@ const PANE_TITLES = [
 
 const PANE_WHATS = [
   'Every scored country at once, with the edition median marked.',
-  'All countries on one score axis; choose how many rows to show.',
-  'Each score split into its five weighted pillar contributions.',
+  'All countries on one score axis, each score split into its five weighted pillar contributions.',
   'The selected country’s rank inside each pillar.',
   'Ranks across editions for countries scored in every one of them.',
   'Where min–max and z-score put the same country, sorted by the size of the difference.',
   `GDP ${meta.gdpYear} against the CHIPS score, on a log axis.`,
 ];
 
-const TABLES = ['View data', 'View data', 'View data', 'View data', 'Ranks table', 'Sortable table', 'View data'];
+const TABLES = ['View data', 'View data', 'View data', 'Ranks table', 'Sortable table', 'View data'];
 
 const CAVEATS = [
   'What it does not support: comparing these scores with another edition.',
-  'Ranks are positions in the published field, not a grade.',
   'Contributions reconstruct the score; they are not a re-weighting.',
   'A pillar rank is not the overall rank.',
   'Ranks only — the indices changed between editions, so scores are not compared.',
@@ -157,7 +151,6 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
   }
 
   const fieldModel = buildFieldModel(method, selected);
-  const rankBars = buildRankBars(method);
   const compositionModel = buildCompositionModel(method);
   const verdictCountry =
     filters.compare[0] && method.verdicts.countries[filters.compare[0]]
@@ -171,9 +164,6 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
   const robustness = block.robustness;
   const totalPool = block.countryCount;
 
-  const rankRows = selected
-    ? rankBars.rows.filter((row) => selected.has(row.iso3))
-    : rankBars.rows;
   const compositionRows = selected
     ? compositionModel.rows.filter((row) => selected.has(row.iso3))
     : compositionModel.rows;
@@ -206,21 +196,6 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
       }} label={TABLES[0]} />
     </figure>,
 
-    <figure className="pane__figure" key="ranks">
-      <RankBars
-        rows={rankBars.rows}
-        max={rankBars.max}
-        selected={selected}
-        compare={filters.compare}
-        label={groupLabel === 'All countries' ? 'countries' : groupLabel}
-      />
-      <figcaption className="pane__caption">
-        The default is every country in the selected group — no cut-off unless you
-        choose one. {CAVEATS[1]}
-      </figcaption>
-      <Disclosure table={rankBarTable(rankRows, groupLabel)} label={TABLES[1]} />
-    </figure>,
-
     <figure className="pane__figure" key="composition">
       <div className="pane-control">
         <label htmlFor="composition-count">Show</label>
@@ -239,10 +214,11 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
       </div>
       <CompositionChart model={{ ...compositionModel, rows: shownComposition }} />
       <figcaption className="pane__caption">
-        A decomposition, not an illustration: the five contributions sum to the
-        score. {CAVEATS[2]}
+        Every country in the selected group by default — no cut-off unless you
+        choose one. A decomposition, not an illustration: the five contributions
+        sum to the score. {CAVEATS[1]}
       </figcaption>
-      <Disclosure table={compositionTable(compositionModel)} label={TABLES[2]} />
+      <Disclosure table={compositionTable(compositionModel)} label={TABLES[1]} />
     </figure>,
 
     <figure className="pane__figure" key="verdicts">
@@ -258,7 +234,7 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
       )}
       <figcaption className="pane__caption">
         Pick a country in the geography controls; the first comparison country is
-        the profile shown here. {CAVEATS[3]}
+        the profile shown here. {CAVEATS[2]}
       </figcaption>
       {verdicts && (
         <Disclosure
@@ -267,7 +243,7 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
             verdicts.country,
             method.verdicts.countries[verdictCountry]?.rank ?? null,
           )}
-          label={TABLES[3]}
+          label={TABLES[2]}
         />
       )}
     </figure>,
@@ -286,12 +262,12 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
           compared within an edition.
         </p>
       )}
-      <figcaption className="pane__caption">{CAVEATS[4]}</figcaption>
+      <figcaption className="pane__caption">{CAVEATS[3]}</figcaption>
     </figure>,
 
     <figure className="pane__figure" key="robustness">
       <RobustnessTable rows={robustness} selected={selected} compare={filters.compare} />
-      <figcaption className="pane__caption">{CAVEATS[5]}</figcaption>
+      <figcaption className="pane__caption">{CAVEATS[4]}</figcaption>
     </figure>,
 
     <figure className="pane__figure" key="size">
@@ -303,9 +279,9 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
       <figcaption className="pane__caption">
         GDP is fixed at {meta.gdpYear}; it does not follow the year selector.
         {' '}
-        {CAVEATS[6]}
+        {CAVEATS[5]}
       </figcaption>
-      <Disclosure table={sizeTable(method)} label={TABLES[6]} />
+      <Disclosure table={sizeTable(method)} label={TABLES[5]} />
     </figure>,
   ];
 
@@ -324,7 +300,7 @@ export default function OverviewExplorer({ label }: OverviewExplorerProps) {
       />
 
       <div className="carousel__bar">
-        <p className="carousel__eyebrow">Seven views of one index</p>
+        <p className="carousel__eyebrow">Six views of one index</p>
         <p className="carousel__status">
           {BASIS_LABELS[basis]} · {[...filters.years].sort().join('–')} ·{' '}
           {groupLabel} · {METHOD_LABELS[filters.method]}

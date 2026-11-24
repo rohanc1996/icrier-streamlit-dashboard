@@ -57,20 +57,20 @@ Source data: `data/SIDE <year> - Absolute.csv` and, for 2026 only,
 Relative and combined are therefore disabled, with an inline reason, for 2024
 and 2025. The bar shows the disabled option rather than hiding it.
 
-## Pane inventory (7 panes)
+## Pane inventory (6 panes)
 
 | # | Pane | Reads | Notes |
 | --- | --- | --- | --- |
 | 1 | The field | `methods.*.field` | All scored countries, median, top-10 flags. Group selection mutes non-members; it never removes them. |
-| 2 | Every score, ranked | `methods.*.field` | All countries by default; an explicit “show” control can cut to 25 or 10. |
-| 3 | Anatomy of a score | `methods.*.composition` | Weighted pillar contributions, all countries by default, explicit “show” control. |
-| 4 | Five verdicts | `methods.*.verdicts` | Follows the first comparison country (India if unset). Pillar ranks only. |
-| 5 | Rank tracker | `tracker[method][window]` | Ranks only. A labelled rank ladder for every selected year, plus a table with each year's rank and the year-on-year move. Countries scored in every selected year, re-ranked within that subset. |
-| 6 | Two scales, one index | `robustness` | Sortable table; default order is smallest absolute rank difference. |
-| 7 | Scale and score | `methods.*.sizeVsScore` | GDP 2025 on a log axis. Does not follow the year selector. |
+| 2 | Every score, ranked and explained | `methods.*.composition` | Every score on one axis, split into its five weighted pillar contributions. All countries by default, explicit top-N control. |
+| 3 | Five verdicts | `methods.*.verdicts` | Follows the first comparison country (India if unset). Pillar ranks only. |
+| 4 | Rank tracker | `tracker[method][window]` | Ranks only. Every country is named once at the right-hand edge at its last-year rank; the lines carry the moves. Table carries every year. |
+| 5 | Two scales, one index | `robustness` | Sortable table; default order is smallest absolute rank difference. |
+| 6 | Scale and score | `methods.*.sizeVsScore` | GDP 2025 on a log axis. Does not follow the year selector. |
 
-Removed: the old coverage pane (pane 8) and the cross-edition score dumbbells.
-The old normalization bar chart became pane 6's table.
+Removed: the old coverage pane, the cross-edition score dumbbells, and the
+separate composite bar pane (it repeated pane 2 without the anatomy). The old
+normalization bar chart became pane 5's table.
 
 ## Controls and state
 
@@ -125,7 +125,7 @@ the Relative CSVs is **not** usable (17 rows, wrong membership).
    is a configuration placeholder, not a data gap that can be filled here.
 3. `BLOC` in the Relative files is incomplete and inconsistent with G20
    membership; group membership is metadata in the export.
-4. GDP is a single 2025 vintage; pane 7 cannot follow the year selector.
+4. GDP is a single 2025 vintage; the size pane cannot follow the year selector.
 5. 2024 and 2025 have no Relative file, so the basis selector is year-gated.
 6. Some unpublished indicators sit outside the framework; they are listed on
    the methodology page and carry no index weight.
@@ -142,7 +142,7 @@ the palette in `tokens.css` without touching the data layer.
 `npm run verify` drives Playwright WebKit (not Safari, not Firefox, not
 Chrome) headless at 1400×1000, 1366×768, 390×844 and 320×800. It checks:
 
-- seven panes, pane navigation, keyboard, deep links and reset;
+- six panes, pane navigation, keyboard, deep links and reset;
 - the filter bar's controls, disabled basis options, and the active-view line;
 - all-country defaults and explicit top-N controls;
 - the tracker is ranks-only and uses the 38-country subset;
