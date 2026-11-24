@@ -8,7 +8,7 @@
  * and the checks cannot drift apart.
  */
 
-/** Panes 1, 7 and 8 draw the ten best scores as flags. */
+/** Panes 1 and 7 draw the ten best scores as flags when no group is chosen. */
 export const FLAG_COUNT = 10;
 
 /** Pane 2 draws all fifteen rows as flags. */
@@ -30,6 +30,17 @@ export function topByScoreIso3s(values, count) {
     )
     .slice(0, count)
     .map((row) => row.iso3);
+}
+
+/**
+ * Every scored member of a grouping, best first. `members` is a Set of ISO-3
+ * codes. A grouping flags all its members, so there is no count cut here.
+ */
+export function groupFlagIso3s(values, members) {
+  return topByScoreIso3s(
+    (values ?? []).filter((row) => members.has(row.iso3)),
+    Number.POSITIVE_INFINITY,
+  );
 }
 
 /**
@@ -56,6 +67,27 @@ export function pageFlagIso3s(methods) {
       methods[id]?.top15,
     )) {
       codes.add(iso3);
+    }
+  }
+  return [...codes].sort();
+}
+
+/**
+ * Every country the editions payload can draw, across all editions, bases and
+ * methods. The sprite and `scripts/fetch-flags.mjs` both use this, so the
+ * vendored set matches what the panes can ask for: "All countries" flags only
+ * the global top ten, but any grouping — including a custom one naming any
+ * country — can flag every one of its members.
+ */
+export function editionsFlagIso3s(editions) {
+  const codes = new Set();
+  for (const bases of Object.values(editions ?? {})) {
+    for (const block of Object.values(bases ?? {})) {
+      for (const method of Object.values(block?.methods ?? {})) {
+        for (const row of method?.field?.values ?? []) {
+          if (row.score !== null) codes.add(row.iso3);
+        }
+      }
     }
   }
   return [...codes].sort();

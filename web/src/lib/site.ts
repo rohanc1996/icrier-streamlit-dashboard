@@ -7,7 +7,7 @@
  */
 import { scaleLinear, scaleLog } from 'd3';
 import raw from '../data/editions.json';
-import { FLAG_COUNT, topByScoreIso3s } from './flags.mjs';
+import { FLAG_COUNT, editionsFlagIso3s, groupFlagIso3s, topByScoreIso3s } from './flags.mjs';
 import { iso2For } from './iso.mjs';
 import { formatComposite, formatPercent, formatRank, formatScore } from './format';
 import type {
@@ -180,7 +180,18 @@ export const BASIS_LABELS: Record<string, string> = {
   relative: 'Relative',
   combined: 'Combined (50–50)',
 };
-export const GROUP_IDS = ['all', 'g20', 'g20em', 'custom'] as const;
+export const GROUP_IDS = [
+  'all',
+  'g20',
+  'g20em',
+  'eu',
+  'asean',
+  'saarc',
+  'au',
+  'arab',
+  'mercosur',
+  'custom',
+] as const;
 export type GroupId = (typeof GROUP_IDS)[number];
 export const GROUP_LABELS: Record<string, string> = {
   ...meta.groupLabels,
@@ -193,15 +204,16 @@ export const METHOD_LABELS: Record<string, string> = {
 export const DEFAULT_METHOD_LABEL = METHOD_LABELS[DEFAULT_METHOD] ?? DEFAULT_METHOD;
 
 /**
- * Flags actually vendored in `src/assets/flags/`. A country outside this set
- * is drawn as a dot rather than a blank `<use>`; run
- * `node scripts/fetch-flags.mjs` to extend the set when the flagged group
- * moves to a country whose flag is not here yet.
+ * Flags the build can actually draw: every country the editions carry, mapped
+ * to alpha-2, because a grouping can flag any of its members. `scripts/
+ * fetch-flags.mjs` vendors exactly this set, so a missing flag would be a
+ * build-time error rather than a blank `<use>`.
  */
-const VENDORED_FLAGS = new Set([
-  'ae', 'br', 'ca', 'cn', 'de', 'es', 'fr', 'gb', 'id', 'in', 'jp',
-  'kr', 'nl', 'sg', 'us', 'vn',
-]);
+const VENDORED_FLAGS = new Set(
+  editionsFlagIso3s(payload.editions)
+    .map((iso3) => iso2For(iso3))
+    .filter((iso2): iso2 is string => Boolean(iso2)),
+);
 
 export function flagFor(iso3: string): string | undefined {
   const iso2 = iso2For(iso3) ?? undefined;
@@ -398,10 +410,14 @@ export function buildFieldModel(method: MethodBlock, selected: Set<string> | nul
   const centre = plotTop + Math.abs(top) + DOT_RADIUS + 10;
   const axisY = centre + bottom + DOT_RADIUS + 22;
   const height = axisY + 30;
-  const topFlags = topByScoreIso3s(
-    source.map((row) => ({ iso3: row.iso3, score: row.score as number, rank: row.rank as number })),
-    FLAG_COUNT,
-  );
+  const flagRows = source.map((row) => ({
+    iso3: row.iso3,
+    score: row.score as number,
+    rank: row.rank as number,
+  }));
+  const topFlags = selected
+    ? groupFlagIso3s(flagRows, selected)
+    : topByScoreIso3s(flagRows, FLAG_COUNT);
 
   const points: FieldPointModel[] = source.map((row, index) => {
     const spot = positions[index];
@@ -611,10 +627,14 @@ export function buildSizeScatter(method: MethodBlock, selected: Set<string> | nu
   const x = scaleLog().domain([min / 1.2, max * 1.6]).range([SCATTER_LEFT_PCT, SCATTER_RIGHT_PCT]);
   const yMax = scoreAxisMax(source.map((row) => row.score));
   const y = scaleLinear().domain([0, yMax]).range([SCATTER_BOTTOM, SCATTER_TOP]);
-  const topFlags = topByScoreIso3s(
-    source.map((row) => ({ iso3: row.iso3, score: row.score, rank: row.rank })),
-    FLAG_COUNT,
-  );
+  const flagRows = source.map((row) => ({
+    iso3: row.iso3,
+    score: row.score,
+    rank: row.rank,
+  }));
+  const topFlags = selected
+    ? groupFlagIso3s(flagRows, selected)
+    : topByScoreIso3s(flagRows, FLAG_COUNT);
   const labelled = new Set(['USA', 'CHN', 'IND']);
   const smaller = [...source]
     .filter((row) => row.gdp < 1e12 && !labelled.has(row.iso3))

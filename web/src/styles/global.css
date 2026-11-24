@@ -3232,6 +3232,13 @@ details > :not(summary) {
   line-height: 15px;
 }
 
+.filterbar__column {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  min-width: 0;
+}
+
 .filterbar__stack {
   display: grid;
   gap: 6px;
@@ -3250,14 +3257,12 @@ details > :not(summary) {
   font-size: 13px;
 }
 
-.filterbar__multi {
-  min-height: 120px;
-}
-
-.filterbar__sublabel {
-  color: var(--ink-muted);
-  font-size: 11px;
-  font-weight: 600;
+/* The multi-select needs to beat `.filterbar select`'s min-height, so keep the
+   element in the selector; six rows keep at least three country names visible
+   even when the panel is compressed. */
+.filterbar select.filterbar__multi {
+  height: auto;
+  min-height: 132px;
 }
 
 .filterbar__pair {

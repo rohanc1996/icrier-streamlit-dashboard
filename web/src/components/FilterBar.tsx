@@ -109,22 +109,48 @@ export default function FilterBar({ filters, onChange, onReset, summary }: Filte
         )}
       </ControlGroup>
 
-      <ControlGroup legend="Select year" hint="Several years open the rank tracker.">
-        <div className="segmented segmented--wrap">
-          {YEARS.map((year) => (
-            <label className="segmented__option" key={year}>
-              <input
-                type="checkbox"
-                name="year"
-                value={year}
-                checked={filters.years.includes(year)}
-                onChange={() => toggleYear(year)}
-              />
-              <span>{year}</span>
-            </label>
-          ))}
-        </div>
-      </ControlGroup>
+      <div className="filterbar__column">
+        <ControlGroup legend="Select year" hint="Several years open the rank tracker.">
+          <div className="segmented segmented--wrap">
+            {YEARS.map((year) => (
+              <label className="segmented__option" key={year}>
+                <input
+                  type="checkbox"
+                  name="year"
+                  value={year}
+                  checked={filters.years.includes(year)}
+                  onChange={() => toggleYear(year)}
+                />
+                <span>{year}</span>
+              </label>
+            ))}
+          </div>
+        </ControlGroup>
+
+        <ControlGroup legend="Compare two countries">
+          <div className="filterbar__pair">
+            {[0, 1].map((slot) => (
+              <select
+                key={slot}
+                aria-label={slot === 0 ? 'First country to compare' : 'Second country to compare'}
+                value={filters.compare[slot] ?? ''}
+                onChange={(event) => {
+                  const next = [...filters.compare];
+                  next[slot] = event.target.value;
+                  set({ compare: next.filter(Boolean) as string[] });
+                }}
+              >
+                <option value="">—</option>
+                {ALL_COUNTRIES.map((country) => (
+                  <option value={country.iso3} key={country.iso3}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            ))}
+          </div>
+        </ControlGroup>
+      </div>
 
       <ControlGroup legend="Select country grouping">
         <div className="filterbar__stack">
@@ -160,31 +186,6 @@ export default function FilterBar({ filters, onChange, onReset, summary }: Filte
               ))}
             </select>
           )}
-
-          <div className="filterbar__compare">
-            <span className="filterbar__sublabel">Compare two countries</span>
-            <div className="filterbar__pair">
-              {[0, 1].map((slot) => (
-                <select
-                  key={slot}
-                  aria-label={slot === 0 ? 'First country to compare' : 'Second country to compare'}
-                  value={filters.compare[slot] ?? ''}
-                  onChange={(event) => {
-                    const next = [...filters.compare];
-                    next[slot] = event.target.value;
-                    set({ compare: next.filter(Boolean) as string[] });
-                  }}
-                >
-                  <option value="">—</option>
-                  {ALL_COUNTRIES.map((country) => (
-                    <option value={country.iso3} key={country.iso3}>
-                      {country.name}
-                    </option>
-                  ))}
-                </select>
-              ))}
-            </div>
-          </div>
         </div>
       </ControlGroup>
 

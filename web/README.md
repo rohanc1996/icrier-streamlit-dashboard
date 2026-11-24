@@ -30,7 +30,7 @@ missing, the build still runs and the two built panes are derived from
 
 | Route | Page |
 | --- | --- |
-| `/` | **Overview** — the seven-pane carousel and the global filter bar |
+| `/` | **Overview** — the six-pane carousel and the global filter bar |
 | `/rankings` | Rankings table, filter, sort, pillar columns, scale switch |
 | `/country/[iso3]` | Country profile with the L1–L3 pillar → sub-pillar → indicator drilldown |
 | `/methodology` | The seven spec sections, live counts and both scaling methods |
@@ -60,11 +60,11 @@ shareable view.
   shows", the chart, a **View as table** disclosure and a method-note line
   (edition · method · N).
 
-The seven panes, in order: The field; Every score, ranked; Anatomy of a score;
-Five verdicts; Rank tracker; Two scales, one index; Scale and score.
+The six panes, in order: The field; Every score, ranked and explained; Five
+verdicts; Rank tracker; Two scales, one index; Scale and score.
 
-**Built now (all seven panes):** the field, every score ranked with an explicit
-top-N control, the weighted composition of every country (all by default),
+**Built now (all six panes):** the field, every score ranked and split into its
+weighted composition with an explicit top-N control (all by default),
 the selected country's five pillar verdicts, the multi-year rank tracker, the
 sortable robustness table that replaces the diverging bars, and the GDP scatter
 on a log axis. Every table fallback carries the same numbers as its chart.
@@ -89,38 +89,42 @@ library ships to the browser. Pane 5 reads `movement.years` from the data, so a
 
 ### Flags in panes 1, 2, 7 and 8
 
-The ten best scores are drawn as round country flags instead of dots, in the
-beeswarm (pane 1) and both scatters (panes 7–8). Each is centred on the exact
-data position and allowed to overlap. Paint order is rank order — rank 10
-first, rank 1 last — so the best score is on top. Every flag is focusable and
-reveals a 22px flag plus a "country, score" label when hovered or focused; the
-reveal is CSS-only (a general sibling combinator from `.flag-mark--us` to the
-overlay layer that closes the SVG), so a buried mark stays reachable by
-keyboard and by tap.
+With no grouping chosen, the ten best scores are drawn as round country flags
+instead of dots, in the beeswarm (pane 1) and the scatter (pane 7). Selecting a
+grouping (G20, the European Union, ASEAN, SAARC, the African Union, the Arab
+League, Mercosur or a custom set) flags **every member of that grouping** and
+demotes every other country — including the global top ten outside the group —
+to a dot. Each flag is centred on the exact data position and allowed to
+overlap. Paint order is rank order — lowest flag rank first, rank 1 last — so
+the best score is on top. Every flag is focusable and reveals a 22px flag plus
+a "country, score" label when hovered or focused; the reveal is CSS-only (a
+general sibling combinator from `.flag-mark--us` to the overlay layer that
+closes the SVG), so a buried mark stays reachable by keyboard and by tap.
 
-Everything below the top 10 is a dot, and every dot is interactive too: a
-transparent hit circle expands the small mark, the group is focusable, and the
-same CSS pattern (`.chart-point--aus` → `.point-overlay--aus`) reveals a ring
-and the same "country, score" chip. The rule is generated for every point in
-`FlagSprite.astro` from `overviewPointIso3s()`; no per-point markup or sprite
-file is needed, because the overlay shows the label without a flag image.
-Dots come before flags in document order, so flags still paint on top.
+Everything outside the flagged set is a dot, and every dot is interactive too:
+a transparent hit circle expands the small mark, the group is focusable, and
+the same CSS pattern (`.chart-point--aus` → `.point-overlay--aus`) reveals a
+ring and the same "country, score" chip. The rule is generated for every point
+in `FlagSprite.astro` from `overviewPointIso3s()`; no per-point markup or
+sprite file is needed, because the overlay shows the label without a flag
+image. Dots come before flags in document order, so flags still paint on top.
 
 Pane 2 draws a flag at every stem tip — all 15 rows — at 15px (13px at
 ≤640px). Those flags are decorative: the row already prints the country name
 and score as text, so the mark is `aria-hidden` and takes no tab stop, and
 there is no overlay to reveal.
 
-- The flagged set is **derived** from the active method's `field.values`, not
-  hard-coded. It genuinely differs by method — min–max flags ARE, z-score flags
-  CAN — so the page's sprite carries the union. The shared rule lives in
-  `src/lib/flags.mjs` and is used by the build, the fetch script and
+- The flagged set is **derived** from the active method's `field.values` and
+  the selected grouping, not hard-coded. It genuinely differs by method and by
+  group, so the page's sprite carries every scored country. The shared rule
+  lives in `src/lib/flags.mjs` and is used by the build, the fetch script and
   `scripts/verify.mjs`, so the three cannot drift.
 - The symbols live in `web/src/assets/flags/<iso2>.svg`, vendored by
   `node scripts/fetch-flags.mjs` (dev-time only; run it when the flagged set
-  changes). The command reads `data/derived/web/overview.json` and downloads
-  only the needed files from HatScripts/circle-flags (MIT). The SVGs are
+  changes). The command reads `data/derived/web/editions.json` and downloads
+  only the missing files from HatScripts/circle-flags (MIT). The SVGs are
   committed, so builds are offline. An unmapped alpha-3 fails the run loudly.
+  Because a custom grouping can name any country, all 71 are vendored.
 - `src/components/FlagSprite.astro` inlines each file **once** as a `<symbol>`
   and rewrites its internal ids (`mask id="a"` → `ca-a`) so many flags can
   share one document. Marks reference it with `<use href="#flag-us">`; there is
@@ -165,15 +169,14 @@ npm run verify     # node scripts/verify.mjs
 `scripts/verify.mjs` serves `dist/` itself on a free port, drives Playwright's
 WebKit engine headless at 1400×1000, 1366×768, 390×844 and 320×800, and asserts:
 
-- `/` renders exactly 7 panes with one visible; next/prev, ←/→, Home/End and
+- `/` renders exactly 6 panes with one visible; next/prev, ←/→, Home/End and
   `?pane=` change it; the live region and counter follow.
-- The filter bar is one compact row, pins below the header, and opens its
-  controls as an overlay that Escape closes.
+- The filter bar is one compact row and scrolls with the page; it opens its
+  controls as a collapsible panel that pushes the panes down and Escape closes.
 - The filter bar reports the active view in text, a deep link restores basis,
   years, group, comparison and pane, and “Reset view” clears the query string.
 - A basis with no file for the selected year is disabled with a reason.
-- Pane 2 and pane 3 default to all countries and only cut on an explicit
-  top-N choice.
+- Pane 2 defaults to all countries and only cuts on an explicit top-N choice.
 - Pane 5 is ranks only and uses the 38-country 2025→2026 intersection; its
   rank ladder labels every selected year and the table carries each year's rank
   and the year-on-year move.

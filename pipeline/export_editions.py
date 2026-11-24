@@ -65,6 +65,20 @@ G20 = [
 # label in the site says so.
 G20_EMERGING = ["ARG", "BRA", "CHN", "IND", "IDN", "MEX", "SAU", "ZAF", "TUR"]
 
+# The regional groupings below are partial by construction: SIDE carries 71
+# countries, so each list holds only the members that appear in the dataset.
+# Membership is the current formal one (EU as of the UK's withdrawal, the
+# African Union including Morocco, Mercosur's full members only).
+EU = [
+    "AUT", "BEL", "BGR", "HRV", "CZE", "DNK", "FIN", "FRA", "DEU", "GRC",
+    "HUN", "IRL", "ITA", "NLD", "POL", "PRT", "ROU", "SVK", "ESP", "SWE",
+]
+ASEAN = ["IDN", "MYS", "PHL", "SGP", "THA", "VNM"]
+SAARC = ["BGD", "IND", "PAK", "LKA"]
+AFRICAN_UNION = ["DZA", "EGY", "ETH", "GHA", "KEN", "MAR", "NGA", "RWA", "ZAF"]
+ARAB_LEAGUE = ["DZA", "EGY", "IRQ", "KWT", "MAR", "QAT", "SAU", "ARE"]
+MERCOSUR = ["ARG", "BRA"]
+
 
 # ---------------------------------------------------------------------------
 # JSON-safe primitives
@@ -645,11 +659,23 @@ def main() -> None:
                 "all": None,
                 "g20": G20,
                 "g20em": G20_EMERGING,
+                "eu": EU,
+                "asean": ASEAN,
+                "saarc": SAARC,
+                "au": AFRICAN_UNION,
+                "arab": ARAB_LEAGUE,
+                "mercosur": MERCOSUR,
             },
             "groupLabels": {
                 "all": "All countries",
                 "g20": "G20",
                 "g20em": "G20 emerging markets",
+                "eu": "European Union",
+                "asean": "ASEAN",
+                "saarc": "SAARC",
+                "au": "African Union",
+                "arab": "Arab League",
+                "mercosur": "Mercosur",
             },
             "editionCountryCount": {
                 year: editions[year][availability[year][0]]["countryCount"]

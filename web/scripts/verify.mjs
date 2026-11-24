@@ -60,8 +60,10 @@ const countryIn = (id, iso3) =>
 const scoreText = (value) => (value * 100).toFixed(2);
 
 /**
- * Panes 1 and 6 flag the top 10 by score; the composition pane draws every
- * row. Every expectation is recomputed here from the payload rather than written
+ * Panes 1 and 7 flag the global top 10 when no group is chosen, and every
+ * member of the selected grouping when one is; pane 2 draws all 15 rows as
+ * flags.
+ * Every expectation is recomputed here from the payload rather than written
  * down, so a different method (or edition) is checked against its own scores.
  */
 const topFlagIso3s = (methodId) =>
@@ -372,6 +374,28 @@ try {
     const rows = await pane(1).locator('details.pane__table tbody tr').count();
     expectEqual(rows, 71, 'pane 1 table rows');
     return '71 rows';
+  });
+
+  await check('a grouping flags all its members in both scatters', async () => {
+    await overview.goto(`${server.base}/?group=eu&pane=1`, { waitUntil: 'load' });
+    await settle(overview);
+    const fieldFlags = await overview.locator('.field-chart .flag-mark').count();
+    const fieldDots = await overview.locator('.field-chart__dot').count();
+    expectEqual(fieldFlags, 20, 'EU field flags');
+    expectEqual(fieldDots + fieldFlags, 71, 'EU field marks');
+    expectEqual(
+      await overview.locator('.field-chart .flag-mark.is-muted').count(),
+      0,
+      'no muted flags outside the group',
+    );
+
+    await overview.goto(`${server.base}/?group=eu&pane=6`, { waitUntil: 'load' });
+    await settle(overview);
+    const scatterFlags = await pane(6).locator('.flag-mark').count();
+    const scatterMarks = await pane(6).locator('[data-scatter]').count();
+    expectEqual(scatterFlags, 20, 'EU scatter flags');
+    expectEqual(scatterMarks, 71, 'EU scatter marks');
+    return `pane 1 ${fieldFlags} flags + ${fieldDots} dots, size pane ${scatterFlags} flags`;
   });
 
   await check('pane 2 defaults to all and its control cuts explicitly', async () => {

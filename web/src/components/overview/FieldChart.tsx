@@ -13,15 +13,16 @@ const FLAG_RADIUS = 9;
  * x axis is expressed in percentages so the plot compresses rather than
  * scrolls, while the text stays at a readable pixel size.
  *
- * The ten best scores in the active method are flags, not dots — the same
- * treatment the scatters get, from the same components. They are painted rank
- * 10 first and rank 1 last so the best score is on top; the ones underneath
+ * With no grouping chosen, the ten best scores in the active method are flags,
+ * not dots; a grouping flags all of its members instead. They are painted worst
+ * rank first and rank 1 last so the best score is on top; the ones underneath
  * stay reachable because every flag is focusable and a CSS sibling rule
- * reveals its labelled overlay. Everything below the top 10 stays a dot.
+ * reveals its labelled overlay. Everything outside the flagged set stays a dot.
  *
- * This plot is denser than the scatters, but the flagged countries are the
- * high-score outliers at the right-hand end, so the flags sit clear of the
- * central cloud. Their positions are exact, not nudged to avoid the mass.
+ * This plot is denser than the scatter. With "All countries" the flags are the
+ * high-score outliers at the right-hand end, clear of the central cloud; a
+ * large grouping such as the EU spreads flags across the whole distribution.
+ * Their positions are exact, not nudged to avoid the mass.
  */
 export default function FieldChart({ model }: { model: FieldChartModel }) {
   const india = model.points.find((point) => point.isIndia);
