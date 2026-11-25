@@ -149,7 +149,7 @@ Project agents (`.opencode/agents/`):
 | --- | --- |
 | `data` | dataset work, reconciliation, adding indicators, regression checks |
 | `designer` | UI/UX, layout, charts, accessibility; may only edit `views/`, `components/`, `assets/`, `themes.py`, `dashboard.py` |
-| `writing` | blogs, reports and emails; may only edit `deliverables/` |
+| `writing` | blogs, reports, ADRs and emails; edits documents repo-wide; never code or data |
 | `research` | read-only web/source verification (subagent) |
 
 Project commands (`.opencode/commands/`): `/indicator`, `/regress`,

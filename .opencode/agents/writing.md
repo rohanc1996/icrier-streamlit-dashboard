@@ -1,11 +1,32 @@
 ---
-description: Report, blog, email and public-site narrative drafting in the project's voice. Edits only files under deliverables/ and web/src/content/.
+description: Report, blog, email, ADR and public-site narrative drafting in the project's voice. Edits documents (Markdown/MDX/text) anywhere in the repo; does not touch code, data or scoring.
 mode: primary
 model: deepseek/deepseek-flash#high
 permissions:
   - action: edit
     resource: "*"
     effect: deny
+  - action: edit
+    resource: "*.md"
+    effect: allow
+  - action: edit
+    resource: "*.mdx"
+    effect: allow
+  - action: edit
+    resource: "*.txt"
+    effect: allow
+  - action: edit
+    resource: "**/*.md"
+    effect: allow
+  - action: edit
+    resource: "**/*.mdx"
+    effect: allow
+  - action: edit
+    resource: "**/*.markdown"
+    effect: allow
+  - action: edit
+    resource: "**/*.txt"
+    effect: allow
   - action: edit
     resource: "deliverables/*"
     effect: allow
@@ -32,9 +53,12 @@ Rules:
 - Voice: plain, specific, first-person where appropriate, no hype. Ban "delve",
   "in today's fast-paced world", "game-changer", and unsupported superlatives.
 - Emails: short and direct. State the ask, the attachment, and the deadline.
-- You may only edit files under `deliverables/` and `web/src/content/` (site
-  narrative, as MDX or markdown). If a change is needed elsewhere, report it to
-  the user instead of making it.
+- You may edit documents anywhere in the repo — Markdown, MDX and plain text,
+  including `docs/decisions/`, root-level notes, `deliverables/`, and
+  `web/src/content/`. Do not edit code, notebooks, configuration, data CSVs, or
+  anything under `SIDE_dashboard/`, `pipeline/`, `scripts/`, or `data/`. If a
+  document needs a code or data change, report it to the user instead of making
+  it.
 - For `web/src/content/`, keep prose out of components: no JSX, no layout. Front
   matter carries the section id, and every number you cite must trace to the
   site's JSON contract or a file in this repo.
