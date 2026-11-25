@@ -25,6 +25,14 @@ Columns
                      and ``Listed_companies_source_year`` the year the value
                      actually refers to.  Six never-reporting countries stay
                      blank.
+``Startups_tracxn``  Total number of startups, Tracxn snapshot supplied for the
+                     2027 edition. This is the denominator for the Relative
+                     series' "Total funding ... per startup" indicator (and the
+                     same count is the numerator of "Start-ups per limited
+                     liability company"). It is asserted to equal the
+                     ``Number of Start-ups`` column of
+                     ``data/SIDE 2027 - Absolute.csv`` so the absolute and
+                     relative series cannot drift apart.
 ``GDP_2025_USD``     Nominal GDP 2025, current US$, via ``gdp_reference``.
 ``Population_2025``  Total population 2025 from UN DESA WPP 2024 (Medium
                      variant), via the ITU population cache.
@@ -34,6 +42,7 @@ Sources
 - ``data/reference/WB GNI per capita by year.csv``      (NY.GNP.PCAP.CD)
 - ``data/reference/WB listed company counts by year.csv`` (CM.MKT.LDOM.NO),
   via ``data/derived/listed_companies_2025_estimates.csv``
+- ``data/reference/tracxn startups counts.csv``
 - ``data/reference/GDP data for SIDE 2027.xlsx - side subset USD.csv``
 - ``scripts/data_sources/itu/cache/undes_population.json``
 
@@ -69,6 +78,7 @@ OUT = ROOT / "data" / "denominators.csv"
 
 GNI_PATH = REFERENCE / "WB GNI per capita by year.csv"
 LISTED_ESTIMATES = ROOT / "data" / "derived" / "listed_companies_2025_estimates.csv"
+STARTUPS_PATH = REFERENCE / "tracxn startups counts.csv"
 POP_CACHE = ROOT / "scripts" / "data_sources" / "itu" / "cache" / "undes_population.json"
 
 GNI_YEAR = "2025"
@@ -94,6 +104,7 @@ FIELDS = [
     "Listed_companies",
     "Listed_companies_method",
     "Listed_companies_source_year",
+    "Startups_tracxn",
     "GDP_2025_USD",
     "Population_2025",
 ]
@@ -105,10 +116,37 @@ def load_listed_estimates() -> dict[str, dict[str, str]]:
         return {row["Country"].strip(): row for row in csv.DictReader(handle)}
 
 
+def load_tracxn() -> dict[str, str]:
+    """Return the Tracxn startup counts keyed by SIDE country name.
+
+    The source repeats its ``Country`` header, so it is read positionally:
+    column 0 holds the canonical SIDE name, column 2 the count.
+    """
+    with STARTUPS_PATH.open(newline="", encoding="utf-8-sig") as handle:
+        rows = csv.reader(handle)
+        next(rows)
+        return {
+            row[0].strip(): row[2].strip()
+            for row in rows
+            if row and row[0].strip()
+        }
+
+
 def side_countries() -> list[str]:
     with ABSOLUTE.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         return [row["Country"].strip() for row in reader if row["Country"].strip()]
+
+
+def absolute_startups() -> dict[str, str]:
+    """Return ``Number of Start-ups`` from the 2027 Absolute file, by country."""
+    with ABSOLUTE.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        return {
+            row["Country"].strip(): row["Number of Start-ups"].strip()
+            for row in reader
+            if row["Country"].strip()
+        }
 
 
 def load_wdi_wide(path: Path) -> tuple[list[str], dict[str, list[str]]]:
@@ -161,6 +199,8 @@ def main() -> int:
     countries = side_countries()
     gni_years, gni_rows = load_wdi_wide(GNI_PATH)
     listed = load_listed_estimates()
+    startups = load_tracxn()
+    absolute_startups_by_country = absolute_startups()
     population = json.loads(POP_CACHE.read_text(encoding="utf-8"))
 
     records: list[dict[str, str]] = []
@@ -187,12 +227,13 @@ def main() -> int:
                 "Listed_companies": listed_value,
                 "Listed_companies_method": entry["Method"].strip(),
                 "Listed_companies_source_year": entry["Source_year"].strip(),
+                "Startups_tracxn": startups[country],
                 "GDP_2025_USD": as_int(gdp),
                 "Population_2025": as_int(pop),
             }
         )
 
-    _validate(records, countries, listed_blank, listed)
+    _validate(records, countries, listed_blank, listed, absolute_startups_by_country)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w", newline="", encoding="utf-8") as handle:
@@ -204,6 +245,7 @@ def main() -> int:
     print(f"  GNI per capita {GNI_YEAR}: {len(records) - len(gni_carried_back)}/71")
     for country, year, value in gni_carried_back:
         print(f"    carried back: {country} -> {year} {as_int(value)}")
+    print(f"  Startups (Tracxn): {len(records)}/71 (matches 2027 Absolute)")
     print(f"  Listed companies {LISTED_YEAR}: {71 - len(listed_blank)}/71")
     for method in ("reported", "carry_forward", "exchange", "missing"):
         count = sum(1 for r in records if r["Listed_companies_method"] == method)
@@ -217,6 +259,7 @@ def _validate(
     countries: list[str],
     listed_blank: list[str],
     listed: dict[str, dict[str, str]],
+    absolute_startups_by_country: dict[str, str],
 ) -> None:
     assert len(records) == 71, f"expected 71 rows, got {len(records)}"
     assert [r["Country"] for r in records] == countries, "country order drifted"
@@ -225,6 +268,15 @@ def _validate(
         assert row["GNI_pc_USD"], f"missing GNI per capita for {row['Country']}"
         assert row["GDP_2025_USD"], f"missing GDP for {row['Country']}"
         assert row["Population_2025"], f"missing population for {row['Country']}"
+        value = row["Startups_tracxn"]
+        assert value.isdigit() and int(value) > 0, (
+            f"bad Tracxn startup count for {row['Country']}: {value!r}"
+        )
+        assert value == absolute_startups_by_country.get(row["Country"]), (
+            f"Tracxn count for {row['Country']} disagrees with "
+            f"the 2027 Absolute Number of Start-ups "
+            f"({value} vs {absolute_startups_by_country.get(row['Country'])})"
+        )
     methods = {row["Listed_companies_method"] for row in records}
     assert methods <= {"reported", "carry_forward", "exchange", "missing"}, methods
     reported = sum(1 for r in records if r["Listed_companies_method"] == "reported")
