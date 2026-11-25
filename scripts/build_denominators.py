@@ -45,6 +45,23 @@ Columns
 ``GDP_2025_USD``     Nominal GDP 2025, current US$, via ``gdp_reference``.
 ``Population_2025``  Total population 2025 from UN DESA WPP 2024 (Medium
                      variant), via the ITU population cache.
+``Internet_users_2025``  Number of internet users, count (not per 100), for
+                     2025. Copied verbatim from the ``Number of Internet
+                     Users (absolute numbers)`` column of
+                     ``data/SIDE 2027 - Absolute.csv``. This is the
+                     denominator of the Relative series' "% of internet
+                     users" and "per internet user" indicators; the 2026
+                     Relative file divides by exactly this column (ratio
+                     1.0000 against all five "% of internet users" columns).
+``Smartphone_users_2025``  Number of smartphone users, count (not millions).
+                     Copied verbatim from the ``Number of smartphone users
+                     (million)`` column of ``data/SIDE 2027 - Absolute.csv``,
+                     which is **mislabelled**: despite the "(million)" suffix
+                     it holds raw counts (India 816.6m, USA 235.5m). It is
+                     the denominator of "AR/VR revenue per smartphone user"
+                     and "Metaverse revenue per smartphone user". Those two
+                     columns are additionally PPP-adjusted; that factor is
+                     *not* in this file.
 
 Sources
 -------
@@ -55,6 +72,7 @@ Sources
 - ``data/reference/WB labour force by year.csv``           (SL.TLF.TOTL.IN)
 - ``data/reference/GDP data for SIDE 2027.xlsx - side subset USD.csv``
 - ``scripts/data_sources/itu/cache/undes_population.json``
+- ``data/SIDE 2027 - Absolute.csv`` internet-user and smartphone-user columns
 
 Known gaps (2025 coverage)
 --------------------------
@@ -122,7 +140,12 @@ FIELDS = [
     "Labour_force_source_year",
     "GDP_2025_USD",
     "Population_2025",
+    "Internet_users_2025",
+    "Smartphone_users_2025",
 ]
+
+INTERNET_USERS_COLUMN = "Number of Internet Users (absolute numbers)"
+SMARTPHONE_USERS_COLUMN = "Number of smartphone users (million)"
 
 
 def load_listed_estimates() -> dict[str, dict[str, str]]:
@@ -159,6 +182,25 @@ def absolute_startups() -> dict[str, str]:
         reader = csv.DictReader(handle)
         return {
             row["Country"].strip(): row["Number of Start-ups"].strip()
+            for row in reader
+            if row["Country"].strip()
+        }
+
+
+def absolute_user_counts() -> dict[str, tuple[str, str]]:
+    """Return (internet users, smartphone users) from the 2027 Absolute file.
+
+    Both values are raw country counts. The smartphone column is labelled
+    "(million)" in the source but holds counts; it is copied verbatim so the
+    denominator equals the 2027 Absolute numerator of the same indicator.
+    """
+    with ABSOLUTE.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        return {
+            row["Country"].strip(): (
+                row[INTERNET_USERS_COLUMN].strip(),
+                row[SMARTPHONE_USERS_COLUMN].strip(),
+            )
             for row in reader
             if row["Country"].strip()
         }
@@ -224,6 +266,7 @@ def main() -> int:
     listed = load_listed_estimates()
     startups = load_tracxn()
     absolute_startups_by_country = absolute_startups()
+    user_counts = absolute_user_counts()
     population = json.loads(POP_CACHE.read_text(encoding="utf-8"))
 
     records: list[dict[str, str]] = []
@@ -249,6 +292,7 @@ def main() -> int:
 
         gdp = gdp_usd(country, GDP_YEAR)
         pop = population.get(ISO3[country], {}).get(POP_YEAR)
+        internet_users, smartphone_users = user_counts[country]
 
         records.append(
             {
@@ -262,10 +306,19 @@ def main() -> int:
                 "Labour_force_source_year": labour_year,
                 "GDP_2025_USD": as_int(gdp),
                 "Population_2025": as_int(pop),
+                "Internet_users_2025": internet_users,
+                "Smartphone_users_2025": smartphone_users,
             }
         )
 
-    _validate(records, countries, listed_blank, listed, absolute_startups_by_country)
+    _validate(
+        records,
+        countries,
+        listed_blank,
+        listed,
+        absolute_startups_by_country,
+        user_counts,
+    )
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w", newline="", encoding="utf-8") as handle:
@@ -281,6 +334,8 @@ def main() -> int:
     for country, year, value in labour_carried_back:
         print(f"    carried back: {country} -> {year} {as_thousands(value)}")
     print(f"  Startups (Tracxn): {len(records)}/71 (matches 2027 Absolute)")
+    print(f"  Internet users {INTERNET_USERS_COLUMN}: {len(records)}/71")
+    print(f"  Smartphone users {SMARTPHONE_USERS_COLUMN}: {len(records)}/71")
     print(f"  Listed companies {LISTED_YEAR}: {71 - len(listed_blank)}/71")
     for method in ("reported", "carry_forward", "exchange", "missing"):
         count = sum(1 for r in records if r["Listed_companies_method"] == method)
@@ -295,6 +350,7 @@ def _validate(
     listed_blank: list[str],
     listed: dict[str, dict[str, str]],
     absolute_startups_by_country: dict[str, str],
+    user_counts: dict[str, tuple[str, str]],
 ) -> None:
     assert len(records) == 71, f"expected 71 rows, got {len(records)}"
     assert [r["Country"] for r in records] == countries, "country order drifted"
@@ -319,6 +375,27 @@ def _validate(
             f"Tracxn count for {row['Country']} disagrees with "
             f"the 2027 Absolute Number of Start-ups "
             f"({value} vs {absolute_startups_by_country.get(row['Country'])})"
+        )
+
+        internet = row["Internet_users_2025"]
+        smartphone = row["Smartphone_users_2025"]
+        assert internet.isdigit() and int(internet) > 0, (
+            f"bad internet-user count for {row['Country']}: {internet!r}"
+        )
+        assert smartphone.isdigit() and int(smartphone) > 0, (
+            f"bad smartphone-user count for {row['Country']}: {smartphone!r}"
+        )
+        assert (internet, smartphone) == user_counts[row["Country"]], (
+            f"user counts for {row['Country']} drifted from the 2027 Absolute file"
+        )
+        internet_share = int(internet) / float(row["Population_2025"])
+        assert 0.10 <= internet_share <= 1.02, (
+            f"internet users for {row['Country']} is {internet_share:.1%} of population"
+        )
+        smartphone_share = int(smartphone) / int(internet)
+        assert 0.25 <= smartphone_share <= 1.10, (
+            f"smartphone users for {row['Country']} is "
+            f"{smartphone_share:.1%} of internet users"
         )
     carried = [
         (row["Country"], row["Labour_force_source_year"])
