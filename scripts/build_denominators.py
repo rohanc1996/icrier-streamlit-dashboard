@@ -33,6 +33,15 @@ Columns
                      ``Number of Start-ups`` column of
                      ``data/SIDE 2027 - Absolute.csv`` so the absolute and
                      relative series cannot drift apart.
+``Labour_force_2025`` Total labour force, thousands. Source is WDI
+                     ``SL.TLF.TOTL.IN``, which is the ILO **modelled**
+                     estimates rebased onto World Bank population — the same
+                     series the 2026 Relative ``ICT sector employment (% of
+                     Total Labour force)`` column was built from. 70/71 at
+                     2025; Ukraine is carried back to its last observation
+                     (2021) because WDI has nothing after the invasion.
+                     ``Labour_force_source_year`` records the year the value
+                     actually refers to.
 ``GDP_2025_USD``     Nominal GDP 2025, current US$, via ``gdp_reference``.
 ``Population_2025``  Total population 2025 from UN DESA WPP 2024 (Medium
                      variant), via the ITU population cache.
@@ -43,12 +52,14 @@ Sources
 - ``data/reference/WB listed company counts by year.csv`` (CM.MKT.LDOM.NO),
   via ``data/derived/listed_companies_2025_estimates.csv``
 - ``data/reference/tracxn startups counts.csv``
+- ``data/reference/WB labour force by year.csv``           (SL.TLF.TOTL.IN)
 - ``data/reference/GDP data for SIDE 2027.xlsx - side subset USD.csv``
 - ``scripts/data_sources/itu/cache/undes_population.json``
 
 Known gaps (2025 coverage)
 --------------------------
 GNI per capita: 69/71 at 2025 (Kuwait and UAE at 2024).
+Labour force: 70/71 at 2025; Ukraine at 2021 (WDI publishes nothing later).
 Listed companies: 60/71 at 2025 once estimates are included — 46 reported
    and 14 from exchange/WFE/regulator sources.
    Never reported: Algeria, Dominican Republic, Ethiopia, Guatemala, Iraq,
@@ -79,11 +90,13 @@ OUT = ROOT / "data" / "denominators.csv"
 GNI_PATH = REFERENCE / "WB GNI per capita by year.csv"
 LISTED_ESTIMATES = ROOT / "data" / "derived" / "listed_companies_2025_estimates.csv"
 STARTUPS_PATH = REFERENCE / "tracxn startups counts.csv"
+LABOUR_PATH = REFERENCE / "WB labour force by year.csv"
 POP_CACHE = ROOT / "scripts" / "data_sources" / "itu" / "cache" / "undes_population.json"
 
 GNI_YEAR = "2025"
 LISTED_YEAR = "2025"
 POP_YEAR = "2025"
+LABOUR_YEAR = "2025"
 GDP_YEAR = "2025"
 
 # WDI uses its own country spellings for five SIDE countries.
@@ -105,6 +118,8 @@ FIELDS = [
     "Listed_companies_method",
     "Listed_companies_source_year",
     "Startups_tracxn",
+    "Labour_force_2025",
+    "Labour_force_source_year",
     "GDP_2025_USD",
     "Population_2025",
 ]
@@ -195,9 +210,17 @@ def as_int(value: float | None) -> str:
     return repr(value)
 
 
+def as_thousands(value: float | None) -> str:
+    """Convert a person count to thousands, keeping one decimal."""
+    if value is None:
+        return ""
+    return as_int(round(value / 1000.0, 1))
+
+
 def main() -> int:
     countries = side_countries()
     gni_years, gni_rows = load_wdi_wide(GNI_PATH)
+    labour_years, labour_rows = load_wdi_wide(LABOUR_PATH)
     listed = load_listed_estimates()
     startups = load_tracxn()
     absolute_startups_by_country = absolute_startups()
@@ -205,12 +228,19 @@ def main() -> int:
 
     records: list[dict[str, str]] = []
     gni_carried_back: list[tuple[str, str, float]] = []
+    labour_carried_back: list[tuple[str, str, float]] = []
     listed_blank: list[str] = []
 
     for country in countries:
         gni_year, gni_value = value_for(country, GNI_YEAR, gni_years, gni_rows)
         if gni_year != GNI_YEAR:
             gni_carried_back.append((country, gni_year, gni_value or 0.0))
+
+        labour_year, labour_value = value_for(
+            country, LABOUR_YEAR, labour_years, labour_rows
+        )
+        if labour_year != LABOUR_YEAR:
+            labour_carried_back.append((country, labour_year, labour_value or 0.0))
 
         entry = listed[country]
         listed_value = entry["Listed_companies_2025"].strip()
@@ -228,6 +258,8 @@ def main() -> int:
                 "Listed_companies_method": entry["Method"].strip(),
                 "Listed_companies_source_year": entry["Source_year"].strip(),
                 "Startups_tracxn": startups[country],
+                "Labour_force_2025": as_thousands(labour_value),
+                "Labour_force_source_year": labour_year,
                 "GDP_2025_USD": as_int(gdp),
                 "Population_2025": as_int(pop),
             }
@@ -245,6 +277,9 @@ def main() -> int:
     print(f"  GNI per capita {GNI_YEAR}: {len(records) - len(gni_carried_back)}/71")
     for country, year, value in gni_carried_back:
         print(f"    carried back: {country} -> {year} {as_int(value)}")
+    print(f"  Labour force {LABOUR_YEAR}: {71 - len(labour_carried_back)}/71")
+    for country, year, value in labour_carried_back:
+        print(f"    carried back: {country} -> {year} {as_thousands(value)}")
     print(f"  Startups (Tracxn): {len(records)}/71 (matches 2027 Absolute)")
     print(f"  Listed companies {LISTED_YEAR}: {71 - len(listed_blank)}/71")
     for method in ("reported", "carry_forward", "exchange", "missing"):
@@ -268,6 +303,14 @@ def _validate(
         assert row["GNI_pc_USD"], f"missing GNI per capita for {row['Country']}"
         assert row["GDP_2025_USD"], f"missing GDP for {row['Country']}"
         assert row["Population_2025"], f"missing population for {row['Country']}"
+        labour = row["Labour_force_2025"]
+        assert labour, f"missing labour force for {row['Country']}"
+        labour_value = float(labour)
+        assert labour_value > 0, f"non-positive labour force for {row['Country']}"
+        ratio = labour_value * 1000.0 / float(row["Population_2025"])
+        assert 0.20 <= ratio <= 0.80, (
+            f"labour force for {row['Country']} is {ratio:.1%} of population"
+        )
         value = row["Startups_tracxn"]
         assert value.isdigit() and int(value) > 0, (
             f"bad Tracxn startup count for {row['Country']}: {value!r}"
@@ -277,6 +320,14 @@ def _validate(
             f"the 2027 Absolute Number of Start-ups "
             f"({value} vs {absolute_startups_by_country.get(row['Country'])})"
         )
+    carried = [
+        (row["Country"], row["Labour_force_source_year"])
+        for row in records
+        if row["Labour_force_source_year"] != LABOUR_YEAR
+    ]
+    assert carried == [("Ukraine", "2021")], (
+        f"unexpected labour-force carry-backs: {carried}"
+    )
     methods = {row["Listed_companies_method"] for row in records}
     assert methods <= {"reported", "carry_forward", "exchange", "missing"}, methods
     reported = sum(1 for r in records if r["Listed_companies_method"] == "reported")
