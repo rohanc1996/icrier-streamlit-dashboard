@@ -1,0 +1,143 @@
+Series,Country,SIDE_2027_value,Data_year,Reference_value,Delta,Delta_pct,Status
+Mobile cellular subscriptions,Algeria,53746953,2025,53746953,0,0.000,match
+Mobile cellular subscriptions,Argentina,64549228,2025,64549228,0,0.000,match
+Mobile cellular subscriptions,Australia,30392000,2025,30392000,0,0.000,match
+Mobile cellular subscriptions,Austria,11426400,2025,11426400,0,0.000,match
+Mobile cellular subscriptions,Bangladesh,185668767,2025,185668767,0,0.000,match
+Mobile cellular subscriptions,Belgium,12689138,2025,12689138,0,0.000,match
+Mobile cellular subscriptions,Brazil,216449609,2025,216449609,0,0.000,match
+Mobile cellular subscriptions,Bulgaria,7914726,2025,7914726,0,0.000,match
+Mobile cellular subscriptions,Canada,38600000,2025,38600000,0,0.000,match
+Mobile cellular subscriptions,Chile,26220026,2024,26220026,0,0.000,match
+Mobile cellular subscriptions,China,1869490300,2025,1869490300,0,0.000,match
+Mobile cellular subscriptions,Colombia,95598328,2025,95598328,0,0.000,match
+Mobile cellular subscriptions,Costa Rica,7121629,2025,7121629,0,0.000,match
+Mobile cellular subscriptions,Croatia,4960809,2025,4960809,0,0.000,match
+Mobile cellular subscriptions,Czechia,13652177,2025,13652177,0,0.000,match
+Mobile cellular subscriptions,Denmark,7628248,2025,7628248,0,0.000,match
+Mobile cellular subscriptions,Dominican Republic,11003354,2025,11003354,0,0.000,match
+Mobile cellular subscriptions,Ecuador,18327940,2025,18327940,0,0.000,match
+Mobile cellular subscriptions,Egypt,123062971,2025,123062971,0,0.000,match
+Mobile cellular subscriptions,Ethiopia,81275846,2025,81275846,0,0.000,match
+Mobile cellular subscriptions,Finland,7030000,2025,7030000,0,0.000,match
+Mobile cellular subscriptions,France,77834000,2025,77834000,0,0.000,match
+Mobile cellular subscriptions,Germany,106400000,2025,106400000,0,0.000,match
+Mobile cellular subscriptions,Ghana,42871955,2025,42871955,0,0.000,match
+Mobile cellular subscriptions,Greece,11503069,2025,11503069,0,0.000,match
+Mobile cellular subscriptions,Guatemala,21432558,2025,21432558,0,0.000,match
+Mobile cellular subscriptions,Hungary,10294696,2025,10294696,0,0.000,match
+Mobile cellular subscriptions,India,1244200000,2025,1244200000,0,0.000,match
+Mobile cellular subscriptions,Indonesia,322818565,2025,322818565,0,0.000,match
+Mobile cellular subscriptions,Iraq,46965600,2025,46965600,0,0.000,match
+Mobile cellular subscriptions,Ireland,6083547,2025,6083547,0,0.000,match
+Mobile cellular subscriptions,Israel,17816497,2025,17816497,0,0.000,match
+Mobile cellular subscriptions,Italy,78889765,2025,78889765,0,0.000,match
+Mobile cellular subscriptions,Japan,234126000,2025,234126000,0,0.000,match
+Mobile cellular subscriptions,Kazakhstan,27720505,2025,27720505,0,0.000,match
+Mobile cellular subscriptions,Kenya,78390421,2025,78390421,0,0.000,match
+Mobile cellular subscriptions,Kuwait,8188856,2025,8188856,0,0.000,match
+Mobile cellular subscriptions,Malaysia,49786800,2025,49786800,0,0.000,match
+Mobile cellular subscriptions,Mexico,146147478,2025,146147478,0,0.000,match
+Mobile cellular subscriptions,Morocco,59163075,2025,59163075,0,0.000,match
+Mobile cellular subscriptions,Netherlands,24744000,2025,24744000,0,0.000,match
+Mobile cellular subscriptions,New Zealand,6876000,2025,6876000,0,0.000,match
+Mobile cellular subscriptions,Nigeria,179412055,2025,179412055,0,0.000,match
+Mobile cellular subscriptions,Norway,6120000,2025,,,,no reference value for data year
+Mobile cellular subscriptions,Pakistan,200556761,2025,200556761,0,0.000,match
+Mobile cellular subscriptions,Peru,43640550,2025,43640550,0,0.000,match
+Mobile cellular subscriptions,Philippines,140691520,2025,140691520,0,0.000,match
+Mobile cellular subscriptions,Poland,53837885,2025,53837885,0,0.000,match
+Mobile cellular subscriptions,Portugal,12877024,2025,12877024,0,0.000,match
+Mobile cellular subscriptions,Qatar,4758365,2025,4758365,0,0.000,match
+Mobile cellular subscriptions,Republic of Korea,93373795,2025,93373795,0,0.000,match
+Mobile cellular subscriptions,Romania,22785000,2025,22785000,0,0.000,match
+Mobile cellular subscriptions,Russian Federation,277937452,2025,277937452,0,0.000,match
+Mobile cellular subscriptions,Rwanda,13685892,2025,13685892,0,0.000,match
+Mobile cellular subscriptions,Saudi Arabia,54184648,2024,54184648,0,0.000,match
+Mobile cellular subscriptions,Serbia,8340931,2024,8178664,-162267,-1.945,differs
+Mobile cellular subscriptions,Singapore,9831500,2025,9831500,0,0.000,match
+Mobile cellular subscriptions,Slovakia,7533346,2025,7533346,0,0.000,match
+Mobile cellular subscriptions,South Africa,117316338,2025,117316338,0,0.000,match
+Mobile cellular subscriptions,Spain,63937551,2025,63937551,0,0.000,match
+Mobile cellular subscriptions,Sri Lanka,31606945,2025,31606945,0,0.000,match
+Mobile cellular subscriptions,Sweden,14956936,2025,14956936,0,0.000,match
+Mobile cellular subscriptions,Switzerland,12092519,2025,12092519,0,0.000,match
+Mobile cellular subscriptions,Thailand,110280162,2025,110280162,0,0.000,match
+Mobile cellular subscriptions,Türkiye,99691361,2025,99691361,0,0.000,match
+Mobile cellular subscriptions,Ukraine,47443816,2025,47443817,1,0.000,rounding (±1)
+Mobile cellular subscriptions,United Arab Emirates,24280875,2025,24280875,0,0.000,match
+Mobile cellular subscriptions,United Kingdom,85717000,2025,85717000,0,0.000,match
+Mobile cellular subscriptions,United States of America,396969000,2025,396969000,0,0.000,match
+Mobile cellular subscriptions,Uzbekistan,41269274,2025,41269274,0,0.000,match
+Mobile cellular subscriptions,Viet Nam,123277864,2025,123277864,0,0.000,match
+Fixed broadband subscriptions,Algeria,,2025,6884013,,,2025
+Fixed broadband subscriptions,Argentina,,2025,12991052,,,2025
+Fixed broadband subscriptions,Australia,,2025,10246200,,,2025
+Fixed broadband subscriptions,Austria,,2025,2767176,,,2025
+Fixed broadband subscriptions,Bangladesh,,2025,14624140,,,2025
+Fixed broadband subscriptions,Belgium,,2025,5254178,,,2025
+Fixed broadband subscriptions,Brazil,,2025,54204884,,,2025
+Fixed broadband subscriptions,Bulgaria,,2025,2771900,,,2025
+Fixed broadband subscriptions,Canada,,2025,17723082,,,2025
+Fixed broadband subscriptions,Chile,,2025,4796362,,,2025
+Fixed broadband subscriptions,China,,2025,690819500,,,2025
+Fixed broadband subscriptions,Colombia,,2025,10241108,,,2025
+Fixed broadband subscriptions,Costa Rica,,2025,1328543,,,2025
+Fixed broadband subscriptions,Croatia,,2025,1185018,,,2025
+Fixed broadband subscriptions,Czechia,,2025,4268310,,,2025
+Fixed broadband subscriptions,Denmark,,2025,2409413,,,2025
+Fixed broadband subscriptions,Dominican Republic,,2025,1329691,,,2025
+Fixed broadband subscriptions,Ecuador,,2025,3405976,,,2025
+Fixed broadband subscriptions,Egypt,,2025,14810139,,,2025
+Fixed broadband subscriptions,Ethiopia,,2025,865747,,,2025
+Fixed broadband subscriptions,Finland,,2025,2129000,,,2025
+Fixed broadband subscriptions,France,,2025,32956000,,,2025
+Fixed broadband subscriptions,Germany,,2025,38780947,,,2025
+Fixed broadband subscriptions,Ghana,,2025,284644,,,2025
+Fixed broadband subscriptions,Greece,,2025,4431646,,,2025
+Fixed broadband subscriptions,Guatemala,,2025,1062478,,,2025
+Fixed broadband subscriptions,Hungary,,2025,3685315,,,2025
+Fixed broadband subscriptions,India,,2025,60087167,,,2025
+Fixed broadband subscriptions,Indonesia,,2025,19198340,,,2025
+Fixed broadband subscriptions,Iraq,,2025,7738682,,,2025
+Fixed broadband subscriptions,Ireland,,2025,1765075,,,2025
+Fixed broadband subscriptions,Israel,,2025,2969534,,,2025
+Fixed broadband subscriptions,Italy,,2025,19383009,,,2025
+Fixed broadband subscriptions,Japan,,2023,48046037,,,carry-back from 2023
+Fixed broadband subscriptions,Kazakhstan,,2025,3324763,,,2025
+Fixed broadband subscriptions,Kenya,,2025,2424024,,,2025
+Fixed broadband subscriptions,Kuwait,,2025,42918,,,2025
+Fixed broadband subscriptions,Malaysia,,2025,5039600,,,2025
+Fixed broadband subscriptions,Mexico,,2025,29301712,,,2025
+Fixed broadband subscriptions,Morocco,,2025,2989307,,,2025
+Fixed broadband subscriptions,Netherlands,,2025,7829036,,,2025
+Fixed broadband subscriptions,New Zealand,,2025,2011882,,,2025
+Fixed broadband subscriptions,Nigeria,,2025,453673,,,2025
+Fixed broadband subscriptions,Norway,,2024,2518604,,,carry-back from 2024
+Fixed broadband subscriptions,Pakistan,,2025,4276282,,,2025
+Fixed broadband subscriptions,Peru,,2025,4331115,,,2025
+Fixed broadband subscriptions,Philippines,,2025,9415728,,,2025
+Fixed broadband subscriptions,Poland,,2025,10142921,,,2025
+Fixed broadband subscriptions,Portugal,,2025,4816482,,,2025
+Fixed broadband subscriptions,Qatar,,2025,376197,,,2025
+Fixed broadband subscriptions,Republic of Korea,,2025,25233811,,,2025
+Fixed broadband subscriptions,Romania,,2025,7018234,,,2025
+Fixed broadband subscriptions,Russian Federation,,2025,38640097,,,2025
+Fixed broadband subscriptions,Rwanda,,2025,86221,,,2025
+Fixed broadband subscriptions,Saudi Arabia,,2025,15300025,,,2025
+Fixed broadband subscriptions,Serbia,,2025,2237732,,,2025
+Fixed broadband subscriptions,Singapore,,2025,1611500,,,2025
+Fixed broadband subscriptions,Slovakia,,2025,2010884,,,2025
+Fixed broadband subscriptions,South Africa,,2025,3518229,,,2025
+Fixed broadband subscriptions,Spain,,2025,19637250,,,2025
+Fixed broadband subscriptions,Sri Lanka,,2025,2239820,,,2025
+Fixed broadband subscriptions,Sweden,,2025,4292099,,,2025
+Fixed broadband subscriptions,Switzerland,,2025,4186895,,,2025
+Fixed broadband subscriptions,Thailand,,2025,10437311,,,2025
+Fixed broadband subscriptions,Türkiye,,2025,20977729,,,2025
+Fixed broadband subscriptions,Ukraine,,2025,8697747,,,2025
+Fixed broadband subscriptions,United Arab Emirates,,2025,4886852,,,2025
+Fixed broadband subscriptions,United Kingdom,,2024,29152000,,,carry-back from 2024
+Fixed broadband subscriptions,United States of America,,2025,135807000,,,2025
+Fixed broadband subscriptions,Uzbekistan,,2025,13660233,,,2025
+Fixed broadband subscriptions,Viet Nam,,2025,24751356,,,2025

@@ -62,6 +62,26 @@ Columns
                      and "Metaverse revenue per smartphone user". Those two
                      columns are additionally PPP-adjusted; that factor is
                      *not* in this file.
+``Mobile_subscriptions``  Mobile-cellular subscriptions, count (not millions),
+                     for ``Mobile_subscriptions_source_year``. Taken from
+                     ``data/reference/Mobile-cellular subscriptions.csv`` in the
+                     year the 2027 Absolute indicator actually refers to
+                     (``Mobile data year`` in the ITU sheet), not a blanket
+                     2025. This is the denominator of the Relative series'
+                     "Mobile broadband internet traffic (GB per subscription)"
+                     and the numerator of "Mobile Cellular Subscriptions per
+                     100 population".
+``Mobile_subscriptions_source_year``  The ITU data year that value refers to:
+                     2025 for 68 countries, 2024 for Chile, Saudi Arabia and
+                     Serbia. Not the SIDE edition year.
+``Fixed_broadband_subscriptions``  Fixed-broadband subscriptions, count (not
+                     per 100), from ``data/reference/Fixed-broadband
+                     subscriptions.csv``. This is the denominator of the
+                     Relative series' "Fixed-broadband Internet traffic per
+                     subscriber (GB)" column.
+``Fixed_broadband_subscriptions_source_year``  2025 for 68 countries; Japan
+                     carries back to 2023, Norway and the United Kingdom to
+                     2024, because ITU has not published 2025 for them.
 
 Sources
 -------
@@ -72,7 +92,11 @@ Sources
 - ``data/reference/WB labour force by year.csv``           (SL.TLF.TOTL.IN)
 - ``data/reference/GDP data for SIDE 2027.xlsx - side subset USD.csv``
 - ``scripts/data_sources/itu/cache/undes_population.json``
-- ``data/SIDE 2027 - Absolute.csv`` internet-user and smartphone-user columns
+- ``data/reference/Mobile-cellular subscriptions.csv``      (ITU totals)
+- ``data/reference/Fixed-broadband subscriptions.csv``      (ITU totals)
+- ``data/2027 individual indicators/itu-transposed.csv`` ``Mobile data year``
+- ``data/SIDE 2027 - Absolute.csv`` internet-user, smartphone-user and
+  mobile-subscription columns
 
 Known gaps (2025 coverage)
 --------------------------
@@ -84,6 +108,12 @@ Listed companies: 60/71 at 2025 once estimates are included — 46 reported
    Serbia.
    No comparable 2025 figure found: Belgium, Ecuador, Netherlands, Portugal,
    Ukraine.
+Mobile subscriptions: 71/71 at the indicator's own data year (68 at 2025,
+   3 at 2024). Norway's indicator year is 2025 but the reference extract has no
+   Norwegian 2025 value, so the Absolute-file value is used and the year is kept
+   as 2025.
+Fixed broadband: 68/71 at 2025, with three carry-backs (Japan 2023, Norway
+   2024, United Kingdom 2024). No country is blank.
 
 Run:  python scripts/build_denominators.py
 """
@@ -110,12 +140,35 @@ LISTED_ESTIMATES = ROOT / "data" / "derived" / "listed_companies_2025_estimates.
 STARTUPS_PATH = REFERENCE / "tracxn startups counts.csv"
 LABOUR_PATH = REFERENCE / "WB labour force by year.csv"
 POP_CACHE = ROOT / "scripts" / "data_sources" / "itu" / "cache" / "undes_population.json"
+MOBILE_PATH = REFERENCE / "Mobile-cellular subscriptions.csv"
+FIXED_PATH = REFERENCE / "Fixed-broadband subscriptions.csv"
+ITU_SHEET = ROOT / "data" / "2027 individual indicators" / "itu-transposed.csv"
 
 GNI_YEAR = "2025"
 LISTED_YEAR = "2025"
 POP_YEAR = "2025"
 LABOUR_YEAR = "2025"
 GDP_YEAR = "2025"
+FIXED_YEAR = "2025"
+
+# The subscription extracts use three ITU spellings that differ from the SIDE
+# 2027 Absolute file.
+REFERENCE_ALIASES = {
+    "Czech Republic": "Czechia",
+    "Dominican Rep.": "Dominican Republic",
+    "Korea (Rep. of)": "Republic of Korea",
+    "United States": "United States of America",
+}
+
+# The Absolute indicator is a per-100 rate multiplied by UN DESA population
+# (see scripts/data_sources/itu/build_itu_csv.py), while the reference extract
+# holds ITU's reported totals. ITU's own rate and total disagree for Serbia by
+# 1.9%, so the denominator follows the scored Absolute value there. Everywhere
+# else the two agree to within one subscription.
+MOBILE_ABS_OVERRIDES = {"Serbia"}
+
+MOBILE_ABS_COLUMN = "Mobile Cellular Subscriptions in millions (absolute numbers)"
+MOBILE_DATA_YEAR_ROW = "Mobile data year"
 
 # WDI uses its own country spellings for five SIDE countries.
 WDI_ALIASES = {
@@ -142,10 +195,69 @@ FIELDS = [
     "Population_2025",
     "Internet_users_2025",
     "Smartphone_users_2025",
+    "Mobile_subscriptions",
+    "Mobile_subscriptions_source_year",
+    "Fixed_broadband_subscriptions",
+    "Fixed_broadband_subscriptions_source_year",
 ]
 
 INTERNET_USERS_COLUMN = "Number of Internet Users (absolute numbers)"
 SMARTPHONE_USERS_COLUMN = "Number of smartphone users (million)"
+
+
+def load_reference_wide(path: Path) -> dict[str, dict[str, str]]:
+    """Return ``{SIDE country: {year: raw cell}}`` for a wide ITU extract.
+
+    Cells are kept as strings and blanks (``""`` / ``-``) are dropped, so a
+    missing year can never be read as zero. Country names are mapped from the
+    extract's ITU spellings to the SIDE spellings used in the Absolute file.
+    """
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        rows = list(csv.reader(handle))
+    header = [cell.strip() for cell in rows[0]]
+    years = [cell for cell in header[1:] if cell]
+    series: dict[str, dict[str, str]] = {}
+    for row in rows[1:]:
+        if not row or not row[0].strip():
+            continue
+        country = REFERENCE_ALIASES.get(row[0].strip(), row[0].strip())
+        series[country] = {
+            year: cell.strip().replace(",", "")
+            for year, cell in zip(years, row[1:])
+            if cell.strip() not in ("", "-")
+        }
+    return series
+
+
+def load_mobile_data_years() -> dict[str, str]:
+    """Return ``{country: ITU data year}`` for the Absolute mobile indicator.
+
+    The Absolute column is ITU's per-100 rate times UN DESA population for the
+    year the rate refers to, so the rate's year is the denominator's year.
+    """
+    with ITU_SHEET.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.reader(handle)
+        header = [cell.strip() for cell in next(reader)]
+        countries = [cell.strip() for cell in header[1:]]
+        for row in reader:
+            if row and row[0].strip() == MOBILE_DATA_YEAR_ROW:
+                return {
+                    country: cell.strip()
+                    for country, cell in zip(countries, row[1:])
+                    if cell.strip()
+                }
+    raise SystemExit(f"{MOBILE_DATA_YEAR_ROW} not found in {ITU_SHEET}")
+
+
+def load_absolute_mobile() -> dict[str, str]:
+    """Return the scored mobile-subscription counts from the 2027 Absolute file."""
+    with ABSOLUTE.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        return {
+            row["Country"].strip(): row[MOBILE_ABS_COLUMN].strip().replace(",", "")
+            for row in reader
+            if row["Country"].strip()
+        }
 
 
 def load_listed_estimates() -> dict[str, dict[str, str]]:
@@ -259,6 +371,50 @@ def as_thousands(value: float | None) -> str:
     return as_int(round(value / 1000.0, 1))
 
 
+def resolve_mobile(
+    country: str,
+    data_years: dict[str, str],
+    reference: dict[str, dict[str, str]],
+    absolute: dict[str, str],
+) -> tuple[float, str]:
+    """Return (subscription count, source year) for the mobile denominator.
+
+    The value is the reference extract's figure for the year the Absolute
+    indicator refers to. Serbia is the exception: ITU's reported total and the
+    per-100 rate behind the scored indicator disagree by 1.9%, and the
+    denominator must equal the numerator, so the Absolute value wins.
+    Countries whose data year the extract does not cover fall back to the
+    Absolute value as well, keeping the year the indicator actually uses.
+    """
+    year = data_years.get(country)
+    if not year:
+        raise SystemExit(
+            f"no {MOBILE_DATA_YEAR_ROW} for {country} in {ITU_SHEET}; "
+            "the mobile denominator cannot be aligned to the scored indicator"
+        )
+    value = reference.get(country, {}).get(year)
+    if country in MOBILE_ABS_OVERRIDES or value is None:
+        return float(absolute[country]), year
+    return float(value), year
+
+
+def resolve_fixed(
+    country: str, reference: dict[str, dict[str, str]]
+) -> tuple[float | None, str]:
+    """Return (subscription count, source year) for the fixed-broadband series.
+
+    ``FIXED_YEAR`` where ITU has published it, otherwise the latest earlier
+    observation. The source year is recorded either way, so a carry-back is
+    visible in the CSV rather than silent.
+    """
+    series = reference.get(country, {})
+    years = sorted(year for year in series if year <= FIXED_YEAR)
+    if not years:
+        return None, ""
+    year = years[-1]
+    return float(series[year]), year
+
+
 def main() -> int:
     countries = side_countries()
     gni_years, gni_rows = load_wdi_wide(GNI_PATH)
@@ -268,11 +424,17 @@ def main() -> int:
     absolute_startups_by_country = absolute_startups()
     user_counts = absolute_user_counts()
     population = json.loads(POP_CACHE.read_text(encoding="utf-8"))
+    mobile_reference = load_reference_wide(MOBILE_PATH)
+    fixed_reference = load_reference_wide(FIXED_PATH)
+    mobile_data_years = load_mobile_data_years()
+    absolute_mobile = load_absolute_mobile()
 
     records: list[dict[str, str]] = []
     gni_carried_back: list[tuple[str, str, float]] = []
     labour_carried_back: list[tuple[str, str, float]] = []
     listed_blank: list[str] = []
+    mobile_years: list[tuple[str, str]] = []
+    fixed_carried_back: list[tuple[str, str]] = []
 
     for country in countries:
         gni_year, gni_value = value_for(country, GNI_YEAR, gni_years, gni_rows)
@@ -293,6 +455,13 @@ def main() -> int:
         gdp = gdp_usd(country, GDP_YEAR)
         pop = population.get(ISO3[country], {}).get(POP_YEAR)
         internet_users, smartphone_users = user_counts[country]
+        mobile_value, mobile_year = resolve_mobile(
+            country, mobile_data_years, mobile_reference, absolute_mobile
+        )
+        mobile_years.append((country, mobile_year))
+        fixed_value, fixed_year = resolve_fixed(country, fixed_reference)
+        if fixed_year != FIXED_YEAR:
+            fixed_carried_back.append((country, fixed_year))
 
         records.append(
             {
@@ -308,6 +477,10 @@ def main() -> int:
                 "Population_2025": as_int(pop),
                 "Internet_users_2025": internet_users,
                 "Smartphone_users_2025": smartphone_users,
+                "Mobile_subscriptions": as_int(mobile_value),
+                "Mobile_subscriptions_source_year": mobile_year,
+                "Fixed_broadband_subscriptions": as_int(fixed_value),
+                "Fixed_broadband_subscriptions_source_year": fixed_year,
             }
         )
 
@@ -318,6 +491,7 @@ def main() -> int:
         listed,
         absolute_startups_by_country,
         user_counts,
+        absolute_mobile,
     )
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -341,6 +515,14 @@ def main() -> int:
         count = sum(1 for r in records if r["Listed_companies_method"] == method)
         print(f"    {method}: {count}")
     print(f"    blank for {len(listed_blank)} countries: {', '.join(listed_blank)}")
+    mobile_at_2025 = sum(1 for _country, year in mobile_years if year == "2025")
+    print(f"  Mobile subscriptions: 71/71 at the indicator's data year ({mobile_at_2025} at 2025)")
+    for country, year in mobile_years:
+        if year != "2025":
+            print(f"    data year {year}: {country}")
+    print(f"  Fixed broadband {FIXED_YEAR}: {71 - len(fixed_carried_back)}/71")
+    for country, year in fixed_carried_back:
+        print(f"    carried back: {country} -> {year}")
     return 0
 
 
@@ -351,6 +533,7 @@ def _validate(
     listed: dict[str, dict[str, str]],
     absolute_startups_by_country: dict[str, str],
     user_counts: dict[str, tuple[str, str]],
+    absolute_mobile: dict[str, str],
 ) -> None:
     assert len(records) == 71, f"expected 71 rows, got {len(records)}"
     assert [r["Country"] for r in records] == countries, "country order drifted"
@@ -397,6 +580,52 @@ def _validate(
             f"smartphone users for {row['Country']} is "
             f"{smartphone_share:.1%} of internet users"
         )
+
+        mobile = row["Mobile_subscriptions"]
+        assert mobile.isdigit() and int(mobile) > 0, (
+            f"bad mobile-subscription count for {row['Country']}: {mobile!r}"
+        )
+        mobile_share = int(mobile) / float(row["Population_2025"])
+        assert 0.15 <= mobile_share <= 2.50, (
+            f"mobile subscriptions for {row['Country']} is "
+            f"{mobile_share:.2f} per head"
+        )
+        # The denominator must equal the scored numerator. The reference
+        # extract can differ by one subscription through rounding, and Serbia
+        # uses the Absolute value outright (see MOBILE_ABS_OVERRIDES).
+        absolute = int(absolute_mobile[row["Country"]])
+        drift = int(mobile) - absolute
+        assert abs(drift) <= 1, (
+            f"mobile subscriptions for {row['Country']} drifted from the 2027 "
+            f"Absolute indicator ({mobile} vs {absolute})"
+        )
+        if row["Country"] in MOBILE_ABS_OVERRIDES:
+            assert drift == 0, f"{row['Country']} should use the Absolute value"
+        assert row["Mobile_subscriptions_source_year"] in {"2024", "2025"}, (
+            f"unexpected mobile data year for {row['Country']}: "
+            f"{row['Mobile_subscriptions_source_year']!r}"
+        )
+
+        fixed = row["Fixed_broadband_subscriptions"]
+        assert fixed.isdigit() and int(fixed) > 0, (
+            f"bad fixed-broadband count for {row['Country']}: {fixed!r}"
+        )
+        fixed_share = int(fixed) / float(row["Population_2025"])
+        assert 0.0005 <= fixed_share <= 0.75, (
+            f"fixed broadband for {row['Country']} is {fixed_share:.4f} per head"
+        )
+        assert int(fixed) <= int(mobile), (
+            f"fixed broadband exceeds mobile subscriptions for {row['Country']}"
+        )
+        assert row["Fixed_broadband_subscriptions_source_year"] in {
+            "2023",
+            "2024",
+            "2025",
+        }, (
+            f"unexpected fixed-broadband source year for {row['Country']}: "
+            f"{row['Fixed_broadband_subscriptions_source_year']!r}"
+        )
+
     carried = [
         (row["Country"], row["Labour_force_source_year"])
         for row in records
@@ -405,6 +634,26 @@ def _validate(
     assert carried == [("Ukraine", "2021")], (
         f"unexpected labour-force carry-backs: {carried}"
     )
+    mobile_carried = [
+        (row["Country"], row["Mobile_subscriptions_source_year"])
+        for row in records
+        if row["Mobile_subscriptions_source_year"] != "2025"
+    ]
+    assert mobile_carried == [
+        ("Chile", "2024"),
+        ("Saudi Arabia", "2024"),
+        ("Serbia", "2024"),
+    ], f"unexpected mobile data years: {mobile_carried}"
+    fixed_carried = [
+        (row["Country"], row["Fixed_broadband_subscriptions_source_year"])
+        for row in records
+        if row["Fixed_broadband_subscriptions_source_year"] != FIXED_YEAR
+    ]
+    assert fixed_carried == [
+        ("Japan", "2023"),
+        ("Norway", "2024"),
+        ("United Kingdom", "2024"),
+    ], f"unexpected fixed-broadband carry-backs: {fixed_carried}"
     methods = {row["Listed_companies_method"] for row in records}
     assert methods <= {"reported", "carry_forward", "exchange", "missing"}, methods
     reported = sum(1 for r in records if r["Listed_companies_method"] == "reported")
