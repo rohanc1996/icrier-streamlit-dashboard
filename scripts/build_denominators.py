@@ -14,9 +14,17 @@ Columns
                      those two rows are not distinguishable on its face; see
                      "Known gaps" below.
 ``Listed_companies`` Listed domestic companies, total (CM.MKT.LDOM.NO) for
-                     2025.  **Empty for 25 of the 71 countries** — 6 never
-                     report in the WDI series and 19 have a stale latest
-                     observation.  No back-filling is done here.
+                     2025, from ``data/derived/listed_companies_2025_estimates.csv``.
+                     That file reports the 46 WDI observations as-is and fills
+                     the 19 stale countries from exchange/WFE/regulator
+                     sources; carry-forward is only a fallback where no
+                     exchange figure exists (none needed for 2025). See
+                     ``docs/decisions/0001-listed-companies-2025.md``.
+                     ``Listed_companies_method`` records which of ``reported``
+                     / ``carry_forward`` / ``exchange`` / ``missing`` applies,
+                     and ``Listed_companies_source_year`` the year the value
+                     actually refers to.  Six never-reporting countries stay
+                     blank.
 ``GDP_2025_USD``     Nominal GDP 2025, current US$, via ``gdp_reference``.
 ``Population_2025``  Total population 2025 from UN DESA WPP 2024 (Medium
                      variant), via the ITU population cache.
@@ -24,22 +32,20 @@ Columns
 Sources
 -------
 - ``data/reference/WB GNI per capita by year.csv``      (NY.GNP.PCAP.CD)
-- ``data/reference/WB listed company counts by year.csv`` (CM.MKT.LDOM.NO)
+- ``data/reference/WB listed company counts by year.csv`` (CM.MKT.LDOM.NO),
+  via ``data/derived/listed_companies_2025_estimates.csv``
 - ``data/reference/GDP data for SIDE 2027.xlsx - side subset USD.csv``
 - ``scripts/data_sources/itu/cache/undes_population.json``
 
 Known gaps (2025 coverage)
 --------------------------
 GNI per capita: 69/71 at 2025 (Kuwait and UAE at 2024).
-Listed companies: 46/71 at 2025.
+Listed companies: 60/71 at 2025 once estimates are included — 46 reported
+   and 14 from exchange/WFE/regulator sources.
    Never reported: Algeria, Dominican Republic, Ethiopia, Guatemala, Iraq,
    Serbia.
-   Stale latest: Argentina (2021), Belgium (2015), Costa Rica (2022),
-   Denmark (2004), Ecuador (2000), Finland (2004), France (2018),
-   Ireland (2018), Israel (2024), Italy (2014), Mexico (2023),
-   Netherlands (2018), Norway (2017), Portugal (2018), Russian Federation
-   (2023), Slovakia (2013), Sweden (2002), Ukraine (2018), United Kingdom
-   (2022).
+   No comparable 2025 figure found: Belgium, Ecuador, Netherlands, Portugal,
+   Ukraine.
 
 Run:  python scripts/build_denominators.py
 """
@@ -62,7 +68,7 @@ ABSOLUTE = ROOT / "data" / "SIDE 2027 - Absolute.csv"
 OUT = ROOT / "data" / "denominators.csv"
 
 GNI_PATH = REFERENCE / "WB GNI per capita by year.csv"
-LISTED_PATH = REFERENCE / "WB listed company counts by year.csv"
+LISTED_ESTIMATES = ROOT / "data" / "derived" / "listed_companies_2025_estimates.csv"
 POP_CACHE = ROOT / "scripts" / "data_sources" / "itu" / "cache" / "undes_population.json"
 
 GNI_YEAR = "2025"
@@ -86,9 +92,17 @@ FIELDS = [
     "Country",
     "GNI_pc_USD",
     "Listed_companies",
+    "Listed_companies_method",
+    "Listed_companies_source_year",
     "GDP_2025_USD",
     "Population_2025",
 ]
+
+
+def load_listed_estimates() -> dict[str, dict[str, str]]:
+    """Return the 2025 listed-company table keyed by SIDE country name."""
+    with LISTED_ESTIMATES.open(newline="", encoding="utf-8-sig") as handle:
+        return {row["Country"].strip(): row for row in csv.DictReader(handle)}
 
 
 def side_countries() -> list[str]:
@@ -116,12 +130,9 @@ def value_for(
     preferred_year: str,
     years: list[str],
     rows: dict[str, list[str]],
-    allow_fallback: bool = True,
 ) -> tuple[str, float | None]:
     """Return (year_of_value, value) — preferred year, else the latest available.
 
-    With ``allow_fallback=False`` only the preferred year counts, so a stale
-    series reads as blank rather than as a mismatched vintage.
     An empty value with no observation at all returns ("", None).
     """
     row = rows[WDI_ALIASES.get(name, name)]
@@ -129,8 +140,6 @@ def value_for(
     preferred = row[index].strip() if index < len(row) else ""
     if preferred:
         return preferred_year, float(preferred)
-    if not allow_fallback:
-        return "", None
     latest: tuple[str, float] | None = None
     for year, cell in zip(years, row):
         text = cell.strip()
@@ -151,7 +160,7 @@ def as_int(value: float | None) -> str:
 def main() -> int:
     countries = side_countries()
     gni_years, gni_rows = load_wdi_wide(GNI_PATH)
-    listed_years, listed_rows = load_wdi_wide(LISTED_PATH)
+    listed = load_listed_estimates()
     population = json.loads(POP_CACHE.read_text(encoding="utf-8"))
 
     records: list[dict[str, str]] = []
@@ -163,10 +172,9 @@ def main() -> int:
         if gni_year != GNI_YEAR:
             gni_carried_back.append((country, gni_year, gni_value or 0.0))
 
-        listed_year, listed_value = value_for(
-            country, LISTED_YEAR, listed_years, listed_rows, allow_fallback=False
-        )
-        if listed_year != LISTED_YEAR:
+        entry = listed[country]
+        listed_value = entry["Listed_companies_2025"].strip()
+        if not listed_value:
             listed_blank.append(country)
 
         gdp = gdp_usd(country, GDP_YEAR)
@@ -176,13 +184,15 @@ def main() -> int:
             {
                 "Country": country,
                 "GNI_pc_USD": as_int(gni_value),
-                "Listed_companies": as_int(listed_value),
+                "Listed_companies": listed_value,
+                "Listed_companies_method": entry["Method"].strip(),
+                "Listed_companies_source_year": entry["Source_year"].strip(),
                 "GDP_2025_USD": as_int(gdp),
                 "Population_2025": as_int(pop),
             }
         )
 
-    _validate(records, countries, listed_blank)
+    _validate(records, countries, listed_blank, listed)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w", newline="", encoding="utf-8") as handle:
@@ -194,7 +204,10 @@ def main() -> int:
     print(f"  GNI per capita {GNI_YEAR}: {len(records) - len(gni_carried_back)}/71")
     for country, year, value in gni_carried_back:
         print(f"    carried back: {country} -> {year} {as_int(value)}")
-    print(f"  Listed companies {LISTED_YEAR}: {len(records) - len(listed_blank)}/71")
+    print(f"  Listed companies {LISTED_YEAR}: {71 - len(listed_blank)}/71")
+    for method in ("reported", "carry_forward", "exchange", "missing"):
+        count = sum(1 for r in records if r["Listed_companies_method"] == method)
+        print(f"    {method}: {count}")
     print(f"    blank for {len(listed_blank)} countries: {', '.join(listed_blank)}")
     return 0
 
@@ -203,6 +216,7 @@ def _validate(
     records: list[dict[str, str]],
     countries: list[str],
     listed_blank: list[str],
+    listed: dict[str, dict[str, str]],
 ) -> None:
     assert len(records) == 71, f"expected 71 rows, got {len(records)}"
     assert [r["Country"] for r in records] == countries, "country order drifted"
@@ -211,9 +225,19 @@ def _validate(
         assert row["GNI_pc_USD"], f"missing GNI per capita for {row['Country']}"
         assert row["GDP_2025_USD"], f"missing GDP for {row['Country']}"
         assert row["Population_2025"], f"missing population for {row['Country']}"
-    populated = sum(1 for r in records if r["Listed_companies"])
-    assert populated == 46, f"expected 46 listed-company values, got {populated}"
-    assert len(listed_blank) == 25, f"expected 25 blanks, got {len(listed_blank)}"
+    methods = {row["Listed_companies_method"] for row in records}
+    assert methods <= {"reported", "carry_forward", "exchange", "missing"}, methods
+    reported = sum(1 for r in records if r["Listed_companies_method"] == "reported")
+    assert reported == 46, f"expected 46 reported listed-company values, got {reported}"
+    missing = [r for r in records if r["Listed_companies_method"] == "missing"]
+    never = [country for country in countries if not listed[country]["WDI_last_year"].strip()]
+    assert len(never) == 6, f"expected 6 never-reporting countries, got {len(never)}"
+    assert len(listed_blank) == len(missing), "blank count disagrees with method"
+    for row in records:
+        if row["Listed_companies_method"] == "missing":
+            assert not row["Listed_companies"], f"{row['Country']} missing but has a value"
+        else:
+            assert row["Listed_companies"], f"no listed-company value for {row['Country']}"
 
 
 if __name__ == "__main__":
