@@ -181,6 +181,8 @@ MAPPING: dict[str, dict[str, str | None]] = {
             "Total renewable energy production (GWh)",
         "Relative Average Annual Loss by Climate (USD million)":
             "AAL by Climate (Million USD) for the Telecom Sector- Existing Climate",
+        "Data-centre water-stress exposure (0-100)":
+            "Data-centre water-stress exposure (0-100)",
     },
 }
 

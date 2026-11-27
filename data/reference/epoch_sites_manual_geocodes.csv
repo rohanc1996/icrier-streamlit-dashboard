@@ -1,0 +1,18 @@
+name,country,lat,lon,source,note
+DayOne Nusajaya,Malaysia,1.4667,103.5500,manual,Nusajaya Johor; country-level geocode otherwise
+DayOne Kempas,Malaysia,1.5333,103.7167,manual,Johor Bahru; state-level geocode otherwise
+Bridge Data Centres MY06,Malaysia,1.5333,103.7167,manual,Johor Bahru; state-level geocode otherwise
+YTL Johor,Malaysia,1.4500,103.7000,manual,Johor; state-level geocode otherwise
+Google Mesa,United States,33.4152,-111.8315,manual,Mesa AZ; country-level geocode otherwise
+Google Kansas City East,United States,39.0997,-94.5786,manual,Kansas City MO; country-level geocode otherwise
+Google Storey County,United States,39.3500,-119.4500,manual,Storey County NV; country-level geocode otherwise
+Oracle Batam,Indonesia,1.1301,104.0529,manual,Batam; country-level geocode otherwise
+Nebius Mantsala,Finland,60.6333,25.3167,manual,Mantsala; country-level geocode otherwise
+Envision Galaxy Ulanqab,China,40.9900,113.1300,manual,Ulanqab Inner Mongolia; country-level geocode otherwise
+Southgate Melbourne,Australia,-37.8136,144.9631,manual,Melbourne; country-level geocode otherwise
+Microsoft Narvik Norway,Norway,68.4384,17.4272,manual,Narvik; country-level geocode otherwise
+OpenAI Stargate Michigan,United States,42.1667,-83.7833,manual,Saline Township MI; country-level geocode otherwise
+OpenAI Stargate Milam,United States,30.7833,-96.9833,manual,Milam County TX; country-level geocode otherwise
+OpenAI Stargate New Mexico,United States,32.3500,-106.8300,manual,Don Ana County NM; country-level geocode otherwise
+OpenAI Stargate Wisconsin,United States,43.3872,-87.8756,manual,Port Washington WI; country-level geocode otherwise
+Anthropic Barber Lake,United States,,,unresolved,No public location found; excluded from the spatial join

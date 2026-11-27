@@ -1,0 +1,97 @@
+Name,lat,lon,geocode_source,geocode_note,geocode_display
+Colossus 2,34.9979829,-90.0348674,address,,"xAI Macrohard Colossus 2, 5420, Tulane Road, Scaife, Memphis, Shelby County, West Tennessee, Tennessee, 38109, United States"
+OpenAI Stargate Abilene,32.4942321,-99.8009071,address,,"Spinks Road, Abilene, Taylor County, Texas, 79603, United States"
+Anthropic-Amazon New Carlisle,39.936014,-84.025095,city,,"New Carlisle, Bethel Township, Clark County, Ohio, United States"
+Microsoft Fairwater Atlanta,33.4453541,-84.5254819,address,,"1435, Highway 54 West, Fayetteville, Fayette County, Georgia, 30214, United States"
+Google Pryor (North),36.2411721,-95.3300473,address,,"4581, Webb Street, Mid-America Industrial Park, Lusta, Pryor Creek, Mayes County, Oklahoma, 74361, United States"
+DayOne Nusajaya,1.4667,103.55,manual,Nusajaya Johor; country-level geocode otherwise,
+Meta Prometheus,38.2856247,-85.8241312,city,,"New Albany, Floyd County, Indiana, 47150, United States"
+DayOne Kempas,1.5333,103.7167,manual,Johor Bahru; state-level geocode otherwise,
+Microsoft Fairwater Wisconsin,42.6748702,-87.894888,address,,"4800, 90th Street, Mount Pleasant, Racine County, Wisconsin, 53403, United States"
+Google Columbus,39.8614521,-83.0039995,address,,"5076, South High Street, Columbus, Franklin County, Ohio, 43137, United States"
+Google New Albany,40.070051,-82.754042,address,,"1101, Beech Road Southwest, New Albany, Jersey Township, Licking County, Ohio, 43054, United States"
+Anthropic Lake Mariner,43.3586546,-78.604128,address,,"7725, Lake Road, Town of Somerset, Niagara County, New York, 14012, United States"
+Google Mesa,33.4152,-111.8315,manual,Mesa AZ; country-level geocode otherwise,
+Colossus 1,35.0861965,-90.0733414,address,,"Riverport Road, Memphis, Shelby County, West Tennessee, Tennessee, 38109, United States"
+Google Council Bluffs (East),41.1666499,-95.7977408,address,,"10410, Bunge Avenue, Council Bluffs, Lewis Township, Pottawattamie County, Iowa, 51503, United States"
+CoreWeave Denton TX,33.2192732,-97.174715,address,,"Jim Christal Road, Denton, Denton County, Texas, 76203, United States"
+QTS Richmond 1,37.4888273,-77.24749,address,,"6000, Technology Boulevard, Sandston, Henrico County, Virginia, 23150, United States"
+Bridge Data Centres MY06,1.5333,103.7167,manual,Johor Bahru; state-level geocode otherwise,
+Meta Rosemount,44.7352374,-93.1431094,city,,"55068, Rosemount, Dakota County, Minnesota, United States"
+Amazon Madison Mega Site,,,unresolved,no address and no city match,
+Google Bristow,42.7738667,-92.9061091,city,,"Bristow, Butler County, Iowa, United States"
+Microsoft Goodyear,33.4089905,-112.3647996,address,,"PHX-11, 14250, West Broadway Road, Goodyear, Maricopa County, Arizona, 85338, United States"
+Meta Jeffersonville,38.276156,-85.7400357,city,,"United States Postal Service, 303, East Court Avenue, Jeffersonville, Clark County, Indiana, 47130, United States"
+Google Kansas City East,39.0997,-94.5786,manual,Kansas City MO; country-level geocode otherwise,
+Meta Temple,31.1260165,-97.3600001,address,,"2310, Eberhardt Road, Temple, Bell County, Texas, 76504, United States"
+AWS New Albany,40.1158074,-82.7395358,address,,"13360, Miller Road Northwest, Jersey Township, Licking County, Ohio, 43031, United States"
+Google Omaha,41.3356809,-96.0523625,address,,"State Street, Omaha, Union Precinct, Douglas County, Nebraska, 68007, United States"
+Google Lincoln,40.907472,-96.6457832,address,,"Cloud Court, Lincoln, Lancaster County, Nebraska, 68514, United States"
+QTS Richmond 2,37.5107225,-77.3115564,city,,"Sandston, Henrico County, Virginia, United States"
+Google The Dalles,45.6253889,-121.2023887,address,,"River Road, The Dalles, Wasco County, Oregon, 97058, United States"
+QTS Richmond 3,37.5107225,-77.3115564,city,,"Sandston, Henrico County, Virginia, United States"
+Meta Montgomery,37.8882168,-95.3170208,city,,"Allen County, Kansas, United States"
+Meta Kuna,43.4592072,-116.4211106,city,,"601, West Kuna Mora Road, Kuna, Ada County, Idaho, 83634, United States"
+Meta Cheyenne,39.1090458,-94.767624,city,,"Wyandotte County, Kansas, United States"
+Amazon Ridgeland,32.4000327,-90.1971708,address,,"1626, West County Line Road, Lakeover, Jackson, Hinds County, Mississippi, 39213, United States"
+Meta Huntsville,34.8981438,-86.7335699,city,,"Toney, Madison County, Alabama, 35773, United States"
+Coreweave Helios,41.0288986,-94.1970463,city,,"Afton, Union Township, Union County, Iowa, 50830, United States"
+Microsoft Project Osmium,34.2073196,-84.1401926,city,,"Cumming, Forsyth County, Georgia, United States"
+YTL Johor,1.45,103.7,manual,Johor; state-level geocode otherwise,
+Meta Eagle Mountain,42.0620352,-74.50932,city,,"Eagle Mountain, Ulster County, New York, 12410, United States"
+Meta Aiken,38.4584915,-100.9336244,city,,"Scott County, Kansas, United States"
+Google Midlothian,32.438927,-97.0507991,address,,"Railport Parkway, Midlothian, Ellis County, Texas, 76084, United States"
+Google Storey County,39.35,-119.45,manual,Storey County NV; country-level geocode otherwise,
+Meta Los Lunas,34.8301645,-106.7838267,address,,"Meta, 4250, Messenger Loop Northwest, Meta Los Lunas Data Center, Los Lunas, Valencia County, New Mexico, 87031, United States"
+Google Lancaster,39.7270407,-82.6831433,address,,"105, Whiley Road Southwest, Lancaster, Hocking Township, Fairfield County, Ohio, 43130, United States"
+Meta-QTS Hillsboro 2,45.5588758,-122.9296051,address,,"QTS Data Center - Hillsboro 2, 4755, Northeast Huffman Street, North Hillsboro, Hillsboro, Washington County, Oregon, 97124, United States"
+Google Waltham Cross,51.702052,-0.0335908,city,,"Cheshunt, Broxbourne, Hertfordshire, England, EN8 9AA, United Kingdom"
+VNET Bayin Ulanqab,40.9902685,113.1315646,city,,"乌兰察布市 ᠤᠯᠠᠭᠠᠨᠴᠠᠪ ᠬᠣᠲᠠ, 内蒙古自治区 ᠦᠪᠦᠷ ᠮᠣᠩᠭᠤᠯ ᠤᠨ ᠥᠪᠡᠷᠲᠡᠭᠡᠨ ᠵᠠᠰᠠᠬᠣ ᠣᠷᠣᠨ, 012000, 中国"
+Google Arcola,31.8151416,-101.0452671,city,,"Sterling County, Texas, 76951, United States"
+Google Red Oak,32.5376266,-96.7966747,address,,"330, North Austin Boulevard, Red Oak, Ellis County, Texas, 75154, United States"
+Google Papillion,,,unresolved,no address and no city match,
+Meta Gallatin,37.7509507,-88.2264519,city,,"Gallatin County, Illinois, United States"
+CoreWeave Ellendale ND,46.0102576,-98.5686907,address,,"87th Avenue Southeast, Ellendale Township, Dickey County, North Dakota, 58436, United States"
+Meta Sarpy,39.130245,-94.6306638,city,,"Northeast, Kansas City, Wyandotte County, Kansas, 66101, United States"
+CoreWeave Chester VA,39.9829308,-75.7652424,city,,"Chester County, Pennsylvania, United States"
+Oracle Batam,1.1301,104.0529,manual,Batam; country-level geocode otherwise,
+AWS Berwick,41.0838485,-76.1435333,address,,"Amazon AWS PHL, 1125, Electron Avenue, Berwick, Luzerne County, Pennsylvania, 18603, United States"
+Huawei Horinger,40.2952478,111.9044975,city,,"和林格尔县 ᠬᠣᠷᠢᠨᠭᠡᠷ ᠰᠢᠶᠠᠨ, 呼和浩特市, 内蒙古自治区 ᠦᠪᠦᠷ ᠮᠣᠩᠭᠤᠯ ᠤᠨ ᠥᠪᠡᠷᠲᠡᠭᠡᠨ ᠵᠠᠰᠠᠬᠣ ᠣᠷᠣᠨ, 011500, 中国"
+CoreWeave Marble NC,35.1849883,-83.9141225,address,,"155, Palmer Lane, Marble, Cherokee County, North Carolina, 28905, United States"
+Core42 Lake Mariner,43.3586546,-78.604128,address,,"7725, Lake Road, Town of Somerset, Niagara County, New York, 14012, United States"
+Microsoft SAT40,29.4246002,-98.4951405,city,,"San Antonio, Bexar County, Texas, United States"
+STACK Infrastructure NVA02,38.7463701,-77.5368681,address,,"STACK NVA02D, 9590, Hornbaker Road, Manassas, Prince William County, Virginia, 20109, United States"
+Microsoft-Nebius New Jersey,39.4281965,-75.0184096,address,,"3963, South Lincoln Avenue, Clayville, Vineland, Cumberland County, New Jersey, 08361, United States"
+Huawei Wuhu,31.1800568,118.2141777,city,,"芜湖市, 安徽省, 中国"
+CoreWeave Norway,58.2929891,7.7879267,city,,"Øvrebø, Vennesla, Agder, 4715, Norge"
+Nebius Mantsala,60.6333,25.3167,manual,Mantsala; country-level geocode otherwise,
+Envision Galaxy Ulanqab,40.99,113.13,manual,Ulanqab Inner Mongolia; country-level geocode otherwise,
+Southgate Melbourne,-37.8136,144.9631,manual,Melbourne; country-level geocode otherwise,
+Stream Phoenix,33.4194907,-112.3599884,address,,"Stream Data Centers PHX-1, 2950, South Litchfield Road, Goodyear, Maricopa County, Arizona, 85338, United States"
+Microsoft SAT14,29.4728631,-98.681767,address,,"3545, Wiseman Boulevard, Westover Hills, San Antonio, Bexar County, Texas, 78251, United States"
+Vantage TX1,29.4168571,-98.7901875,address,,"Vantage TX11, 14720, Omicron Drive, San Antonio, Bexar County, Texas, 78245, United States"
+CoreWeave Dalton 1 & 2,34.7134428,-84.9521507,address,,"2205, Industrial South Road, Dalton, Whitfield County, Georgia, 30721, United States"
+Alibaba Zhangbei,25.7017448,-99.236325,city,,"China, Nuevo León, México"
+Start Campus Sines Data Campus,37.956549,-8.8689639,city,,"Sines, Setúbal, Portugal"
+xAI QTS Atlanta,33.7771892,-84.4195499,address,,"QTS Atlanta Data Center 2, 1025, Jefferson Street Northwest, Bellwood, Bankhead, Atlanta, Fulton County, Georgia, 30318, United States"
+Nscale Keflavik,63.9832697,-22.5561494,city,,"Reykjanesbær, Suðurnes, Ísland"
+Anthropic Barber Lake,,,unresolved,No public location found; excluded from the spatial join,
+CoreWeave Lancaster Greenfield site,40.0472199,-76.2555314,address,,"216, Greenfield Road, East Lampeter Township, Lancaster County, Pennsylvania, 17601, United States"
+CoreWeave Muskogee OK,35.7502274,-95.3743986,city,,"United States District Court, 101, North 5th Street, Muskogee, Muskogee County, Oklahoma, 74401, United States"
+Crusoe Abilene Expansion,32.4942321,-99.8009071,address,,"Spinks Road, Abilene, Taylor County, Texas, 79603, United States"
+EcoDataCenter 2,60.5162594,15.4145623,city,,"784 66, Borlänge kommun, Dalarnas län, Sverige"
+Goodnight,35.1081103,-101.362741,city,,"Claude, Armstrong County, Texas, United States"
+Google Cedar Rapids,41.9221755,-91.7156674,address,,"5800, Edgewood Road Southwest, Cedar Rapids, Fairfax Township, Linn County, Iowa, 52404, United States"
+Google Fort Wayne,41.0309293,-85.0536261,address,,"6015, Adams Center Road, Fort Wayne, Allen County, Indiana, 46816, United States"
+Meta Bowling Green,36.9929203,-86.4428677,city,,"Bowling Green, Warren County, Kentucky, 42101, United States"
+Meta Hyperion,32.4676421,-91.6267883,address,,"Holly Ridge, Richland Parish, Louisiana, United States"
+Microsoft Narvik Norway,68.4384,17.4272,manual,Narvik; country-level geocode otherwise,
+OpenAI Stargate Lordstown,41.8119602,-79.2654452,city,,"Warren County, Pennsylvania, United States"
+OpenAI Stargate Michigan,42.1667,-83.7833,manual,Saline Township MI; country-level geocode otherwise,
+OpenAI Stargate Milam,30.7833,-96.9833,manual,Milam County TX; country-level geocode otherwise,
+OpenAI Stargate New Mexico,32.35,-106.83,manual,Don Ana County NM; country-level geocode otherwise,
+OpenAI Stargate Shackelford,32.4522073,-99.7325012,city,,"United States Post Office, 341, Pine Street, Abilene, Taylor County, Texas, 79601, United States"
+OpenAI Stargate UAE,24.4538352,54.3774014,city,,"أبو ظبي, أبوظبي, أبو ظبي, الإمارات العربية المتحدة"
+OpenAI Stargate Wisconsin,43.3872,-87.8756,manual,Port Washington WI; country-level geocode otherwise,
+QTS Cedar Rapids,41.9056197,-91.7510775,address,,"6200, 76th Avenue Southwest, Cedar Rapids, Fairfax Township, Linn County, Iowa, 52228, United States"
+QTS Eagle Mountain,40.2688855,-112.0342942,address,,"Hyperscale Way, Eagle Mountain, Utah County, Utah, 84013, United States"

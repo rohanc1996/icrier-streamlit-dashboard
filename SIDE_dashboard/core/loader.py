@@ -276,6 +276,7 @@ HIGHER_IS_BETTER = {
     "Total number of email leaks (Quarterly average) (2022 Q3 - 2025 Q3)": False,
     "E-waste generated (million kg)": False,
     "AAL by Climate (Million USD) for the Telecom Sector- Existing Climate": False,
+    "Data-centre water-stress exposure (0-100)": False,
 }
 # Canonical-key lookups so a later edition whose headers carry shifted year
 # ranges still resolves to the same friendly name / direction.  Exact keys are

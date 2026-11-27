@@ -929,8 +929,8 @@ def test_2027_extension() -> None:
 
     pillars, unresolved = H.resolve_hierarchy(data.numeric_df.columns)
     check("2027 spec has no unresolved names", not unresolved)
-    check("2027 spec adds 4 indicators to the baseline (62 leaves)",
-          len(H.all_leaves(pillars)) == 62)
+    check("2027 spec adds 5 indicators to the baseline (63 leaves)",
+          len(H.all_leaves(pillars)) == 63)
 
     def sub(pillar_name, sub_name):
         for pillar in pillars:
@@ -959,6 +959,17 @@ def test_2027_extension() -> None:
           "AI tech cycle trade exposure (% of GDP)" in ai_names)
     check("HARNESS · AI has equal weights",
           np.allclose([leaf.weight for leaf in ai.leaves], 1 / 6))
+
+    sustain = sub("SUSTAINABILITY", "Sustainability")
+    sustain_names = [leaf.name for leaf in sustain.leaves]
+    check("water-stress exposure is in SUSTAINABILITY",
+          "Data-centre water-stress exposure (0-100)" in sustain_names)
+    check("SUSTAINABILITY has seven equal weights",
+          np.allclose([leaf.weight for leaf in sustain.leaves], 1 / 7))
+    from core import loader
+    check("water-stress exposure is lower-is-better",
+          loader.resolve_higher_is_better(
+              "Data-centre water-stress exposure (0-100)") is False)
 
     # Earlier editions must keep the baseline (58 leaves) and no NCSI.
     baseline, _ = H.resolve_hierarchy(["Price of mobile data and voice basket (HC) PPP"])

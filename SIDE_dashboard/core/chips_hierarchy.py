@@ -302,11 +302,13 @@ HIERARCHY = [
 #   - PROTECT · Preparedness  -> NCSI Index Score (Preparedness becomes equal)
 #   - HARNESS · Real Economy  -> digitally delivered services (imports)
 #   - HARNESS · AI            -> AI Human Capital + AI tech-cycle trade exposure
+#   - SUSTAINABILITY          -> Data-centre water-stress exposure (0-100)
 EDITION_2027_SENTINELS = {
     "NCSI Index Score",
     "Digitally delivered services (imports)",
     "AI Human Capital",
     "AI tech cycle trade exposure (% of GDP)",
+    "Data-centre water-stress exposure (0-100)",
 }
 
 
@@ -344,6 +346,12 @@ def _extend_2027(spec: list[dict]) -> list[dict]:
             ("AI tech cycle trade exposure (% of GDP)", None),
         ]
     )
+
+    # SUSTAINABILITY gains one indicator.  It is a risk measure (higher = worse),
+    # so the loader inverts it; see document 0006 in docs/decisions/.
+    sustainability = _find_sub_pillar(out, "SUSTAINABILITY", "Sustainability")
+    sustainability["indicators"] = [(name, None) for name, _ in sustainability["indicators"]]
+    sustainability["indicators"].append(("Data-centre water-stress exposure (0-100)", None))
     return out
 
 

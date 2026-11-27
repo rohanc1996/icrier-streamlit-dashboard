@@ -2,3 +2,6 @@
 /.venv
 *.pyc__pycache__/
 *.py[cod]
+
+# Water-stress indicator: large third-party downloads and AUP-restricted snapshots
+data/derived/water_stress/
